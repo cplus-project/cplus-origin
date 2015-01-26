@@ -83,8 +83,11 @@ typedef struct {
 typedef struct{
     FILE* srcfile;
     char  buffer[LEX_BUFF_SIZE];
-    int32 i;     // the array index of buffer
-    int32 line;  // record the current analyzing line count
+    int32 i;    // the array index of buffer
+    int32 buff_end_index; // the last index of the buffer. the buffer will not be
+                          // always filled with the capacity of LEX_BUFF_SIZE so
+                          // the buff_end_index will flag this situation
+    int32 line; // record the current analyzing line count
 }lex_analyzer;
 
 // first initialize the lexical analyzer before using it.

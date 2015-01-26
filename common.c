@@ -3,7 +3,8 @@
 error new_error(char* errmsg) {
     if (errmsg == NULL) {
         return "";
-    } else {
+    }
+    else {
         return errmsg;
     }
 }

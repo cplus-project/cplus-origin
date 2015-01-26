@@ -27,7 +27,8 @@ void dynamicarr_char_append(dynamicarr_char* darr, char* str, uint64 len) {
             darr->cur->i++;
             darr->used++;
         }
-    } else {
+    }
+    else {
         // if the total size of now used space of dynamic char array and
         // the append string is more than darr->total_size. then extend
         // the total capacity of the dynamic array. we create a new buffer
@@ -41,14 +42,16 @@ void dynamicarr_char_append(dynamicarr_char* darr, char* str, uint64 len) {
                 darr->cur->next->arr  = (char*)malloc(sizeof(char) * darr->total_cap);
                 darr->cur->next->next = NULL;
                 darr->total_cap *= 2;
-            } else {
+            }
+            else {
                 for (j = 0; j < len;) {
                     if (darr->cur->i < darr->cur->cap) {
                         darr->cur->arr[darr->cur->i] = str[j];
                         darr->cur->i++;
                         darr->used++;
                         j++;
-                    } else {
+                    }
+                    else {
                         darr->cur = darr->cur->next;
                     }
                 }
@@ -88,7 +91,8 @@ bool dynamicarr_char_equal(dynamicarr_char* darr, char* str, uint64 len) {
                 return false;
             }
             i++; j++;
-        } else {
+        }
+        else {
             ptr = ptr->next;
             j = 0;
         }
@@ -111,7 +115,8 @@ char* dynamicarr_char_getstr(dynamicarr_char* darr) {
         if (j < ptr->cap) {
             str[i] = ptr->arr[j];
             j++; i++;
-        } else {
+        }
+        else {
             ptr = ptr->next;
             j = 0;
         }
@@ -131,7 +136,8 @@ void dynamicarr_char_destroy(dynamicarr_char* darr) {
             }
             if (temp == NULL) {
                 break;
-            } else {
+            }
+            else {
                 ptr = temp;
             }
         }
@@ -150,7 +156,8 @@ void dynamicarr_char_debug(dynamicarr_char* darr) {
         if (j < ptr->cap) {
             printf("%c", ptr->arr[j]);
             j++; i++;
-        } else {
+        }
+        else {
             ptr = ptr->next;
             j = 0;
         }

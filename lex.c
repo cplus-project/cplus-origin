@@ -1,9 +1,10 @@
 #include "lex.h"
 
 void lex_init(lex_analyzer* lex) {
-    lex->srcfile = NULL;
-    lex->line    = 1;
-    lex->i       = 0;
+    lex->srcfile        = NULL;
+    lex->line           = 1;
+    lex->buff_end_index = 0;
+    lex->i              = 0;
     memset(lex->buffer, 0, LEX_BUFF_SIZE);
 }
 
@@ -26,21 +27,21 @@ void lex_close_srcfile(lex_analyzer* lex) {
 error lex_parse_token(lex_analyzer* lex, lex_token* lextkn) {
     assert(lex->srcfile != NULL);
     for (;;) {
-        // when lex->i equals to LEX_BUFF_SIZE, it means that the source codes now
-        // in the lex->buffer are all processed completely. and now the lexical
+        // when lex->i equals to lex->buff_end_index, it means that the source codes 
+        // now in the lex->buffer are all processed completely. and now the lexical
         // analyzer can read next LEX_BUFF_SIZE bytes source codes from the source
         // file.
-        if (lex->i == LEX_BUFF_SIZE) {
+        if (lex->i == lex->buff_end_index) {
             int read_len = fread(lex->buffer, 1, LEX_BUFF_SIZE, lex->srcfile);
-            if (read_len != LEX_BUFF_SIZE) {
-                if (feof(lex->srcfile) != 0) {
-                    return new_error("err: parse over.");
-                } else if (ferror(lex->srcfile) != 0) {
-                    return new_error("err: some error occur when parsing.");
-                } else {
-                    return new_error("err: parsing failed with unknown error.");
-                }
+            // process the end-of-file.
+            if (feof(lex->srcfile) != 0 && read_len == 0) {
+                return new_error("err: parse over.");
             }
+            // process the read errors.
+            if (ferror(lex->srcfile) != 0 || read_len < 0) {
+                return new_error("err: some error occur when parsing.");
+            }   
+            lex->buff_end_index = read_len;
             lex->i = 0;
             continue;
         }
