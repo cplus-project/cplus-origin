@@ -5,34 +5,15 @@
 
 int main() {
     dynamicarr_char darr;
-    error err = dynamicarr_char_init(&darr, 0);
+    error err = dynamicarr_char_init(&darr, 1);
     if (err != NULL) {
         printf("%s\r\n", err);
         return 0;
     }
-    int i = 0;
-    for (i = 0; i < 100; i++) {
-        dynamicarr_char_appendc(&darr, 'a');
-    }
+    char* msg = "aaaaa";
+    dynamicarr_char_append(&darr, msg, strlen(msg));
     dynamicarr_char_debug(&darr);
     dynamicarr_char_destroy(&darr);
-
-    /*char* srcfile = "/home/jikai/c_projects/temp/srcfile";
-    lex_analyzer lex;
-    lex_token    token;
-    error        err;
-    lex_init(&lex);
-    err = lex_open_srcfile(&lex, srcfile);
-    if (err != NULL) {
-        printf("%s\r\n", err);
-        return;
-    }
-    err = lex_parse_token(&lex, &token);
-    if (err != NULL) {
-        printf("%s\r\n", err);
-        return;
-    }
-    lex_close_srcfile(&lex);*/
     return 0;
 }
 

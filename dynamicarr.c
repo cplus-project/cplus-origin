@@ -39,13 +39,15 @@ void dynamicarr_char_append(dynamicarr_char* darr, char* str, uint64 len) {
         // the total capacity of the dynamic array. we create a new buffer
         // with twice size of current total capacity every time until it
         // can contain the requirement size of the string.
+        dynamicarr_char_node* _cur = darr->cur;
         for(;;) {
             if (darr->total_cap < need) {
-                darr->cur->next = malloc(sizeof(dynamicarr_char_node));
-                darr->cur->next->cap  = darr->total_cap;
-                darr->cur->next->i    = 0;
-                darr->cur->next->arr  = (char*)malloc(sizeof(char) * darr->total_cap);
-                darr->cur->next->next = NULL;
+                _cur->next = malloc(sizeof(dynamicarr_char_node));
+                _cur->next->cap  = darr->total_cap;
+                _cur->next->i    = 0;
+                _cur->next->arr  = (char*)malloc(sizeof(char) * darr->total_cap);
+                _cur->next->next = NULL;
+                _cur = _cur->next;
                 darr->total_cap *= 2;
             }
             else {
