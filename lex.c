@@ -26,8 +26,10 @@ void lex_close_srcfile(lex_analyzer* lex) {
 
 error lex_parse_token(lex_analyzer* lex, lex_token* lextkn) {
     assert(lex->srcfile != NULL);
+    char ch = '0';
+
     for (;;) {
-        // when lex->i equals to lex->buff_end_index, it means that the source codes 
+        // when lex->i equals to lex->buff_end_index, it means that the source codes
         // now in the lex->buffer are all processed completely. and now the lexical
         // analyzer can read next LEX_BUFF_SIZE bytes source codes from the source
         // file.
@@ -40,14 +42,14 @@ error lex_parse_token(lex_analyzer* lex, lex_token* lextkn) {
             // process the read errors.
             if (ferror(lex->srcfile) != 0 || read_len < 0) {
                 return new_error("err: some error occur when parsing.");
-            }   
+            }
             lex->buff_end_index = read_len;
             lex->i = 0;
             continue;
         }
 
         // skip the blank characters. all blank characters make no sense in c+.
-        char ch = lex->buffer[lex->i];
+        ch = lex->buffer[lex->i];
         if (ch == ' ' || ch == '\r' || ch == '\n') {
             continue;
         }

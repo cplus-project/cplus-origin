@@ -30,11 +30,12 @@ typedef struct {
     dynamicarr_char_node* cur;    // point to the buffer which the index is on focus now
 }dynamicarr_char;
 
-extern void  dynamicarr_char_init   (dynamicarr_char* darr, uint64 capacity);
+extern error dynamicarr_char_init   (dynamicarr_char* darr, uint64 capacity);
 extern void  dynamicarr_char_append (dynamicarr_char* darr, char* str, uint64 len);
 extern void  dynamicarr_char_appendc(dynamicarr_char* darr, char ch);
 extern bool  dynamicarr_char_equal  (dynamicarr_char* darr, char* str, uint64 len);
 extern char* dynamicarr_char_getstr (dynamicarr_char* darr);
+extern void  dynamicarr_char_clear  (dynamicarr_char* darr);
 extern void  dynamicarr_char_destroy(dynamicarr_char* darr);
 extern void  dynamicarr_char_debug  (dynamicarr_char* darr);
 

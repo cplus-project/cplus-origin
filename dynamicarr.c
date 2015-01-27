@@ -1,6 +1,10 @@
 #include "dynamicarr.h"
 
-void dynamicarr_char_init(dynamicarr_char* darr, uint64 capacity) {
+error dynamicarr_char_init(dynamicarr_char* darr, uint64 capacity) {
+    if (capacity <= 0) {
+        return new_error("err: the capacity of the dynamic char array should be a positive number!");
+    }
+    
     darr->total_cap = capacity;
     darr->used      = 0;
 
@@ -16,6 +20,7 @@ void dynamicarr_char_init(dynamicarr_char* darr, uint64 capacity) {
     darr->first->next = NULL;
 
     darr->cur = darr->first;
+    return NULL;
 }
 
 void dynamicarr_char_append(dynamicarr_char* darr, char* str, uint64 len) {
@@ -123,6 +128,34 @@ char* dynamicarr_char_getstr(dynamicarr_char* darr) {
     }
     str[len] = '\0';
     return str;
+}
+
+// dynamicarr_char_clear() is used to clear the content in the
+// dynamic char array. dynamicarr_char_destroy() is used to 
+// destroy the whole array(like the memory occupied by the array).
+void dynamicarr_char_clear(dynamicarr_char* darr) {
+    if (darr->first != NULL) {
+        darr->first->i  = 0;
+        darr->used      = 0;
+        darr->total_cap = darr->first->cap;
+    }
+    if (darr->first->next != NULL) {
+        dynamicarr_char_node* ptr  = darr->first->next;
+        dynamicarr_char_node* temp = NULL;
+        for (;;) {
+            temp = (dynamicarr_char_node*)ptr->next;
+            if (ptr != NULL) {
+                free(ptr);
+            }
+            if (temp == NULL) {
+                break;
+            }
+            else {
+                ptr = temp;
+            }
+        }
+        darr->first->next = NULL;
+    }
 }
 
 void dynamicarr_char_destroy(dynamicarr_char* darr) {
