@@ -12,7 +12,13 @@ int main() {
     }
     char* msg = "aaaaa";
     dynamicarr_char_append(&darr, msg, strlen(msg));
-    dynamicarr_char_debug(&darr);
+    printf("%s\r\n", dynamicarr_char_getstr(&darr));
+    printf("---------------------------\r\n");
+    dynamicarr_char_clear(&darr);
+    printf("%s\r\n", dynamicarr_char_getstr(&darr));
+    printf("---------------------------\r\n");
+    dynamicarr_char_append(&darr, msg, strlen(msg));
+    printf("%s\r\n", dynamicarr_char_getstr(&darr));
     dynamicarr_char_destroy(&darr);
     return 0;
 }

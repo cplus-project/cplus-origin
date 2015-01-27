@@ -158,6 +158,7 @@ void dynamicarr_char_clear(dynamicarr_char* darr) {
         }
         darr->first->next = NULL;
     }
+    darr->cur = darr->first;
 }
 
 void dynamicarr_char_destroy(dynamicarr_char* darr) {
