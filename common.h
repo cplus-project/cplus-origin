@@ -1,9 +1,7 @@
 /**
- * Copyright by JiKai in 2014-12-09.
- *
- *     This file contains some common defines used by every
- * other file. All source files should first include this
- * header file before they are using.
+ * Copyright 2015 JiKai. All rights reserved.
+ * Use of this source code is governed by a BSD-style
+ * license that can be found in the LICENSE file.
  **/
 
 #ifndef CPLUS_COMMON_H
