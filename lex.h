@@ -15,6 +15,7 @@
 #include "common.h"
 #include "dynamicarr.h"
 
+#define TOKEN_UNKNOWN          0x000  // all unknown token type
 #define TOKEN_KEYWORD_IF       0x101  // if
 #define TOKEN_KEYWORD_EF       0x102  // ef
 #define TOKEN_KEYWORD_ELSE     0x103  // else
@@ -76,6 +77,9 @@ typedef struct {
     int32 token_len;       // token's length
     int32 token_type;      // will be assigned with one of micro definitions suffixed with 'TOKEN_...'
 }lex_token;
+
+extern error lex_token_init   (lex_token* lextkn, uint64 capacity);
+extern void  lex_token_destroy(lex_token* lextkn);
 
 // if want to change the lexical analyzer's buffer size and file
 // read rate, just modify the under micro definition.

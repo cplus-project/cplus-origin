@@ -1,5 +1,19 @@
 #include "lex.h"
 
+// ----- methods of lex_token -----
+
+error lex_token_init(lex_token* lextkn, uint64 capacity) {
+    dynamicarr_char_init(&lextkn->token, capacity);
+    lextkn->token_len  = 0;
+    lextkn->token_type = TOKEN_UNKNOWN;
+}
+
+void lex_token_destroy(lex_token* lextkn) {
+    dynamicarr_char_destroy(&lextkn->token);
+}
+
+// ----- methods of lex_analyzer -----
+
 void lex_init(lex_analyzer* lex) {
     lex->srcfile        = NULL;
     lex->line           = 1;
