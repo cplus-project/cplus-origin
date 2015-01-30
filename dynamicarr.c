@@ -1,3 +1,9 @@
+/**
+ * Copyright 2015 JiKai. All rights reserved.
+ * Use of this source code is governed by a BSD-style
+ * license that can be found in the LICENSE file.
+ **/
+
 #include "dynamicarr.h"
 
 error dynamicarr_char_init(dynamicarr_char* darr, uint64 capacity) {
@@ -113,7 +119,7 @@ char* dynamicarr_char_getstr(dynamicarr_char* darr) {
     int j = 0;
     int len = darr->used;
     // alloc an extra byte to add an '\0'. because when the string is using
-    // outsize the dynamic array, it will be used to do some operation like
+    // outside the dynamic array, it will be used to do some operation like
     // strcmp or strcpy, and they are all think the '\0' is the end of a
     // string.
     char* str = (char*)malloc(sizeof(char)*len + 1);
