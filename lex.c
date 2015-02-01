@@ -9,13 +9,14 @@
 // you should always use the lex_idx_inc(lex->i) to
 // increase the buffer's current index of the lexical
 // analyzer.
-#define lex_next() lex->i++; \
-                   if (lex->i >= lex->buff_end_index) { \
-                       error err = lex_read_file(lex); \
-                       if (err != NULL) { \
-                           return err; \
-                       } \
-                   }
+#define lex_next(lex_analyzer) \
+lex_analyzer->i++;                                     \
+if (lex_analyzer->i >= lex_analyzer->buff_end_index) { \
+    error err = lex_read_file(lex_analyzer);           \
+    if (err != NULL) {                                 \
+        return err;                                    \
+    }                                                  \
+}
 
 // ----- methods of lex_token -----
 
@@ -90,6 +91,48 @@ error lex_read_file(lex_analyzer* lex) {
     lex->i = 0;
 }
 
+char lex_readc(lex_analyzer* lex) {
+    return lex->buffer[lex->i];
+}
+
+// used to parse scientific notation part of a number
+// constant. you shoud use this as below:
+//   ...
+//   for (;;) {
+//       char ch = lex_readc(&lex);
+//       if (ch == 'e' || ch == 'E') {
+//           lex_next(lex);
+//           error err = lex_parse_scientific_notation(&lex, lextkn);
+//           if (err != NULL) {
+//               return err;
+//           }
+//           else {
+//               lextkn->token_type = TOKEN_CONST_NUMBER;
+//               return NULL;
+//           }
+//       }
+//   }
+//   ...
+error lex_parse_scientific_notation(lex_analyzer* lex, lex_token* lextkn) {
+    lex_token_appendc(lextkn, 'E');
+    char ch = lex_readc(lex);
+    if (ch == '-' || ch == '+') {
+        lex_token_appendc(lextkn, ch);
+        lex_next(lex);
+    }
+    for (;;) {
+        ch = lex_readc(lex);
+        if ('0' <= ch && ch <= '9') {
+            lex_token_appendc(lextkn, ch);
+            lex_next(lex);
+        }
+        else {
+            lextkn->token_type = TOKEN_CONST_NUMBER;
+            return NULL;
+        }
+    }
+}
+
 error lex_parse_token(lex_analyzer* lex, lex_token* lextkn) {
     char ch = '0';
     lex_token_clear(lextkn);
@@ -102,12 +145,12 @@ error lex_parse_token(lex_analyzer* lex, lex_token* lextkn) {
 
     // skip the blank characters. all blank characters make no sense in c+.
     for (;;) {
-        ch = lex->buffer[lex->i];
+        ch = lex_readc(lex);
         if (ch == ' ') {
-            lex_next();
+            lex_next(lex);
         }
         else if (ch == '\r' || ch == '\n') {
-            lex_next();
+            lex_next(lex);
             // counting the line numbers to make some preparations for
             // debuging and error/warning reporting.
             lex->line++;
@@ -120,12 +163,12 @@ error lex_parse_token(lex_analyzer* lex, lex_token* lextkn) {
     // parsing identifers and keywords
     if (('a' <= ch && ch <= 'z') || ('A' <= ch && ch <= 'Z') || ch == '_') {
         lex_token_appendc(lextkn, ch);
-        lex_next();
+        lex_next(lex);
         for (;;) {
-            ch = lex->buffer[lex->i];
+            ch = lex_readc(lex);
             if (('a' <= ch && ch <= 'z') || ('A' <= ch && ch <= 'Z') || ('0' <= ch && ch <= '9') || ch == '_') {
                 lex_token_appendc(lextkn, ch);
-                lex_next();
+                lex_next(lex);
             }
             else {
                 char* token_content = dynamicarr_char_getstr(&lextkn->token);
@@ -205,7 +248,7 @@ error lex_parse_token(lex_analyzer* lex, lex_token* lextkn) {
     if ('0' <= ch && ch <= '9') {
         char first = ch;
         lex_token_appendc(lextkn, ch);
-        lex_next();
+        lex_next(lex);
         // distinguish the different number formats, such as:
         // (1) ordinary format
         // (2) 0b... or 0B...
@@ -214,71 +257,106 @@ error lex_parse_token(lex_analyzer* lex, lex_token* lextkn) {
         // (5) 0x... or 0X...
         if (first != '0') {
             for (;;) {
-                ch = lex->buffer[lex->i];
+                ch = lex_readc(lex);
                 // integer part
                 if ('0' <= ch && ch <= '9') {
                     lex_token_appendc(lextkn, ch);
-                    lex_next();
+                    lex_next(lex);
                 }
                 // floating part
                 else if (ch == '.') {
                     lex_token_appendc(lextkn, ch);
-                    lex_next();
+                    lex_next(lex);
                     for (;;) {
-                        ch = lex->buffer[lex->i];
+                        ch = lex_readc(lex);
                         if ('0' <= ch && ch <= '9') {
                             lex_token_appendc(lextkn, ch);
-                            lex_next();
+                            lex_next(lex);
                         }
-                        else if (ch == 'e' || ch == 'E') {
-                            // TODO: scientific notation
+                        else if (ch == 'e' || ch == 'E') { // scientific notation part
+                            lex_next(lex);
+                            error err = lex_parse_scientific_notation(lex, lextkn);
+                            if (err != NULL) {
+                                return err;
+                            }
+                            else {
+                                lextkn->token_type = TOKEN_CONST_NUMBER;
+                                return NULL;
+                            }
                         }
                         else {
-                            lextkn->token_type = TOKEN_CONST_FLOAT;
+                            lextkn->token_type = TOKEN_CONST_NUMBER;
                             return NULL;
                         }
                     }
                 }
-                else if (ch == 'e' || ch == 'E') {
-                    // TODO: scientific notation
+                else if (ch == 'e' || ch == 'E') { // scientific notation part
+                    lex_next(lex);
+                    error err = lex_parse_scientific_notation(lex, lextkn);
+                    if (err != NULL) {
+                        return err;
+                    }
+                    else {
+                        lextkn->token_type = TOKEN_CONST_NUMBER;
+                        return NULL;
+                    }
                 }
                 else {
-                    lextkn->token_type = TOKEN_CONST_INTEGER;
+                    lextkn->token_type = TOKEN_CONST_NUMBER;
                     return NULL;
                 }
             }
         }
         else {
-            ch = lex->buffer[lex->i];
+            ch = lex_readc(lex);
             switch (ch) {
             case 'x':
             case 'X': // hex format
                 lex_token_appendc(lextkn, ch);
-                lex_next();
+                lex_next(lex);
                 for (;;) {
-                    ch = lex->buffer[lex->i];
+                    ch = lex_readc(lex);
                     if (('0' <= ch && ch <= '9') || ('A' <= ch && ch <= 'F') || ('a' <= ch && ch <= 'f')) {
                         lex_token_appendc(lextkn, ch);
-                        lex_next();
+                        lex_next(lex);
                     }
                     else {
-                        lextkn->token_type = TOKEN_CONST_INTEGER;
+                        lextkn->token_type = TOKEN_CONST_NUMBER;
                         return NULL;
                     }
                 }
                 break;
             case 'b':
             case 'B': // binary format
-                lex_next();
+                lex_next(lex);
+                lex_token_clear(lextkn);
                 for (;;) {
-                    ch = lex->buffer[lex->i];
+                    ch = lex_readc(lex);
                     if (ch == '0' || ch == '1') {
-                        // TODO: transfor binary to decimal...
-                        //       and useing the lex_token_append(char*) to
-                        //       set the new value
+                        lex_token_appendc(lextkn, ch);
+                        lex_next(lex);
                     }
                     else {
-                        lextkn->token_type = TOKEN_CONST_INTEGER;
+                        // transfor binary format to the decimal format.
+                        // for example: 1011 = 1<<3 + 1<<1 + 1<<0
+                        //              0110 = 1<<2 + 1<<1
+                        int   j;
+                        int   digit  = lextkn->token_len - 1;
+                        char* bnum   = dynamicarr_char_getstr(&lextkn->token);
+                        int64 decval = 0;
+                        lex_token_clear(lextkn);
+                        for (j = 0; j < lextkn->token_len; j++) {
+                            if (bnum[j] == '1') {
+                                decval += 1<<digit;
+                            }
+                            else if (bnum[j] != '0') {
+                                return new_error("err: the binary constant number can not contain numbers excepts 1 and 0.");
+                            }
+                            digit--;
+                        }
+                        char* retstr = cplus_itoa(decval);
+                        lex_token_append(lextkn, retstr, strlen(retstr));
+                        lextkn->token_type = TOKEN_CONST_NUMBER;
                         return NULL;
                     }
                 }
@@ -294,21 +372,21 @@ error lex_parse_token(lex_analyzer* lex, lex_token* lextkn) {
     }
     // parsing string constants
     if (ch == '"') {
-        lex_next();
+        lex_next(lex);
     }
     // parsing char constants
     if (ch == '\'') {
         lex_token_appendc(lextkn, ch);
-        lex_next();
-        ch = lex->buffer[lex->i];
+        lex_next(lex);
+        ch = lex_readc(lex);
         if (ch != '\\') {
             lex_token_appendc(lextkn, ch);
-            lex_next();
+            lex_next(lex);
         }
         else {
             lex_token_appendc(lextkn, ch);
-            lex_next();
-            ch = lex->buffer[lex->i];
+            lex_next(lex);
+            ch = lex_readc(lex);
             switch (ch) {
             case 'a':
             case 'b':
@@ -321,13 +399,13 @@ error lex_parse_token(lex_analyzer* lex, lex_token* lextkn) {
             case '"':
             case '0':
                 lex_token_appendc(lextkn, ch);
-                lex_next();
+                lex_next(lex);
                 break;
             default:
                 return new_error("err: unknown escape.");
             }
         }
-        ch = lex->buffer[lex->i];
+        ch = lex_readc(lex);
         if (ch == '\'') {
             lex_token_appendc(lextkn, ch);
         }

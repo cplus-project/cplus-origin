@@ -32,10 +32,9 @@
 #define TOKEN_KEYWORD_TYPE     0x20B  // type
 #define TOKEN_KEYWORD_IN       0x20C  // in
 #define TOKEN_KEYWORD_OT       0x20D  // ot
-#define TOKEN_CONST_INTEGER    0x300  // const-integer
-#define TOKEN_CONST_FLOAT      0x301  // const-float
-#define TOKEN_CONST_CHAR       0x302  // const-char
-#define TOKEN_CONST_STRING     0x303  // const-string
+#define TOKEN_CONST_NUMBER     0x300  // const-number
+#define TOKEN_CONST_CHAR       0x301  // const-char
+#define TOKEN_CONST_STRING     0x302  // const-string
 #define TOKEN_OP_ASSIGN        0x400  // =
 #define TOKEN_OP_ADD           0X401  // +
 #define TOKEN_OP_SUB           0x402  // -
