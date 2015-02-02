@@ -24,12 +24,12 @@ char* conv_itoa(int64 num) {
     if (negative == true) {
         dynamicarr_char_appendc(&darr, '-');
     }
-    char* numstr = dynamicarr_char_getstr(&darr);
+    char  ch;
+    char* numstr      = dynamicarr_char_getstr(&darr);
+    int   reverse_len = darr.used;
+    int   reverse_end = reverse_len >> 1;
+    int   i;
     dynamicarr_char_destroy(&darr);
-    int  reverse_len = strlen(numstr);
-    int  reverse_end = reverse_len >> 1;
-    int  i;
-    char ch;
     for (i = 0; i < reverse_end; i++) {
         ch = numstr[i];
         numstr[i] = numstr[reverse_len-i-1];

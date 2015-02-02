@@ -352,26 +352,14 @@ error lex_parse_token(lex_analyzer* lex, lex_token* lextkn) {
             case 'o':
             case 'O': // octal format
                 lex_next(lex);
-                lex_token_clear(lextkn);
                 for (;;) {
                     ch = lex_readc(lex);
-                    switch (ch) {
-                    case '0': lex_token_append(lextkn, "000", 3); lex_next(lex); break;
-                    case '1': lex_token_append(lextkn, "001", 3); lex_next(lex); break;
-                    case '2': lex_token_append(lextkn, "010", 3); lex_next(lex); break;
-                    case '3': lex_token_append(lextkn, "011", 3); lex_next(lex); break;
-                    case '4': lex_token_append(lextkn, "100", 3); lex_next(lex); break;
-                    case '5': lex_token_append(lextkn, "101", 3); lex_next(lex); break;
-                    case '6': lex_token_append(lextkn, "110", 3); lex_next(lex); break;
-                    case '7': lex_token_append(lextkn, "111", 3); lex_next(lex); break;
-                    default:
-                        {   // if not be included in an alone scope, the under code
-                            // will cause some errors.
-                            char* decimal = conv_itoa(conv_binary_to_decimal(lex_token_getstr(lextkn), lextkn->token_len));
-                            lex_token_clear(lextkn);
-                            lex_token_append(lextkn, decimal, strlen(decimal));
-                            lextkn->token_type = TOKEN_CONST_NUMBER;
-                        }
+                    if ('0' <= ch && ch <= '7') {
+                        lex_token_appendc(lextkn, ch);
+                        lex_next(lex);
+                    }
+                    else {
+                        lextkn->token_type = TOKEN_CONST_NUMBER;
                         return NULL;
                     }
                 }

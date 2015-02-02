@@ -6,10 +6,6 @@
 #include "convert.h"
 
 int main() {
-    int64 i;
-    for (i=-100; i<=123; i++) {
-        char* str = conv_itoa(i);
-        printf("%s\r\n", str);
-    }
+    printf("%lld\r\n", conv_binary_to_decimal("1", 1));
     return 0;
 }
