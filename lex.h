@@ -15,6 +15,7 @@
 #include <string.h>
 #include "common.h"
 #include "dynamicarr.h"
+#include "convert.h"
 
 #define TOKEN_UNKNOWN          0x000  // all unknown token type
 #define TOKEN_ID               0x100  // identifiers
@@ -85,6 +86,7 @@ typedef struct {
 extern error lex_token_init   (lex_token* lextkn, uint64 capacity);
 extern void  lex_token_append (lex_token* lextkn, char* str, uint64 len);
 extern void  lex_token_appendc(lex_token* lextkn, char ch);
+extern char* lex_token_getstr (lex_token* lextkn);
 extern void  lex_token_clear  (lex_token* lextkn);
 extern void  lex_token_destroy(lex_token* lextkn);
 

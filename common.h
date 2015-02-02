@@ -2,6 +2,9 @@
  * Copyright 2015 JiKai. All rights reserved.
  * Use of this source code is governed by a BSD-style
  * license that can be found in the LICENSE file.
+ *
+ *     This file defines some common typedef and offers
+ * the uniform error handling.
  **/
 
 #ifndef CPLUS_COMMON_H
@@ -38,7 +41,5 @@ typedef unsigned char          uchar;
 //                 not NULL means some error occurs
 typedef char* error;
 extern error new_error(char* errmsg);
-
-extern char* cplus_itoa(int64 num);
 
 #endif

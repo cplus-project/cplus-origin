@@ -36,6 +36,10 @@ void lex_token_appendc(lex_token* lextkn, char ch) {
     lextkn->token_len++;
 }
 
+char* lex_token_getstr(lex_token* lextkn) {
+    return dynamicarr_char_getstr(&lextkn->token);
+}
+
 void lex_token_clear(lex_token* lextkn) {
     dynamicarr_char_clear(&lextkn->token);
     lextkn->token_len  = 0;
@@ -171,7 +175,7 @@ error lex_parse_token(lex_analyzer* lex, lex_token* lextkn) {
                 lex_next(lex);
             }
             else {
-                char* token_content = dynamicarr_char_getstr(&lextkn->token);
+                char* token_content = lex_token_getstr(lextkn);
                 if ('b' <= token_content[0] && token_content[0] <= 'f') {
                     // for func
                     if (lextkn->token_len == 3 && strcmp(token_content, "for") == 0) {
@@ -337,25 +341,9 @@ error lex_parse_token(lex_analyzer* lex, lex_token* lextkn) {
                         lex_next(lex);
                     }
                     else {
-                        // transfor binary format to the decimal format.
-                        // for example: 1011 = 1<<3 + 1<<1 + 1<<0
-                        //              0110 = 1<<2 + 1<<1
-                        int   j;
-                        int   digit  = lextkn->token_len - 1;
-                        char* bnum   = dynamicarr_char_getstr(&lextkn->token);
-                        int64 decval = 0;
+                        char* decimal = conv_itoa(conv_binary_to_decimal(lex_token_getstr(lextkn), lextkn->token_len));
                         lex_token_clear(lextkn);
-                        for (j = 0; j < lextkn->token_len; j++) {
-                            if (bnum[j] == '1') {
-                                decval += 1<<digit;
-                            }
-                            else if (bnum[j] != '0') {
-                                return new_error("err: the binary constant number can not contain numbers excepts 1 and 0.");
-                            }
-                            digit--;
-                        }
-                        char* retstr = cplus_itoa(decval);
-                        lex_token_append(lextkn, retstr, strlen(retstr));
+                        lex_token_append(lextkn, decimal, strlen(decimal));
                         lextkn->token_type = TOKEN_CONST_NUMBER;
                         return NULL;
                     }
@@ -363,9 +351,46 @@ error lex_parse_token(lex_analyzer* lex, lex_token* lextkn) {
                 break;
             case 'o':
             case 'O': // octal format
+                lex_next(lex);
+                lex_token_clear(lextkn);
+                for (;;) {
+                    ch = lex_readc(lex);
+                    switch (ch) {
+                    case '0': lex_token_append(lextkn, "000", 3); lex_next(lex); break;
+                    case '1': lex_token_append(lextkn, "001", 3); lex_next(lex); break;
+                    case '2': lex_token_append(lextkn, "010", 3); lex_next(lex); break;
+                    case '3': lex_token_append(lextkn, "011", 3); lex_next(lex); break;
+                    case '4': lex_token_append(lextkn, "100", 3); lex_next(lex); break;
+                    case '5': lex_token_append(lextkn, "101", 3); lex_next(lex); break;
+                    case '6': lex_token_append(lextkn, "110", 3); lex_next(lex); break;
+                    case '7': lex_token_append(lextkn, "111", 3); lex_next(lex); break;
+                    default:
+                        {   // if not be included in an alone scope, the under code
+                            // will cause some errors.
+                            char* decimal = conv_itoa(conv_binary_to_decimal(lex_token_getstr(lextkn), lextkn->token_len));
+                            lex_token_clear(lextkn);
+                            lex_token_append(lextkn, decimal, strlen(decimal));
+                            lextkn->token_type = TOKEN_CONST_NUMBER;
+                        }
+                        return NULL;
+                    }
+                }
                 break;
             case 'd':
             case 'D': // decimal format
+                lex_next(lex);
+                lex_token_clear(lextkn);
+                for (;;) {
+                    ch = lex_readc(lex);
+                    if ('0' <= ch && ch <= '9') {
+                        lex_token_appendc(lextkn, ch);
+                        lex_next(lex);
+                    }
+                    else {
+                        lextkn->token_type = TOKEN_CONST_NUMBER;
+                        return NULL;
+                    }
+                }
                 break;
             }
         }
