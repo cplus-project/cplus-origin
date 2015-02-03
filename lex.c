@@ -426,6 +426,249 @@ error lex_parse_token(lex_analyzer* lex, lex_token* lextkn) {
             return new_error("err: error character constant.");
         }
     }
+
+    // parsing operators
+    lex_token_appendc(lextkn, ch);
+    lex_next(lex);
+    if (ch < 42) {
+        switch (ch) {
+        case '(':
+            lextkn->token_type = TOKEN_OP_LPARENTHESE;
+            return NULL;
+        case ')':
+            lextkn->token_type = TOKEN_OP_RPARENTHESE;
+            return NULL;
+        case '&':
+            ch = lex_readc(lex);
+            if (ch == '&') {
+                lex_token_appendc(lextkn, '&');
+                lex_next(lex);
+                lextkn->token_type = TOKEN_OP_LOGIC_AND;
+                return NULL;
+            }
+            else if (ch == '=') {
+                lex_token_appendc(lextkn, '=');
+                lex_next(lex);
+                lextkn->token_type = TOKEN_OP_ANDASSIGN;
+                return NULL;
+            }
+            else {
+                lextkn->token_type = TOKEN_OP_AND;
+                return NULL;
+            }
+        case '!':
+            if (lex_readc(lex) == '=') {
+                lex_token_appendc(lextkn, '=');
+                lex_next(lex);
+                lextkn->token_type = TOKEN_OP_NOTEQ;
+                return NULL;
+            }
+            else {
+                lextkn->token_type = TOKEN_OP_NOT;
+                return NULL;
+            }
+        case '%':
+            if (lex_readc(lex) == '=') {
+                lex_token_appendc(lextkn, '=');
+                lex_next(lex);
+                lextkn->token_type = TOKEN_OP_MODASSIGN;
+                return NULL;
+            }
+            else {
+                lextkn->token_type = TOKEN_OP_MOD;
+                return NULL;
+            }
+        }
+    }
+    else if (ch < 47) {
+        switch (ch) {
+        case '.':
+            lextkn->token_type = TOKEN_OP_SPOT;
+            return NULL;
+        case ',':
+            lextkn->token_type = TOKEN_OP_COMMA;
+            return NULL;
+        case '+':
+            ch = lex_readc(lex);
+            if (ch == '+') {
+                lex_token_appendc(lextkn, '+');
+                lex_next(lex);
+                lextkn->token_type = TOKEN_OP_INC;
+                return NULL;
+            }
+            else if (ch == '=') {
+                lex_token_appendc(lextkn, '=');
+                lex_next(lex);
+                lextkn->token_type = TOKEN_OP_ADDASSIGN;
+                return NULL;
+            }
+            else {
+                lextkn->token_type = TOKEN_OP_ADD;
+                return NULL;
+            }
+        case '-':
+            ch = lex_readc(lex);
+            if (ch == '-') {
+                lex_token_appendc(lextkn, '-');
+                lex_next(lex);
+                lextkn->token_type = TOKEN_OP_DEC;
+                return NULL;
+            }
+            else if (ch == '=') {
+                lex_token_appendc(lextkn, '=');
+                lex_next(lex);
+                lextkn->token_type = TOKEN_OP_SUBASSIGN;
+                return NULL;
+            }
+            else {
+                lextkn->token_type = TOKEN_OP_SUB;
+                return NULL;
+            }
+        case '*':
+            if (lex_readc(lex) == '=') {
+                lex_token_appendc(lextkn, '=');
+                lex_next(lex);
+                lextkn->token_type = TOKEN_OP_MULASSIGN;
+                return NULL;
+            }
+            else {
+                lextkn->token_type = TOKEN_OP_MUL;
+                return NULL;
+            }
+        }
+    }
+    else if (ch < 63) {
+        switch (ch) {
+        case '=':
+            if (lex_readc(lex) == '=') {
+                lex_token_appendc(lextkn, '=');
+                lex_next(lex);
+                lextkn->token_type = TOKEN_OP_EQ;
+                return NULL;
+            }
+            else {
+                lextkn->token_type = TOKEN_OP_ASSIGN;
+                return NULL;
+            }
+        case '<':
+            ch = lex_readc(lex);
+            if (ch == '=') {
+                lex_token_appendc(lextkn, '=');
+                lex_next(lex);
+                lextkn->token_type = TOKEN_OP_LE;
+                return NULL;
+            }
+            else if (ch == '<') {
+                lex_token_appendc(lextkn, '<');
+                lex_next(lex);
+                lextkn->token_type = TOKEN_OP_SHL;
+                return NULL;
+            }
+            else {
+                lextkn->token_type = TOKEN_OP_LT;
+                return NULL;
+            }
+        case '>':
+            ch = lex_readc(lex);
+            if (ch == '=') {
+                lex_token_appendc(lextkn, '=');
+                lex_next(lex);
+                lextkn->token_type = TOKEN_OP_GE;
+                return NULL;
+            }
+            else if (ch == '>') {
+                lex_token_appendc(lextkn, '>');
+                lex_next(lex);
+                lextkn->token_type = TOKEN_OP_SHR;
+                return NULL;
+            }
+            else {
+                lextkn->token_type = TOKEN_OP_GT;
+                return NULL;
+            }
+        case ':':
+            lextkn->token_type = TOKEN_OP_COLON;
+            return NULL;
+        case '/':
+            ch = lex_readc(lex);
+            if (ch == '=') {
+                lex_token_appendc(lextkn, '=');
+                lex_next(lex);
+                lextkn->token_type = TOKEN_OP_DIVASSIGN;
+                return NULL;
+            }
+            else if (ch == '/') {
+                lex_token_appendc(lextkn, '/');
+                lex_next(lex);
+                lextkn->token_type = TOKEN_OP_ONELINE_CMT;
+                // TODO: do some process for the single line comment...
+                return NULL;
+            }
+            else {
+                lextkn->token_type = TOKEN_OP_DIV;
+                return NULL;
+            }
+        }
+    }
+    else if (ch < 124) {
+        switch (ch) {
+        case '{':
+            lextkn->token_type = TOKEN_OP_LBRACE;
+            return NULL;
+        case '[':
+            lextkn->token_type = TOKEN_OP_LBRACKET;
+            return NULL;
+        case ']':
+            lextkn->token_type = TOKEN_OP_RBRACKET;
+            return NULL;
+        case '?':
+            lextkn->token_type = TOKEN_OP_QUES;
+            return NULL;
+        case '^':
+            if (lex_readc(lex) == '=') {
+                lex_token_appendc(lextkn, '=');
+                lex_next(lex);
+                lextkn->token_type = TOKEN_OP_XORASSIGN;
+                return NULL;
+            }
+            else {
+                lextkn->token_type = TOKEN_OP_XOR;
+                return NULL;
+            }
+        }
+    }
+    else {
+        switch (ch) {
+        case '}':
+            lextkn->token_type = TOKEN_OP_RBRACE;
+            return NULL;
+        case '|':
+            ch = lex_readc(lex);
+            if (ch == '|') {
+                lex_token_appendc(lextkn, '|');
+                lex_next(lex);
+                lextkn->token_type = TOKEN_OP_LOGIC_OR;
+                return NULL;
+            }
+            else if (ch == '=') {
+                lex_token_appendc(lextkn, '=');
+                lex_next(lex);
+                lextkn->token_type = TOKEN_OP_ORASSIGN;
+                return NULL;
+            }
+            else {
+                lextkn->token_type = TOKEN_OP_OR;
+                return NULL;
+            }
+        case '~':
+            lextkn->token_type = TOKEN_OP_NEG;
+            return NULL;
+        default:
+            // unknown token and should report error.
+            lextkn->token_type = TOKEN_UNKNOWN;
+            return new_error("err: unknown token");
+        }
+    }
 }
 
 error lex_peek_token(lex_analyzer* lex, lex_token* lextkn) {
