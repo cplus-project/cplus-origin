@@ -53,7 +53,7 @@ void lex_token_debug(lex_token* lextkn) {
         return;
     }
     else if (200 <= type && type < 300) {
-        switch (lextkn->token_type) {
+        switch (type) {
         case TOKEN_KEYWORD_IF:
             printf("keyword: if\r\n");
             return;
@@ -99,7 +99,7 @@ void lex_token_debug(lex_token* lextkn) {
         }
     }
     else if (300 <= type && type < 400) {
-        switch (lextkn->token_type) {
+        switch (type) {
         case TOKEN_CONST_NUMBER:
             printf("const-numer: %s\r\n", lex_token_getstr(lextkn));
             return;
