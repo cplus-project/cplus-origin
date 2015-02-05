@@ -52,5 +52,8 @@ int64 conv_binary_to_decimal(char* binary_num, uint64 conv_len) {
         }
         digit--;
     }
+    if (binary_num[0] == '-') {
+        decval = -decval;
+    }
     return decval;
 }

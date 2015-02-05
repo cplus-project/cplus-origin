@@ -46,6 +46,81 @@ void lex_token_clear(lex_token* lextkn) {
     lextkn->token_type = TOKEN_UNKNOWN;
 }
 
+void lex_token_debug(lex_token* lextkn) {
+    int type = lextkn->token_type;
+    if (type == 100) {
+        printf("identifier: %s\r\n", lex_token_getstr(lextkn));
+        return;
+    }
+    else if (200 <= type && type < 300) {
+        switch (lextkn->token_type) {
+        case TOKEN_KEYWORD_IF:
+            printf("keyword: if\r\n");
+            return;
+        case TOKEN_KEYWORD_EF:
+            printf("keyword: ef\r\n");
+            return;
+        case TOKEN_KEYWORD_ELSE:
+            printf("keyword: else\r\n");
+            return;
+        case TOKEN_KEYWORD_FOR:
+            printf("keyword: for\r\n");
+            return;
+        case TOKEN_KEYWORD_BREAK:
+            printf("keyword: break\r\n");
+            return;
+        case TOKEN_KEYWORD_CONTINUE:
+            printf("keyword: continue\r\n");
+            return;
+        case TOKEN_KEYWORD_FUNC:
+            printf("keyword: func\r\n");
+            return;
+        case TOKEN_KEYWORD_RETURN:
+            printf("keyword: return\r\n");
+            return;
+        case TOKEN_KEYWORD_ERROR:
+            printf("keyword: error\r\n");
+            return;
+        case TOKEN_KEYWORD_DEAL:
+            printf("keyword: deal\r\n");
+            return;
+        case TOKEN_KEYWORD_CASE:
+            printf("keyword: case\r\n");
+            return;
+        case TOKEN_KEYWORD_TYPE:
+            printf("keyword: type\r\n");
+            return;
+        case TOKEN_KEYWORD_IN:
+            printf("keyword: in\r\n");
+            return;
+        case TOKEN_KEYWORD_OT:
+            printf("keyword: ot\r\n");
+            return;
+        }
+    }
+    else if (300 <= type && type < 400) {
+        switch (lextkn->token_type) {
+        case TOKEN_CONST_NUMBER:
+            printf("const-numer: %s\r\n", lex_token_getstr(lextkn));
+            return;
+        case TOKEN_CONST_CHAR:
+            printf("const-char: %s\r\n", lex_token_getstr(lextkn));
+            return;
+        case TOKEN_CONST_STRING:
+            printf("const-string: %s\r\n", lex_token_getstr(lextkn));
+            return;
+        }
+    }
+    else if (400 <= type && type < 500){
+        printf("operator: %s\r\n", lex_token_getstr(lextkn));
+        return;
+    }
+    else {
+        printf("unknown: %s\r\n", lex_token_getstr(lextkn));
+        return;
+    }
+}
+
 void lex_token_destroy(lex_token* lextkn) {
     dynamicarr_char_destroy(&lextkn->token);
 }
@@ -137,7 +212,7 @@ error lex_parse_scientific_notation(lex_analyzer* lex, lex_token* lextkn) {
     }
 }
 
-error lex_parse_token(lex_analyzer* lex, lex_token* lextkn) {
+error lex_read_token(lex_analyzer* lex, lex_token* lextkn) {
     char ch = '0';
     lex_token_clear(lextkn);
     if (lex->i == lex->buff_end_index) {
@@ -663,14 +738,14 @@ error lex_parse_token(lex_analyzer* lex, lex_token* lextkn) {
         case '~':
             lextkn->token_type = TOKEN_OP_NEG;
             return NULL;
-        default:
-            // unknown token and should report error.
-            lextkn->token_type = TOKEN_UNKNOWN;
-            return new_error("err: unknown token");
         }
     }
+
+    lextkn->token_type = TOKEN_UNKNOWN;
+    return new_error("err: unknown token");
 }
 
-error lex_peek_token(lex_analyzer* lex, lex_token* lextkn) {
+// pass the current reading token
+error lex_next_token(lex_analyzer* lex) {
 
 }

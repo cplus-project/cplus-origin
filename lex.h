@@ -95,6 +95,7 @@ extern void  lex_token_append (lex_token* lextkn, char* str, uint64 len);
 extern void  lex_token_appendc(lex_token* lextkn, char ch);
 extern char* lex_token_getstr (lex_token* lextkn);
 extern void  lex_token_clear  (lex_token* lextkn);
+extern void  lex_token_debug  (lex_token* lextkn);
 extern void  lex_token_destroy(lex_token* lextkn);
 
 // if want to change the lexical analyzer's buffer size and file
@@ -114,7 +115,7 @@ typedef struct{
 extern void   lex_init         (lex_analyzer* lex);
 extern error  lex_open_srcfile (lex_analyzer* lex, char* file);
 extern void   lex_close_srcfile(lex_analyzer* lex);
-extern error  lex_parse_token  (lex_analyzer* lex, lex_token* lextkn);
-extern error  lex_peek_token   (lex_analyzer* lex, lex_token* lextkn);
+extern error  lex_read_token   (lex_analyzer* lex, lex_token* lextkn);
+extern error  lex_next_token   (lex_analyzer* lex);
 
 #endif

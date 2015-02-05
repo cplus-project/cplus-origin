@@ -7,3 +7,6 @@ then
     clear;
     ./cplus;
 fi
+
+rm cplus
+
