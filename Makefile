@@ -1,5 +1,5 @@
-cplus: common.o lex.o dynamicarr.o convert.o
-	gcc cplus.c common.o lex.o dynamicarr.o convert.o -o cplus
+cplus: common.o lex.o dynamicarr.o convert.o scope.o
+	gcc cplus.c common.o lex.o dynamicarr.o convert.o scope.o -o cplus
 
 common.o: common.h common.c
 	gcc -c common.h common.c
@@ -12,6 +12,9 @@ dynamicarr.o: dynamicarr.h dynamicarr.c
 
 convert.o: convert.h convert.c
 	gcc -c convert.h convert.c
-    
+
+scope.o: scope.h scope.c
+	gcc -c scope.h scope.c
+
 clean:
 	rm *.o *.gch
