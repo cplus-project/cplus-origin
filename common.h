@@ -41,5 +41,6 @@ typedef unsigned char          uchar;
 //                 not NULL means some error occurs
 typedef char* error;
 extern error new_error(char* errmsg);
+extern void  debug    (char* msg);
 
 #endif

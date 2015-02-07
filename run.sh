@@ -8,5 +8,5 @@ then
     ./cplus;
 fi
 
-rm cplus
+rm cplus;
 

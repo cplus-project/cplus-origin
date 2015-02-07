@@ -28,11 +28,15 @@
 #define TOKEN_KEYWORD_FUNC     206  // func
 #define TOKEN_KEYWORD_RETURN   207  // return
 #define TOKEN_KEYWORD_ERROR    208  // error
-#define TOKEN_KEYWORD_DEAL     209  // deal
-#define TOKEN_KEYWORD_CASE     210  // case
-#define TOKEN_KEYWORD_TYPE     211  // type
-#define TOKEN_KEYWORD_IN       212  // in
-#define TOKEN_KEYWORD_OT       213  // ot
+#define TOKEN_KEYWORD_SWITCH   209  // switch
+#define TOKEN_KEYWORD_DEAL     210  // deal
+#define TOKEN_KEYWORD_CASE     211  // case
+#define TOKEN_KEYWORD_DEFAULT  212  // default
+#define TOKEN_KEYWORD_TYPE     213  // type
+#define TOKEN_KEYWORD_IN       214  // in
+#define TOKEN_KEYWORD_OT       215  // ot
+#define TOKEN_KEYWORD_INCLUDE  216  // include
+#define TOKEN_KEYWORD_MODULE   217  // module
 #define TOKEN_CONST_NUMBER     300  // const-number
 #define TOKEN_CONST_CHAR       301  // const-char
 #define TOKEN_CONST_STRING     302  // const-string
@@ -104,18 +108,45 @@ extern void  lex_token_destroy(lex_token* lextkn);
 typedef struct{
     FILE* srcfile;
     char  buffer[LEX_BUFF_SIZE];
-    int64 i;    // the array index of buffer
+    int64 i;              // the array index of buffer
     int64 buff_end_index; // the last index of the buffer. the buffer will not be
                           // always filled with the capacity of LEX_BUFF_SIZE so
                           // the buff_end_index will flag this situation
-    int64 line; // record the current analyzing line count
+
+    int64      line;       // record the current analyzing line count
+    lex_token  lextkn;     // to storage the information of the token which is parsing now
+    bool       parse_lock; // if the parse_lock == true, the lexical analyzer can not
+                           // continue to parse the next token
 }lex_analyzer;
 
 // first initialize the lexical analyzer before using it.
-extern void   lex_init         (lex_analyzer* lex);
-extern error  lex_open_srcfile (lex_analyzer* lex, char* file);
-extern void   lex_close_srcfile(lex_analyzer* lex);
-extern error  lex_read_token   (lex_analyzer* lex, lex_token* lextkn);
-extern error  lex_next_token   (lex_analyzer* lex);
+// and then you can use the lexical analyzer as the work-flow
+// displayed below:
+//   ...
+//   lex_analyzer lex;
+//   ...
+//   for (;;) {
+//       // parse a token from the source code buffer
+//       error err = lex_parse_token(&lex);
+//       if (err != NULL) {
+//           return err;
+//       }
+//       // read the token parsed just now from the buffer
+//       lex_token* lex_read_token(&lex);
+//
+//       // do some operations for the token parsed at here...
+//
+//       // clear the current token in the buffer and ready to
+//       // parse the next token
+//       lex_next_token(&lex);
+//   }
+//   ...
+extern error      lex_init         (lex_analyzer* lex);
+extern error      lex_open_srcfile (lex_analyzer* lex, char* file);
+extern void       lex_close_srcfile(lex_analyzer* lex);
+extern error      lex_parse_token  (lex_analyzer* lex);
+extern lex_token* lex_read_token   (lex_analyzer* lex);
+extern void       lex_next_token   (lex_analyzer* lex);
+extern void       lex_destroy      (lex_analyzer* lex);
 
 #endif

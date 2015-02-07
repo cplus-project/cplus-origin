@@ -14,3 +14,7 @@ error new_error(char* errmsg) {
         return errmsg;
     }
 }
+
+void debug(char* msg) {
+    printf("%s\r\n", msg);
+}
