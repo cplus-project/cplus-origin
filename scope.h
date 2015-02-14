@@ -11,12 +11,16 @@
 #define CPLUS_SCOPE_H
 
 #include "common.h"
+#include "idtable.h"
 
 typedef struct scope {
-    // TODO: idtable here
+    idtable idt;
     struct scope* outer;
 }scope;
 
-extern void scope_init(scope* scp, scope* outer);
+extern void  scope_init     (scope* scp, scope* outer);
+extern error scope_insert_id(scope* scp, id_info  id);
+extern error scope_update_id(scope* scp, id_info  new_info);
+extern error scope_search_id(scope* scp, id_info* ret);
 
 #endif

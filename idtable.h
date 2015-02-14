@@ -40,10 +40,11 @@ typedef struct{
     idtable_node* ids_head[16];
 }idtable;
 
-extern void    idtable_init   (idtable* idt);
-extern error   idtable_insert (idtable* idt, id_info id);
-extern error   idtable_update (idtable* idt, id_info new_info);
-extern id_info idtable_search (idtable* idt, char* id_name);
-extern void    idtable_destroy(idtable* idt);
+extern void  idtable_init   (idtable* idt);
+extern error idtable_insert (idtable* idt, id_info  id);
+extern error idtable_update (idtable* idt, id_info  new_info);
+extern error idtable_search (idtable* idt, id_info* ret);
+extern void  idtable_destroy(idtable* idt);
+extern void  idtable_debug  (idtable* idt);
 
 #endif

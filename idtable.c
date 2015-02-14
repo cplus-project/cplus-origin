@@ -33,16 +33,23 @@ error idtable_insert(idtable* idt, id_info id) {
     //    01 << 2 + 10 = 0110
     //    0110 is 6 in decimal, so we use the 6 as the key to do
     //    some operation to the id saved in the table.
-    int index = (id.id_name[id.id_len-1]&3)<<2 + id.id_name[0]&3;
-    idtable_node* ptr = idt->ids_head[index];
-    for (;;) {
-        if (ptr == NULL) {
-            ptr = (idtable_node*)mem_alloc(sizeof(idtable_node));
-            ptr->id   = id;
-            ptr->next = NULL;
-            return NULL;
+    int index = ((id.id_name[id.id_len-1]&3) << 2) + (id.id_name[0]&3);
+    if (idt->ids_head[index] == NULL) {
+        idt->ids_head[index] = (idtable_node*)mem_alloc(sizeof(idtable_node));
+        idt->ids_head[index]->id   = id;
+        idt->ids_head[index]->next = NULL;
+    }
+    else {
+        idtable_node* ptr = idt->ids_head[index];
+        for (;;) {
+            if (ptr->next == NULL) {
+                ptr->next = (idtable_node*)mem_alloc(sizeof(idtable_node));
+                ptr->next->id   = id;
+                ptr->next->next = NULL;
+                return NULL;
+            }
+            ptr = ptr->next;
         }
-        ptr = ptr->next;
     }
 }
 
@@ -51,7 +58,7 @@ error idtable_update(idtable* idt, id_info new_info) {
         return new_error("err: can not be update to an invalid id.");
     }
     int i;
-    int index = (id.id_name[id.id_len-1]&3)<<2 + id.id_name[0]&3;
+    int index = ((new_info.id_name[new_info.id_len-1]&3) << 2) + (new_info.id_name[0]&3);
     idtable_node* ptr = NULL;
     for (ptr = idt->ids_head[index]; ptr != NULL; ptr = ptr->next) {
         if (ptr->id.id_len == new_info.id_len) {
@@ -67,21 +74,22 @@ error idtable_update(idtable* idt, id_info new_info) {
     return new_error("err: the id entry not found.");
 }
 
-id_info idtable_search(idtable* idt, char* id_name, uint64 len) {
-    if (id_name == NULL) {
+error idtable_search(idtable* idt, id_info* ret) {
+    if (ret->id_name == NULL || ret->id_len <= 0) {
         return new_error("err: can not search the id through an invalid id name.");
     }
     int i;
-    int index = (id_name[len-1]&3)<<2 + id_name[0]&3;
+    int index = ((ret->id_name[ret->id_len-1]&3)<<2) + (ret->id_name[0]&3);
     idtable_node* ptr = NULL;
     for (ptr = idt->ids_head[index]; ptr != NULL; ptr = ptr->next) {
-        if (ptr->id.id_len == new_info.id_len) {
+        if (ptr->id.id_len == ret->id_len) {
             for (i = 0; i < ptr->id.id_len; i++) {
-                if (ptr->id.id_name[i] != new_info.id_name[i]) {
+                if (ptr->id.id_name[i] != ret->id_name[i]) {
                     break;
                 }
             }
-            return ptr->id;
+            ret = &ptr->id;
+            return NULL;
         }
     }
     return new_error("err: id not found.");
@@ -93,6 +101,45 @@ void idtable_destroy(idtable* idt) {
     for (i = 0; i < 16; i++) {
         for (ptr = idt->ids_head[i]; ptr != NULL; ptr = ptr->next) {
             mem_free(ptr);
+        }
+    }
+}
+
+void idtable_debug(idtable* idt) {
+    if (idt->ids_head == NULL) {
+        assert("the id table is not initialized");
+    }
+    int i;
+    idtable_node* ptr = NULL;
+    for (i = 0; i < 16; i++) {
+        printf("id_node #%02d:\r\n", i+1);
+        for (ptr = idt->ids_head[i]; ptr != NULL; ptr = ptr->next) {
+            if (ptr->id.id_name != NULL)
+                printf("\t%s  ", ptr->id.id_name);
+            else
+                printf("\tnone  ");
+
+            switch (ptr->id.id_type) {
+            case ID_CONST:
+                printf("const  ");
+                break;
+            case ID_VAR:
+                printf("variable  ");
+                break;
+            case ID_MOD:
+                printf("modular  ");
+                break;
+            }
+
+            if (ptr->id.id_datatype != NULL)
+                printf("%s  ", ptr->id.id_datatype);
+            else
+                printf("none  ");
+
+            if (ptr->id.id_value != NULL)
+                printf("%s\r\n", ptr->id.id_value);
+            else
+                printf("none\r\n");
         }
     }
 }

@@ -10,3 +10,8 @@ void scope_init(scope* scp, scope* outer) {
     scp->outer = outer;
 }
 
+error scope_insert_id(scope* scp, id_info  id) {}
+
+error scope_update_id(scope* scp, id_info  new_info) {}
+
+error scope_search_id(scope* scp, id_info* ret) {}
