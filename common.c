@@ -10,8 +10,21 @@ error new_error(char* errmsg) {
     if (errmsg == NULL) {
         return "";
     }
-    else {
-        return errmsg;
+    return errmsg;
+}
+
+void* mem_alloc(size_t size) {
+    void* ptr = malloc(size);
+    if (ptr != NULL) {
+        return ptr;
+    }
+    assert("malloc panic!!!");
+}
+
+void mem_free (void *ptr) {
+    if (ptr != NULL) {
+        free(ptr);
+        ptr = NULL;
     }
 }
 

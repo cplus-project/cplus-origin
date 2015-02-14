@@ -3,14 +3,16 @@
  * Use of this source code is governed by a BSD-style
  * license that can be found in the LICENSE file.
  *
- *     This file defines some common typedef and offers
- * the uniform error handling.
+ *     This file defines some common typedefs, offers
+ * the uniform error handling and memory operations.
  **/
 
 #ifndef CPLUS_COMMON_H
 #define CPLUS_COMMON_H
 
 #include <stdio.h>
+#include <assert.h>
+#include <malloc.h>
 
 #define true   1
 #define false -1
@@ -41,6 +43,15 @@ typedef unsigned char          uchar;
 //                 not NULL means some error occurs
 typedef char* error;
 extern error new_error(char* errmsg);
-extern void  debug    (char* msg);
+
+// all operations about memory allocating/releasing must use
+// the function mem_alloc and mem_free. mem_alloc can process
+// the error automatically. mem_free will work well even
+// though you free the same memory many times.
+extern void* mem_alloc(size_t size);
+extern void  mem_free (void *ptr);
+
+// show some message to debug.
+extern void  debug(char* msg);
 
 #endif

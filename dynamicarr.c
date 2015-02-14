@@ -10,7 +10,7 @@ error dynamicarr_char_init(dynamicarr_char* darr, uint64 capacity) {
     if (capacity <= 0) {
         return new_error("err: the capacity of the dynamic char array should be a positive number!");
     }
-    
+
     darr->total_cap = capacity;
     darr->used      = 0;
 
@@ -19,10 +19,10 @@ error dynamicarr_char_init(dynamicarr_char* darr, uint64 capacity) {
     // passed as 'capacity'. if requirement of size is bigger
     // than the arr->total_cap, then a new buffer will created
     // and be linked with the arr->next pointer.
-    darr->first       = (dynamicarr_char_node*)malloc(sizeof(dynamicarr_char_node));
+    darr->first       = (dynamicarr_char_node*)mem_alloc(sizeof(dynamicarr_char_node));
     darr->first->cap  = capacity;
     darr->first->i    = 0;
-    darr->first->arr  = (char*)malloc(sizeof(char) * capacity);
+    darr->first->arr  = (char*)mem_alloc(sizeof(char) * capacity);
     darr->first->next = NULL;
 
     darr->cur = darr->first;
@@ -48,10 +48,10 @@ void dynamicarr_char_append(dynamicarr_char* darr, char* str, uint64 len) {
         dynamicarr_char_node* _cur = darr->cur;
         for(;;) {
             if (darr->total_cap < need) {
-                _cur->next = malloc(sizeof(dynamicarr_char_node));
+                _cur->next = mem_alloc(sizeof(dynamicarr_char_node));
                 _cur->next->cap  = darr->total_cap;
                 _cur->next->i    = 0;
-                _cur->next->arr  = (char*)malloc(sizeof(char) * darr->total_cap);
+                _cur->next->arr  = (char*)mem_alloc(sizeof(char) * darr->total_cap);
                 _cur->next->next = NULL;
                 _cur = _cur->next;
                 darr->total_cap *= 2;
@@ -76,10 +76,10 @@ void dynamicarr_char_append(dynamicarr_char* darr, char* str, uint64 len) {
 
 void dynamicarr_char_appendc(dynamicarr_char* darr, char ch) {
     if (darr->cur->i >= darr->cur->cap) {
-        darr->cur->next = (dynamicarr_char_node*)malloc(sizeof(dynamicarr_char_node));
+        darr->cur->next = (dynamicarr_char_node*)mem_alloc(sizeof(dynamicarr_char_node));
         darr->cur->next->cap  = darr->total_cap;
         darr->cur->next->i    = 0;
-        darr->cur->next->arr  = (char*)malloc(sizeof(char) * darr->total_cap);
+        darr->cur->next->arr  = (char*)mem_alloc(sizeof(char) * darr->total_cap);
         darr->cur->next->next = NULL;
         darr->total_cap *= 2;
         darr->cur = darr->cur->next;
@@ -122,7 +122,7 @@ char* dynamicarr_char_getstr(dynamicarr_char* darr) {
     // outside the dynamic array, it will be used to do some operation like
     // strcmp or strcpy, and they are all think the '\0' is the end of a
     // string.
-    char* str = (char*)malloc(sizeof(char)*len + 1);
+    char* str = (char*)mem_alloc(sizeof(char)*len + 1);
     dynamicarr_char_node* ptr = darr->first;
     for (i = 0; i < len;) {
         if (j < ptr->cap) {
@@ -139,7 +139,7 @@ char* dynamicarr_char_getstr(dynamicarr_char* darr) {
 }
 
 // dynamicarr_char_clear() is used to clear the content in the
-// dynamic char array. dynamicarr_char_destroy() is used to 
+// dynamic char array. dynamicarr_char_destroy() is used to
 // destroy the whole array(like the memory occupied by the array).
 void dynamicarr_char_clear(dynamicarr_char* darr) {
     if (darr->first != NULL) {
@@ -153,7 +153,7 @@ void dynamicarr_char_clear(dynamicarr_char* darr) {
         for (;;) {
             temp = (dynamicarr_char_node*)ptr->next;
             if (ptr != NULL) {
-                free(ptr);
+                mem_free(ptr);
             }
             if (temp == NULL) {
                 break;
@@ -174,7 +174,7 @@ void dynamicarr_char_destroy(dynamicarr_char* darr) {
         for (;;) {
             temp = (dynamicarr_char_node*)ptr->next;
             if (ptr != NULL) {
-                free(ptr);
+                mem_free(ptr);
             }
             if (temp == NULL) {
                 break;

@@ -10,7 +10,6 @@
 #ifndef CPLUS_DYNAMICARR_H
 #define CPLUS_DYNAMICARR_H
 
-#include <malloc.h>
 #include "common.h"
 
 // this struct is used as the node of the char-type
