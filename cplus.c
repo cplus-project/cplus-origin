@@ -8,6 +8,7 @@
 #include "idtable.h"
 
 int main() {
+    error err = NULL;
     idtable idt;
     idtable_init(&idt);
 
@@ -47,7 +48,18 @@ int main() {
         idtable_insert(&idt, id[i]);
     }
 
-    idtable_debug(&idt);
+    id_info info;
+    info.id_name = "buffer";
+    info.id_len = 6;
+    err = idtable_search(&idt, &info);
+    if (err != NULL) {
+        debug(err);
+        return 0;
+    }
+    debug(info.id_name);
+    debug(info.id_datatype);
+    debug(info.id_value);
+
     idtable_destroy(&idt);
     return 0;
 }

@@ -33,7 +33,7 @@ error idtable_insert(idtable* idt, id_info id) {
     //    01 << 2 + 10 = 0110
     //    0110 is 6 in decimal, so we use the 6 as the key to do
     //    some operation to the id saved in the table.
-    int index = ((id.id_name[id.id_len-1]&3) << 2) + (id.id_name[0]&3);
+    int index = ((id.id_name[id.id_len-1]&3) << 2) + (id.id_name[id.id_len>>1]&3);
     if (idt->ids_head[index] == NULL) {
         idt->ids_head[index] = (idtable_node*)mem_alloc(sizeof(idtable_node));
         idt->ids_head[index]->id   = id;
@@ -58,7 +58,7 @@ error idtable_update(idtable* idt, id_info new_info) {
         return new_error("err: can not be update to an invalid id.");
     }
     int i;
-    int index = ((new_info.id_name[new_info.id_len-1]&3) << 2) + (new_info.id_name[0]&3);
+    int index = ((new_info.id_name[new_info.id_len-1]&3) << 2) + (new_info.id_name[new_info.id_len>>1]&3);
     idtable_node* ptr = NULL;
     for (ptr = idt->ids_head[index]; ptr != NULL; ptr = ptr->next) {
         if (ptr->id.id_len == new_info.id_len) {
@@ -79,7 +79,7 @@ error idtable_search(idtable* idt, id_info* ret) {
         return new_error("err: can not search the id through an invalid id name.");
     }
     int i;
-    int index = ((ret->id_name[ret->id_len-1]&3)<<2) + (ret->id_name[0]&3);
+    int index = ((ret->id_name[ret->id_len-1]&3)<<2) + (ret->id_name[ret->id_len>>1]&3);
     idtable_node* ptr = NULL;
     for (ptr = idt->ids_head[index]; ptr != NULL; ptr = ptr->next) {
         if (ptr->id.id_len == ret->id_len) {
@@ -88,7 +88,7 @@ error idtable_search(idtable* idt, id_info* ret) {
                     break;
                 }
             }
-            ret = &ptr->id;
+            *ret = ptr->id;
             return NULL;
         }
     }

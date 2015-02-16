@@ -22,5 +22,6 @@ extern void  scope_init     (scope* scp, scope* outer);
 extern error scope_insert_id(scope* scp, id_info  id);
 extern error scope_update_id(scope* scp, id_info  new_info);
 extern error scope_search_id(scope* scp, id_info* ret);
+extern void  scope_destroy  (scope* scp);
 
 #endif
