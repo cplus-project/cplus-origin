@@ -21,17 +21,19 @@ error idtable_insert(idtable* idt, id_info id) {
     // the raw key is the id's name. we explain the algorithm with
     // an example. now we will see what the hash value for the id's
     // name "req":
-    // 1. get the last and the first letter, they are 'q' and 'r'.
+    // 1. get the last and the middle letter, they are 'q' and 'e'.
+    //    we use the last and the middle one because we often name
+    //    our variables with the same prefix.
     // 2. convert their ascii number to the binary format:
     //    'q' -> 01110001
-    //    'r' -> 01110010
+    //    'e' -> 01100101
     // 3. we will only use their rightmost two digit:
     //    'q' -> xxxxxx01
-    //    'r' -> xxxxxx10
+    //    'e' -> xxxxxx01
     //    (we can get it by doing an &3 computing)
     // 4. the hash value is:
-    //    01 << 2 + 10 = 0110
-    //    0110 is 6 in decimal, so we use the 6 as the key to do
+    //    (('q' & 3) << 2) + ('e' & 3) = 01 << 2 + 01 = 0101
+    //    0101 is 5 in decimal, so we use the 5 as the key to do
     //    some operation to the id saved in the table.
     int index = ((id.id_name[id.id_len-1]&3) << 2) + (id.id_name[id.id_len>>1]&3);
     if (idt->ids_head[index] == NULL) {
@@ -105,6 +107,7 @@ void idtable_destroy(idtable* idt) {
     }
 }
 
+// display the information of every node in the id table.
 void idtable_debug(idtable* idt) {
     if (idt->ids_head == NULL) {
         assert("the id table is not initialized");
