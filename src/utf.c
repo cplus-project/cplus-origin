@@ -4,4 +4,16 @@
  * license that can be found in the LICENSE file.
  **/
 
- #include "utf.h"
+#include "utf.h"
+
+bool utf_check_valid(utf_char ch) {
+
+}
+
+error utf_encode(utf_char ch) {
+
+}
+
+error utf_decode(utf_char ch) {
+
+}
