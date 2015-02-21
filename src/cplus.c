@@ -9,10 +9,6 @@
 #include "utf.h"
 
 int main() {
-    unicode_char rune = 0x4E25;
-    utf8_char utf_val = utf8_encode(rune);
-    printf("%X\r\n", utf_val);
-    printf("%X\r\n", utf8_decode(utf_val));
     return 0;
 }
 

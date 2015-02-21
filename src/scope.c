@@ -15,12 +15,40 @@ error scope_insert_id(scope* scp, id_info id) {
     return idtable_insert(&scp->idt, id);
 }
 
-error scope_update_id(scope* scp, id_info  new_info) {
-    return idtable_update(&scp->idt, new_info);
+// update an id. if there are some id with the same id name,
+// it will update the one in the innermost scope.
+error scope_update_id(scope* scp, id_info new_info) {
+    scope* ptr = scp;
+    error  err = NULL;
+    for (;;) {
+        if (ptr == NULL) {
+            return new_error("err: not found the id in all scope.");
+        }
+        err = idtable_update(&ptr->idt, new_info);
+        if (err == NULL) {
+            return NULL;
+        }
+        ptr = ptr->outer;
+    }
 }
 
+// search an id from the innermost scope to the outermost
+// scope. the search result will be saved in the parameter
+// 'ret'. if there is any error occur, an error will be
+// returned.
 error scope_search_id(scope* scp, id_info* ret) {
-    return idtable_search(&scp->idt, ret);
+    scope* ptr = scp;
+    error  err = NULL;
+    for (;;) {
+        if (ptr == NULL) {
+            return new_error("err: not found the id in all scope.");
+        }
+        err = idtable_search(&ptr->idt, ret);
+        if (err == NULL) {
+            return NULL;
+        }
+        ptr = ptr->outer;
+    }
 }
 
 void scope_destroy(scope* scp) {
