@@ -6,61 +6,13 @@
 #include "convert.h"
 #include "scope.h"
 #include "idtable.h"
+#include "utf.h"
 
 int main() {
-    error err = NULL;
-    idtable idt;
-    idtable_init(&idt);
-
-    id_info id[5];
-    id[0].id_name     = "req";
-    id[0].id_len      = 3;
-    id[0].id_type     = ID_VAR;
-    id[0].id_datatype = "Request";
-    id[0].id_value    = "nil";
-
-    id[1].id_name     = "buffer";
-    id[1].id_len      = 6;
-    id[1].id_type     = ID_VAR;
-    id[1].id_datatype = "Buffer";
-    id[1].id_value    = "nil";
-
-    id[2].id_name     = "i";
-    id[2].id_len      = 1;
-    id[2].id_type     = ID_VAR;
-    id[2].id_datatype = "int32";
-    id[2].id_value    = "0";
-
-    id[3].id_name     = "j";
-    id[3].id_len      = 1;
-    id[3].id_type     = ID_VAR;
-    id[3].id_datatype = "uint8";
-    id[3].id_value    = "1";
-
-    id[4].id_name     = "jsondata";
-    id[4].id_len      = 8;
-    id[4].id_type     = ID_VAR;
-    id[4].id_datatype = "JsonData";
-    id[4].id_value    = "{name: 'Cplus', hver: 1, lver: 1}";
-
-    int i;
-    for (i = 0; i < 5; i++) {
-        idtable_insert(&idt, id[i]);
-    }
-
-    id_info info;
-    info.id_name = "buffer";
-    info.id_len = 6;
-    err = idtable_search(&idt, &info);
-    if (err != NULL) {
-        debug(err);
-        return 0;
-    }
-    debug(info.id_name);
-    debug(info.id_datatype);
-    debug(info.id_value);
-
-    idtable_destroy(&idt);
+    unicode_char rune = 0x4E25;
+    utf8_char utf_val = utf8_encode(rune);
+    printf("%X\r\n", utf_val);
+    printf("%X\r\n", utf8_decode(utf_val));
     return 0;
 }
 

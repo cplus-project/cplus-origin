@@ -1,8 +1,11 @@
-cplus: common.o lex.o dynamicarr.o convert.o idtable.o scope.o
-	gcc cplus.c common.o lex.o dynamicarr.o convert.o idtable.o scope.o -o cplus
+cplus: common.o utf.o lex.o dynamicarr.o convert.o idtable.o scope.o
+	gcc cplus.c common.o utf.o lex.o dynamicarr.o convert.o idtable.o scope.o -o cplus
 
 common.o: common.h common.c
 	gcc -c common.h common.c
+
+utf.o: utf.h utf.c
+	gcc -c utf.h utf.c
 
 lex.o: lex.h lex.c
 	gcc -c lex.h lex.c

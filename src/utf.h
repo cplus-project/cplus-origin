@@ -13,12 +13,12 @@
 #include "common.h"
 #include "dynamicarr.h"
 
-typedef unsigned long int utf_char;
+#define UTF8_INVALID_CHAR 0xFF000000
 
-extern bool  utf8_check_valid      (utf_char ch);
-extern error utf8_encode           (utf_char ch);
-extern error utf8_decode           (utf_char ch);
-extern error utf8_encode_dynamicarr(dynamicarr_char* darr);
-extern error utf8_decode_dynamicarr(dynamicarr_char* darr);
+typedef unsigned long int unicode_char;
+
+typedef unsigned long int utf8_char;
+extern utf8_char    utf8_encode(unicode_char ch);
+extern unicode_char utf8_decode(utf8_char ch);
 
 #endif
