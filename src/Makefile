@@ -1,5 +1,5 @@
-cplus: common.o utf.o lex.o dynamicarr.o convert.o idtable.o scope.o
-	gcc cplus.c common.o utf.o lex.o dynamicarr.o convert.o idtable.o scope.o -o cplus
+cplus: common.o utf.o lex.o dynamicarr.o convert.o idtable.o scope.o ast.o
+	gcc cplus.c common.o utf.o lex.o dynamicarr.o convert.o idtable.o scope.o ast.o -o cplus
 
 common.o: common.h common.c
 	gcc -c common.h common.c
@@ -21,6 +21,9 @@ idtable.o: idtable.h idtable.c
 
 scope.o: scope.h scope.c
 	gcc -c scope.h scope.c
+	
+ast.o: ast.h ast.c
+	gcc -c ast.h ast.c
 
 clean:
 	rm *.o *.gch
