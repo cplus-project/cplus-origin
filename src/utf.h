@@ -15,10 +15,11 @@
 
 #define UTF8_INVALID_CHAR 0xFF000000
 
-typedef unsigned long int unicode_char;
+typedef unsigned long int unicode_code;
 
-typedef unsigned long int utf8_char;
-extern utf8_char    utf8_encode(unicode_char ch);
-extern unicode_char utf8_decode(utf8_char ch);
+typedef unsigned long int utf8_code;
+extern utf8_code    utf8_encode      (unicode_code ch);
+extern unicode_code utf8_decode      (utf8_code ch);
+extern char*        utf8_code_to_char(utf8_code ch);
 
 #endif

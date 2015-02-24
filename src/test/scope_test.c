@@ -1,8 +1,15 @@
-// the test for scope.h and scope.c
+/**
+ * Copyright 2015 JiKai. All rights reserved.
+ * Use of this source code is governed by a BSD-style
+ * license that can be found in the LICENSE file.
+ *
+ *     The test for scope.h and scope.c
+ **/
 
 #include "../scope.h"
 
 int main() {
+    error err = NULL;
     scope scp1; // the toplevel scope
     scope scp2;
     scope scp3; // the innermost scope
@@ -67,6 +74,16 @@ int main() {
         return 0;
     }
     debug("update test 2 success...");
+    id_modify.id_name = "not_in_table";
+    id_modify.id_len = 12;
+    err = scope_update_id(&scp3, id_modify);
+    if (err != NULL) {
+        debug("update test 3 success... this id is not in the table.");
+    }
+    else {
+        debug("update error 3");
+        return 0;
+    }
     scope_debug(&scp1);
     scope_debug(&scp2);
     scope_debug(&scp3);
@@ -87,6 +104,16 @@ int main() {
         return 0;
     }
     printf("search 2 success... the value of id is : %s\r\n", search.id_value);
+    search.id_name = "not_in_table";
+    search.id_len  = 12;
+    err = scope_search_id(&scp3, &search);
+    if (err != NULL) {
+        debug("search 3 success... the id is not in the table.");
+    }
+    else {
+        debug("search error 3");
+        return 0;
+    }
 
     scope_destroy(&scp3);
     scope_destroy(&scp2);

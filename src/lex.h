@@ -124,6 +124,7 @@ typedef struct{
 // displayed below:
 //   ...
 //   lex_analyzer lex;
+//   lex_token*   lextkn;
 //   ...
 //   for (;;) {
 //       // parse a token from the source code buffer
@@ -132,7 +133,7 @@ typedef struct{
 //           return err;
 //       }
 //       // read the token parsed just now from the buffer
-//       lex_token* lex_read_token(&lex);
+//       lextkn = lex_read_token(&lex);
 //
 //       // do some operations for the token parsed at here...
 //
