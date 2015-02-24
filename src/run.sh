@@ -4,9 +4,9 @@
 clear;
 if [ -z $1 ]
 then
-	make;
+    make;
 else
-	make obj=$1;
+    make obj=$1;
 fi
 
 if [ $? -eq 0 ]

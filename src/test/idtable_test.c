@@ -1,6 +1,5 @@
 // the test for idtable.h and idtable.c
 
-#include "../common.h"
 #include "../idtable.h"
 
 int main() {
