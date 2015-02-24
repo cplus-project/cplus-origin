@@ -1,5 +1,7 @@
+obj := cplus
+
 cplus: common.o utf.o lex.o dynamicarr.o convert.o idtable.o scope.o ast.o
-	gcc cplus.c common.o utf.o lex.o dynamicarr.o convert.o idtable.o scope.o ast.o -o cplus
+	gcc ${obj}.c common.o utf.o lex.o dynamicarr.o convert.o idtable.o scope.o ast.o -o ${obj}
 
 common.o: common.h common.c
 	gcc -c common.h common.c

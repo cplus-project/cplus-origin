@@ -55,3 +55,13 @@ void scope_destroy(scope* scp) {
     scp->outer = NULL;
     idtable_destroy(&scp->idt);
 }
+
+void scope_debug(scope* scp) {
+    if (scp->outer != NULL) {
+        debug("has parent scope");
+    }
+    else {
+        debug("not has parent scope");
+    }
+    idtable_debug(&scp->idt);
+}

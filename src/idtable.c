@@ -40,6 +40,7 @@ error idtable_insert(idtable* idt, id_info id) {
         idt->ids_head[index] = (idtable_node*)mem_alloc(sizeof(idtable_node));
         idt->ids_head[index]->id   = id;
         idt->ids_head[index]->next = NULL;
+        return NULL;
     }
     else {
         idtable_node* ptr = idt->ids_head[index];

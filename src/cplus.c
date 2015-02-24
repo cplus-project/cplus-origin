@@ -1,12 +1,7 @@
 #include <stdio.h>
 #include <string.h>
 #include "common.h"
-#include "dynamicarr.h"
-#include "lex.h"
-#include "convert.h"
 #include "scope.h"
-#include "idtable.h"
-#include "utf.h"
 
 int main() {
     return 0;
