@@ -538,21 +538,71 @@ error lex_parse_token(lex_analyzer* lex) {
             }
         }
     }
+
     // parsing string constants
     if (ch == '"') {
         lex_next(lex);
+        for (;;) {
+            ch = lex_readc(lex);
+            if (ch != '"') {
+                lex_token_appendc(&lex->lextkn, ch);
+                lex_next(lex);
+            }
+            else {
+                lex_next(lex);
+                lex->lextkn.token_type = TOKEN_CONST_STRING;
+                lex->parse_lock = true;
+                return NULL;
+            }
+        }
     }
+
     // parsing char constants
     if (ch == '\'') {
-        lex_token_appendc(&lex->lextkn, ch);
         lex_next(lex);
         ch = lex_readc(lex);
         if (ch != '\\') {
-            lex_token_appendc(&lex->lextkn, ch);
-            lex_next(lex);
+            uint8 bytes = utf8_calcu_bytes(ch);
+            switch (bytes) {
+            case 1:
+                lex_token_appendc(&lex->lextkn, ch);
+                lex_next(lex);
+                break;
+            case 2:
+                lex_token_appendc(&lex->lextkn, ch);
+                lex_next(lex);
+                ch = lex_readc(lex);
+                lex_token_appendc(&lex->lextkn, ch);
+                lex_next(lex);
+                break;
+            case 3:
+                lex_token_appendc(&lex->lextkn, ch);
+                lex_next(lex);
+                ch = lex_readc(lex);
+                lex_token_appendc(&lex->lextkn, ch);
+                lex_next(lex);
+                ch = lex_readc(lex);
+                lex_token_appendc(&lex->lextkn, ch);
+                lex_next(lex);
+                break;
+            case 4:
+                lex_token_appendc(&lex->lextkn, ch);
+                lex_next(lex);
+                ch = lex_readc(lex);
+                lex_token_appendc(&lex->lextkn, ch);
+                lex_next(lex);
+                ch = lex_readc(lex);
+                lex_token_appendc(&lex->lextkn, ch);
+                lex_next(lex);
+                ch = lex_readc(lex);
+                lex_token_appendc(&lex->lextkn, ch);
+                lex_next(lex);
+                break;
+            default:
+                return new_error("err: invalid UTF-8 code.");
+            }
         }
         else {
-            lex_token_appendc(&lex->lextkn, ch);
             lex_next(lex);
             ch = lex_readc(lex);
             switch (ch) {
@@ -575,10 +625,12 @@ error lex_parse_token(lex_analyzer* lex) {
         }
         ch = lex_readc(lex);
         if (ch == '\'') {
-            lex_token_appendc(&lex->lextkn, ch);
+            lex->lextkn.token_type = TOKEN_CONST_CHAR;
+            lex->parse_lock = true;
+            return NULL;
         }
         else {
-            return new_error("err: error character constant.");
+            return new_error("err: need a single quotation to close the character literal.");
         }
     }
 
@@ -775,15 +827,32 @@ error lex_parse_token(lex_analyzer* lex) {
         case '/':
             ch = lex_readc(lex);
             if (ch == '/') {
-                lex_token_appendc(&lex->lextkn, '/');
+                // parsing the single line comment
+                lex_token_clear(&lex->lextkn);
                 lex_next(lex);
-                lex->lextkn.token_type = TOKEN_OP_ONELINE_CMT;
-                // TODO: do some process for the single line comment...
-                lex->parse_lock = true;
-                return NULL;
+                for (;;) {
+                    ch = lex_readc(lex);
+                    if (ch != '\r' && ch != '\n') {
+                        lex_token_appendc(&lex->lextkn, ch);
+                        lex_next(lex);
+                    }
+                    else {
+                        lex->lextkn.token_type = TOKEN_OP_ONELINE_CMT;
+                        lex->parse_lock = true;
+                        return NULL;
+                    }
+                }
             }
             else if (ch == '*') {
-                // TODO: do some process for the multiple line comment...
+                // parsing the multiple line comment
+                lex_token_clear(&lex->lextkn);
+                lex_next(lex);
+                for (;;) {
+                    ch = lex_readc(lex);
+                    if (ch == '*') {
+
+                    }
+                }
             }
             else if (ch == '=') {
                 lex_token_appendc(&lex->lextkn, '=');

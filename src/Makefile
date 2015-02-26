@@ -1,7 +1,7 @@
 obj := cplus
 
-cplus: common.o utf.o lex.o dynamicarr.o convert.o idtable.o scope.o ast.o
-	gcc ${obj}.c common.o utf.o lex.o dynamicarr.o convert.o idtable.o scope.o ast.o -o ${obj}
+cplus: common.o utf.o lex.o dynamicarr.o convert.o idtable.o scope.o close_counter.o ast.o
+	gcc ${obj}.c common.o utf.o lex.o dynamicarr.o convert.o idtable.o scope.o close_counter.o ast.o -o ${obj}
 
 common.o: common.h common.c
 	gcc -c common.h common.c
@@ -23,6 +23,9 @@ idtable.o: idtable.h idtable.c
 
 scope.o: scope.h scope.c
 	gcc -c scope.h scope.c
+	
+close_counter.o: close_counter.h close_counter.c
+	gcc -c close_counter.h close_counter.c
 	
 ast.o: ast.h ast.c
 	gcc -c ast.h ast.c

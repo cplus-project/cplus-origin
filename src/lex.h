@@ -16,6 +16,7 @@
 #include "common.h"
 #include "dynamicarr.h"
 #include "convert.h"
+#include "utf.h"
 
 #define TOKEN_UNKNOWN          000  // all unknown token type
 #define TOKEN_ID               100  // identifiers
