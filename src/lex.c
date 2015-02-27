@@ -847,10 +847,28 @@ error lex_parse_token(lex_analyzer* lex) {
                 // parsing the multiple line comment
                 lex_token_clear(&lex->lextkn);
                 lex_next(lex);
+                int embed = 0;
                 for (;;) {
                     ch = lex_readc(lex);
                     if (ch == '*') {
-
+                        lex_next(lex);
+                        if (lex_readc(lex) == '/') {
+                            if (embed <= 0) {
+                                lex->lextkn.token_type = TOKEN_OP_MULTIL_CMT;
+                                lex->parse_lock = true;
+                                return NULL;
+                            }
+                            else {
+                                embed--;
+                            }
+                        }
+                    }
+                    else if (ch == '/') {
+                        lex_next(lex);
+                        if (lex_readc(lex) == '*') {
+                            embed++;
+                            lex_next(lex);
+                        }
                     }
                 }
             }

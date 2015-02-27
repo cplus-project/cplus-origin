@@ -75,3 +75,21 @@ void close_counter_destroy(close_counter* clsctr) {
         mem_free(temp);
     }
 }
+
+void close_counter_debug(close_counter* clsctr) {
+    printf("all nodes in the close_counter is:\r\n");
+    if (clsctr->top == NULL) {
+        debug("no any node");
+    }
+    else {
+        close_counter_node* ptr = clsctr->top->next;
+        printf("| %c |<-top\r\n", clsctr->top->optr);
+        for (;;) {
+            if (ptr == NULL) {
+                return;
+            }
+            printf("| %c |\r\n", ptr->optr);
+            ptr = ptr->next;
+        }
+    }
+}

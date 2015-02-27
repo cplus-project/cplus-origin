@@ -34,5 +34,6 @@ extern void  close_counter_increase(close_counter* clsctr, char left_optr);
 extern error close_counter_decrease(close_counter* clsctr, char right_optr);
 extern bool  close_counter_is_clear(close_counter* clsctr);
 extern void  close_counter_destroy (close_counter* clsctr);
+extern void  close_counter_debug   (close_counter* clsctr);
 
 #endif

@@ -1,6 +1,8 @@
 #!/bin/bash
+# type [./run] to run the main cplus compiler program
+# type [./run test/????.c] to run a test file
 
-#build the executable file
+# build the executable file
 clear;
 if [ -z $1 ]
 then
@@ -12,8 +14,8 @@ fi
 if [ $? -eq 0 ]
 then
     clear;
-    #run the executable file and then
-    #delete the executable file
+    # run the executable file and then
+    # delete the executable file
     if [ -z $1 ]
     then
     	./cplus;

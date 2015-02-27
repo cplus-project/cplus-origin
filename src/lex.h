@@ -86,8 +86,7 @@
 #define TOKEN_OP_LOGIC_AND     442  // &&
 #define TOKEN_OP_LOGIC_OR      443  // ||
 #define TOKEN_OP_ONELINE_CMT   444  // //
-#define TOKEN_OP_LMULTIL_CMT   445  // /*
-#define TOKEN_OP_RMULTIL_CMT   446  // */
+#define TOKEN_OP_MULTIL_CMT    445  // /**/
 
 typedef struct {
     dynamicarr_char token;      // one dynamic char array to store the token's content
