@@ -10,7 +10,9 @@
 #ifndef CPLUS_AST_H
 #define CPLIS_AST_H
 
+#include <string.h>
 #include "common.h"
+#include "idtable.h"
 
 #define STMT_UNKNOWN 0x000
 #define STMT_DECL    0x001
@@ -28,9 +30,29 @@
 
 typedef struct ast_node ast_node;
 
+// a block represents a set of statements in
+// a couple of braces('{' and '}').
 typedef struct {
-    ast_node* include_files;
-}stmt_include;
+    ast_node* stmtslist;
+}stmts_block;
+
+typedef struct include_list_node {
+    char* file;
+    struct include_list_node* next;
+}include_list_node;
+
+// include_list is used to save all files included
+// temporary.
+typedef struct include_list {
+    include_list_node* head;
+    include_list_node* cur;
+}include_list;
+
+extern void include_list_init   (include_list* icldlist);
+extern void include_list_add    (include_list* icldlist, char* file);
+extern bool include_list_exist  (include_list* icldlist, char* file);
+extern void include_list_destroy(include_list* icldlist);
+extern void include_list_debug  (include_list* icldlist);
 
 typedef struct {
     ast_node* module_names;
@@ -111,9 +133,9 @@ typedef struct ast_node {
 }ast_node;
 
 typedef struct {
-    ast_node* include_field;
-    ast_node* module_field;
-    ast_node* ast_nodes_field;
+    include_list include_files; // all file included in one source file
+    idtable      modules;       // all modules imported in one source file
+    // TODO: other elements...
 }ast;
 
 #endif

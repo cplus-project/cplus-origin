@@ -6,6 +6,8 @@
 
 #include "lex.h"
 
+/****** methods of lex_token ******/
+
 // you should always use the lex_idx_inc(lex->i) to
 // increase the buffer's current index of the lexical
 // analyzer.
@@ -17,8 +19,6 @@ if (lex_analyzer->i >= lex_analyzer->buff_end_index) { \
         return err;                                    \
     }                                                  \
 }
-
-// ----- methods of lex_token -----
 
 error lex_token_init(lex_token* lextkn, uint64 capacity) {
     error err = dynamicarr_char_init(&lextkn->token, capacity);
@@ -141,7 +141,7 @@ void lex_token_destroy(lex_token* lextkn) {
     dynamicarr_char_destroy(&lextkn->token);
 }
 
-// ----- methods of lex_analyzer -----
+/****** methods of lex_analyzer ******/
 
 error lex_init(lex_analyzer* lex) {
     lex->srcfile        = NULL;
