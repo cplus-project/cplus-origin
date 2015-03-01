@@ -14,10 +14,10 @@
 
 #include "common.h"
 
-#define ID_UNKNOWN 000
-#define ID_CONST   001
-#define ID_VAR     002
-#define ID_MOD     003
+#define ID_UNKNOWN 0x00
+#define ID_CONST   0x01
+#define ID_VAR     0x02
+#define ID_MOD     0x03
 
 // this struct is used to save the necessary information
 // of the identifiers which parsed in lexical analyzing
