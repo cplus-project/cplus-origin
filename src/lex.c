@@ -837,7 +837,7 @@ error lex_parse_token(lex_analyzer* lex) {
                         lex_next(lex);
                     }
                     else {
-                        lex->lextkn.token_type = TOKEN_OP_ONELINE_CMT;
+                        lex->lextkn.token_type = TOKEN_OP_SINGLE_CMT;
                         lex->parse_lock = true;
                         return NULL;
                     }

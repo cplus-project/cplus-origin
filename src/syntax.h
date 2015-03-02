@@ -15,10 +15,13 @@
 #include "lex.h"
 #include "ast.h"
 
+#define FOR_INIT 0x00
+
 // note:
 //   the start symbol(such as 'if', 'for', etc.) should
 //   be eliminated before being passed to the parsing
 //   functions.
+extern error parse_stmt_decl  (lex_analyzer* lex, ast* tree);
 extern error parse_stmt_assign(lex_analyzer* lex, ast* tree);
 extern error parse_stmt_if    (lex_analyzer* lex, ast* tree);
 extern error parse_stmt_switch(lex_analyzer* lex, ast* tree);

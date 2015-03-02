@@ -85,7 +85,7 @@
 #define TOKEN_OP_XORASSIGN     441  // ^=
 #define TOKEN_OP_LOGIC_AND     442  // &&
 #define TOKEN_OP_LOGIC_OR      443  // ||
-#define TOKEN_OP_ONELINE_CMT   444  // //
+#define TOKEN_OP_SINGLE_CMT    444  // //
 #define TOKEN_OP_MULTIL_CMT    445  // /**/
 
 typedef struct {
