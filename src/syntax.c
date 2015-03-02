@@ -27,6 +27,12 @@ error parse_stmt_for(lex_analyzer* lex, ast* tree) {
         case FOR_INIT:
             switch (lextkn->token_type) {
             case TOKEN_ID:
+                // the first token is an id, so peek one next token and
+                // if this token after the id is:
+                //   ';' => for start; end; step; {...}
+                //   '{' => for end {...}
+                //   ':' => for val : array {...}
+                //   ',' => for val, index : array {...}
                 switch (peek_next_type(lex)) {
                 case TOKEN_OP_SEMC:
                     break;
