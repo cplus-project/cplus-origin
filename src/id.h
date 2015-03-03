@@ -3,10 +3,10 @@
  * Use of this source code is governed by a BSD-style
  * license that can be found in the LICENSE file.
  *
- *     The idtable.h and idtable.c implement a kind of
- * table to storage the infomation about tokens defined
- * in the same scope. You can insert, update or search
- * these tokens when necessary.
+ *     The id_h and id.c implement a kind of table to
+ * storage the infomation about tokens defined in the
+ * same scope. You can insert, update or search these
+ * tokens when necessary.
  **/
 
 #ifndef CPLUS_IDTABLE_H
@@ -35,7 +35,9 @@ typedef struct idtable_node{
     struct idtable_node* next;
 }idtable_node;
 
-// the id table is a hash table.
+// the id table is a hash table. the detail of the hash
+// implementation is the idtable_hash(...) function in
+// id.c
 typedef struct{
     idtable_node* ids_head[16];
 }idtable;
@@ -46,5 +48,28 @@ extern error idtable_update (idtable* idt, id_info  new_info);
 extern error idtable_search (idtable* idt, id_info* ret);
 extern void  idtable_destroy(idtable* idt);
 extern void  idtable_debug  (idtable* idt);
+
+typedef struct {
+    char* decl_type;
+    char* decl_name;
+    char* decl_assign;
+}declare;
+
+typedef struct decl_list_node {
+    declare decl;
+    struct decl_list_node* next;
+}decl_list_node;
+
+// the decl_list is used to save the declares. you should
+// travel the list from the head pointer by yourself.
+typedef struct {
+    decl_list_node* head;
+    decl_list_node* cur;
+}decl_list;
+
+extern void decl_list_init   (decl_list* declist);
+extern void decl_list_add    (decl_list* declist, declare decl);
+extern void decl_list_destroy(decl_list* declist);
+extern void decl_list_debug  (decl_list* declist);
 
 #endif

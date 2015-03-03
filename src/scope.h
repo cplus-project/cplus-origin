@@ -11,7 +11,7 @@
 #define CPLUS_SCOPE_H
 
 #include "common.h"
-#include "idtable.h"
+#include "id.h"
 
 typedef struct scope {
     idtable idt;

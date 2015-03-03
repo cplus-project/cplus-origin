@@ -4,4 +4,4 @@
  * license that can be found in the LICENSE file.
  **/
 
-#include "type_table.h"
+#include "type.h"

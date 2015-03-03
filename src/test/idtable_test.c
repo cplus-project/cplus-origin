@@ -3,10 +3,11 @@
  * Use of this source code is governed by a BSD-style
  * license that can be found in the LICENSE file.
  *
- *     The test for idtable.h and idtable.c
+ *     The test for the idtable defined in the src/id.h
+ * and src/id.c
  **/
 
-#include "../idtable.h"
+#include "../id.h"
 
 int main() {
     int i;

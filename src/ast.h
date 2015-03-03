@@ -12,7 +12,7 @@
 
 #include <string.h>
 #include "common.h"
-#include "idtable.h"
+#include "id.h"
 
 #define STMT_UNKNOWN 0x000
 #define STMT_DECL    0x001
@@ -29,13 +29,6 @@
 #define STMT_MODULE  0x00C
 
 typedef struct ast_node ast_node;
-
-typedef struct decl_list_node {
-    char* decl_type;
-    char* decl_name;
-    char* decl_assign;
-    struct decl_list_node* next;
-}decl_list_node;
 
 // a block represents a set of statements in
 // a couple of braces('{' and '}').
