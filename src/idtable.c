@@ -13,29 +13,33 @@ void idtable_init(idtable* idt) {
     }
 }
 
+// how to get the hash value from the key:
+// the raw key is the id's name. we explain the algorithm with
+// an example. now we will see what the hash value for the id's
+// name "req":
+//   1. get the last and the middle letter, they are 'q' and 'e'.
+//      we use the last and the middle one because we often name
+//      our variables with the same prefix.
+//   2. convert their ascii number to the binary format:
+//      'q' -> 01110001
+//      'e' -> 01100101
+//   3. we will only use their rightmost two digit:
+//      'q' -> xxxxxx01
+//      'e' -> xxxxxx01
+//      (we can get it by doing an &3 computing)
+//   4. the hash value is:
+//      (('q' & 3) << 2) + ('e' & 3) = 01 << 2 + 01 = 0101
+//      0101 is 5 in decimal, so we use the 5 as the key to do
+//      some operation to the id saved in the table.
+int idtable_hash(char* key, int key_len) {
+    return ((key[key_len-1]&3) << 2) + (key[key_len>>1]&3);
+}
+
 error idtable_insert(idtable* idt, id_info id) {
     if (id.id_name == NULL || id.id_len <= 0 || id.id_type == ID_UNKNOWN) {
         return new_error("err: can not insert an invalid id.");
     }
-    // how to get the hash value from the key:
-    // the raw key is the id's name. we explain the algorithm with
-    // an example. now we will see what the hash value for the id's
-    // name "req":
-    // 1. get the last and the middle letter, they are 'q' and 'e'.
-    //    we use the last and the middle one because we often name
-    //    our variables with the same prefix.
-    // 2. convert their ascii number to the binary format:
-    //    'q' -> 01110001
-    //    'e' -> 01100101
-    // 3. we will only use their rightmost two digit:
-    //    'q' -> xxxxxx01
-    //    'e' -> xxxxxx01
-    //    (we can get it by doing an &3 computing)
-    // 4. the hash value is:
-    //    (('q' & 3) << 2) + ('e' & 3) = 01 << 2 + 01 = 0101
-    //    0101 is 5 in decimal, so we use the 5 as the key to do
-    //    some operation to the id saved in the table.
-    int index = ((id.id_name[id.id_len-1]&3) << 2) + (id.id_name[id.id_len>>1]&3);
+    int index = idtable_hash(id.id_name, id.id_len);
     if (idt->ids_head[index] == NULL) {
         idt->ids_head[index] = (idtable_node*)mem_alloc(sizeof(idtable_node));
         idt->ids_head[index]->id   = id;
@@ -61,7 +65,7 @@ error idtable_update(idtable* idt, id_info new_info) {
         return new_error("err: can not be update to an invalid id.");
     }
     int i;
-    int index = ((new_info.id_name[new_info.id_len-1]&3) << 2) + (new_info.id_name[new_info.id_len>>1]&3);
+    int index = idtable_hash(new_info.id_name, new_info.id_len);
     idtable_node* ptr = NULL;
     for (ptr = idt->ids_head[index]; ptr != NULL; ptr = ptr->next) {
         if (ptr->id.id_len == new_info.id_len) {
@@ -82,7 +86,7 @@ error idtable_search(idtable* idt, id_info* ret) {
         return new_error("err: can not search the id through an invalid id name.");
     }
     int i;
-    int index = ((ret->id_name[ret->id_len-1]&3)<<2) + (ret->id_name[ret->id_len>>1]&3);
+    int index = idtable_hash(ret->id_name, ret->id_len);
     idtable_node* ptr = NULL;
     for (ptr = idt->ids_head[index]; ptr != NULL; ptr = ptr->next) {
         if (ptr->id.id_len == ret->id_len) {
@@ -108,7 +112,6 @@ void idtable_destroy(idtable* idt) {
     }
 }
 
-// display the information of every node in the id table.
 void idtable_debug(idtable* idt) {
     if (idt->ids_head == NULL) {
         assert("the id table is not initialized");

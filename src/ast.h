@@ -30,8 +30,19 @@
 
 typedef struct ast_node ast_node;
 
+typedef struct decl_list_node {
+    char* decl_type;
+    char* decl_name;
+    char* decl_assign;
+    struct decl_list_node* next;
+}decl_list_node;
+
 // a block represents a set of statements in
 // a couple of braces('{' and '}').
+typedef struct stmt_list_node {
+
+}stmt_list_node;
+
 typedef struct {
     ast_node* stmtslist;
 }stmts_block;
@@ -43,7 +54,7 @@ typedef struct include_list_node {
 
 // include_list is used to save all files included
 // temporary.
-typedef struct include_list {
+typedef struct {
     include_list_node* head;
     include_list_node* cur;
 }include_list;
@@ -86,7 +97,7 @@ typedef struct {
     ast_node* for_end;
     ast_node* for_step;
     ast_node* for_stmt;
-}stmt_for;
+}stmt_for_std;
 
 typedef struct {
     ast_node* error_tag;
@@ -129,7 +140,6 @@ typedef struct ast_node {
     void*  syntax_info; // point to the struct which storages the information of
                         // the syntax unit. it will be NULL if the syntax_type is
                         // STMT_UNKNOWN.
-    struct ast_node* child_list_head;
 }ast_node;
 
 typedef struct {
