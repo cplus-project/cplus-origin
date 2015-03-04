@@ -5,3 +5,11 @@
  **/
 
 #include "func.h"
+
+void func_table_init(func_table* functab) {
+
+}
+
+void func_table_destroy(func_table* functab) {
+
+}

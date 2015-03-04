@@ -4,9 +4,11 @@
  * license that can be found in the LICENSE file.
  *
  *     The id_h and id.c implement a kind of table to
- * storage the infomation about tokens defined in the
+ * save the infomation about tokens defined in the
  * same scope. You can insert, update or search these
  * tokens when necessary.
+ *     There is also a kind of list to save the ids'
+ * declarations.
  **/
 
 #ifndef CPLUS_IDTABLE_H

@@ -25,4 +25,7 @@ typedef struct {
     func_table_node* root;
 }func_table;
 
+extern void func_table_init   (func_table* functab);
+extern void func_table_destroy(func_table* functab);
+
 #endif
