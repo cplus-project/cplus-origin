@@ -1,6 +1,6 @@
 #!/bin/bash
 # type [./run] to run the main cplus compiler program
-# type [./run test/????.c] to run a test file
+# type [./run test/????] to run a test file
 
 # build the executable file
 clear;

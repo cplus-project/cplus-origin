@@ -110,10 +110,10 @@ error type_table_add(type_table* typetab, type typeinfo) {
 //   when you want to search a type from the table.
 // an error will returned if the type is not in the table or
 // some errors occur.
-error type_table_search(type_table* typetab, type* ret) {
+error type_table_search(type_table* typetab, type* search) {
     type_table_node* ptr = typetab->root;
     for (;;) {
-        switch (type_table_cmp(ret, &ptr->typeinfo)) {
+        switch (type_table_cmp(search, &ptr->typeinfo)) {
         case NODE_CMP_LT:
             if (ptr->lchild != NULL) {
                 ptr = ptr->lchild;
@@ -131,12 +131,16 @@ error type_table_search(type_table* typetab, type* ret) {
             }
             break;
         case NODE_CMP_EQ:
-            ret->type_access     = ptr->typeinfo.type_access;
-            ret->type_properties = ptr->typeinfo.type_properties;
-            ret->type_methods    = ptr->typeinfo.type_methods;
+            search->type_access     = ptr->typeinfo.type_access;
+            search->type_properties = ptr->typeinfo.type_properties;
+            search->type_methods    = ptr->typeinfo.type_methods;
             return NULL;
         default:
             return new_error("err: can not compare the two type names.");
         }
     }
+}
+
+void type_table_destroy(type_table* typetab) {
+
 }

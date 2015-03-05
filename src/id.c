@@ -83,21 +83,21 @@ error idtable_update(idtable* idt, id_info new_info) {
     return new_error("err: the id entry not found.");
 }
 
-error idtable_search(idtable* idt, id_info* ret) {
-    if (ret->id_name == NULL || ret->id_len <= 0) {
+error idtable_search(idtable* idt, id_info* search) {
+    if (search->id_name == NULL || search->id_len <= 0) {
         return new_error("err: can not search the id through an invalid id name.");
     }
     int i;
-    int index = idtable_hash(ret->id_name, ret->id_len);
+    int index = idtable_hash(search->id_name, search->id_len);
     idtable_node* ptr = NULL;
     for (ptr = idt->ids_head[index]; ptr != NULL; ptr = ptr->next) {
-        if (ptr->id.id_len == ret->id_len) {
+        if (ptr->id.id_len == search->id_len) {
             for (i = 0; i < ptr->id.id_len; i++) {
-                if (ptr->id.id_name[i] != ret->id_name[i]) {
+                if (ptr->id.id_name[i] != search->id_name[i]) {
                     break;
                 }
             }
-            *ret = ptr->id;
+            *search = ptr->id;
             return NULL;
         }
     }
