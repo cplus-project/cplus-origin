@@ -141,6 +141,96 @@ error type_table_search(type_table* typetab, type* search) {
     }
 }
 
+// use the postorder to travel the tree and release
+// every node because this order will not need for
+// extra visited-flag.
 void type_table_destroy(type_table* typetab) {
+    type_table_iterator it;
+    type_table_iterator_init(&it);
+    type_table_node* ptr = typetab->root;
+    for (;;) {
+        if (ptr->lchild != NULL) {
+            type_table_iterator_push(&it, ptr);
+            ptr = ptr->lchild;
+        }
+        else if (ptr->rchild != NULL) {
+            ptr = ptr->rchild;
+        }
+        else {
+            if (ptr == ptr->parent->lchild) {
+                ptr->parent->lchild = NULL;
+                mem_free(ptr);
+                ptr = type_table_iterator_top(&it);
+            }
+            else {
+                ptr->parent->rchild = NULL;
+                mem_free(ptr);
+                ptr = type_table_iterator_top(&it);
+                type_table_iterator_pop(&it);
+            }
+        }
+    }
+    type_table_iterator_destroy(&it);
+}
 
+/****** methods of type_table_iterator ******/
+
+void type_table_iterator_init(type_table_iterator* it) {
+    it->top = NULL;
+}
+
+void type_table_iterator_push(type_table_iterator* it, type_table_node* log) {
+    type_table_iterator_node* create = (type_table_iterator_node*)mem_alloc(sizeof(type_table_iterator_node));
+    create->log  = log;
+    create->next = NULL;
+    if (it->top != NULL) {
+        create->next = it->top;
+        it->top = create;
+    }
+    else {
+        it->top = create;
+    }
+}
+
+type_table_node* type_table_iterator_top(type_table_iterator* it) {
+    if (it->top == NULL) {
+        return NULL;
+    }
+    return it->top->log;
+}
+
+error type_table_iterator_pop(type_table_iterator* it) {
+    if (it->top != NULL) {
+        type_table_iterator_node* temp = it->top;
+        it->top = it->top->next;
+        mem_free(temp);
+    }
+    else {
+        return new_error("err: the type table iterator is empty.");
+    }
+}
+
+void type_table_iterator_destroy(type_table_iterator* it) {
+    type_table_iterator_node* temp;
+    for (;;) {
+        if (it->top == NULL) {
+            return;
+        }
+        temp = it->top;
+        it->top = it->top->next;
+        mem_free(temp);
+    }
+}
+
+void type_table_iterator_debug(type_table_iterator* it) {
+    printf("all nodes in the type table iterator:\r\n");
+    if (it->top == NULL) {
+        printf("none node\r\n");
+        return;
+    }
+    printf("%s <-top\r\n", it->top->log->typeinfo.type_name);
+    type_table_iterator_node* ptr;
+    for (ptr = it->top->next; ptr != NULL; ptr = ptr->next) {
+        printf("%s\r\n", ptr->log->typeinfo.type_name);
+    }
 }
