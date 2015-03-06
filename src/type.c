@@ -209,10 +209,10 @@ error type_table_search(type_table* typetab, type* search) {
     }
 }
 
-void type_table_delete_node(type_table_node* node) {
+void type_table_destroy_node(type_table_node* node) {
     if (node != NULL) {
-        if (node->lchild != NULL) type_table_delete_node(node->lchild);
-        if (node->rchild != NULL) type_table_delete_node(node->rchild);
+        if (node->lchild != NULL) type_table_destroy_node(node->lchild);
+        if (node->rchild != NULL) type_table_destroy_node(node->rchild);
         if (node == node->parent->lchild) {
             node->parent->lchild = NULL;
         }
@@ -224,5 +224,5 @@ void type_table_delete_node(type_table_node* node) {
 }
 
 void type_table_destroy(type_table* typetab) {
-    type_table_delete_node(typetab->root);
+    type_table_destroy_node(typetab->root);
 }
