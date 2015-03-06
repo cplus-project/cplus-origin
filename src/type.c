@@ -12,12 +12,12 @@ void type_init(type* typ) {
     typ->type_access  = TYPE_ACCESS_IN;
     typ->type_name    = NULL;
     typ->type_namelen = 0;
-    decl_list_init(&typ->type_properties);
+    decl_list_init (&typ->type_properties);
     func_table_init(&typ->type_methods);
 }
 
 void type_destroy(type* typ) {
-    decl_list_destroy(&typ->type_properties);
+    decl_list_destroy (&typ->type_properties);
     func_table_destroy(&typ->type_methods);
 }
 
