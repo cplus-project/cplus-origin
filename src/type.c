@@ -59,6 +59,74 @@ int type_table_cmp(type* t1, type* t2) {
     }
 }
 
+// example:
+//     |                       |
+//    node                   rchild
+//   /    \      ----\      /      \
+//  a   rchild   ----/    node      c
+//     /      \          /    \
+//    b        c        a      b
+error type_table_left_rotate(type_table* typetab, type_table_node* node) {
+    if (node == NULL) {
+        return new_error("err: the node will be left rotated should not be NULL.");
+    }
+    if (node->rchild == NULL) {
+        return new_error("err: the node will be left rotated should have the right child.");
+    }
+
+    if (node == typetab->root) {
+        typetab->root = node->rchild;
+        node->rchild->parent = NULL;
+    }
+    else {
+        if (node == node->parent->lchild) {
+            node->parent->lchild = node->rchild;
+            node->rchild->parent = node->parent;
+        }
+        else {
+            node->parent->rchild = node->rchild;
+            node->rchild->parent = node->parent;
+        }
+    }
+    node->parent         = node->rchild;
+    node->rchild         = node->rchild->lchild;
+    node->parent->lchild = node;
+}
+
+// example:
+//        |                |
+//       node            lchild
+//      /    \  ----\   /      \
+//   lchild   c ----/  a      node
+//  /      \                 /    \
+// a        b               b      c
+error type_table_right_rotate(type_table* typetab, type_table_node* node) {
+    if (node == NULL) {
+        return new_error("err: the node will be right rotated should not be NULL.");
+    }
+    if (node->lchild == NULL) {
+        return new_error("err: the node will be right rotated should have the left child");
+    }
+
+    if (node == typetab->root) {
+        typetab->root = node->lchild;
+        node->lchild->parent = NULL;
+    }
+    else {
+        if (node == node->parent->lchild) {
+            node->parent->lchild = node->lchild;
+            node->lchild->parent = node->parent;
+        }
+        else {
+            node->parent->rchild = node->lchild;
+            node->lchild->parent = node->parent;
+        }
+    }
+    node->parent         = node->lchild;
+    node->lchild         = node->lchild->rchild;
+    node->parent->rchild = node;
+}
+
 // note:
 //   the typeinfo should be initialized with type_init()
 //   before being assigned and being passed into the
@@ -141,96 +209,20 @@ error type_table_search(type_table* typetab, type* search) {
     }
 }
 
-// use the postorder to travel the tree and release
-// every node because this order will not need for
-// extra visited-flag.
-void type_table_destroy(type_table* typetab) {
-    type_table_iterator it;
-    type_table_iterator_init(&it);
-    type_table_node* ptr = typetab->root;
-    for (;;) {
-        if (ptr->lchild != NULL) {
-            type_table_iterator_push(&it, ptr);
-            ptr = ptr->lchild;
-        }
-        else if (ptr->rchild != NULL) {
-            ptr = ptr->rchild;
+void type_table_delete_node(type_table_node* node) {
+    if (node != NULL) {
+        if (node->lchild != NULL) type_table_delete_node(node->lchild);
+        if (node->rchild != NULL) type_table_delete_node(node->rchild);
+        if (node == node->parent->lchild) {
+            node->parent->lchild = NULL;
         }
         else {
-            if (ptr == ptr->parent->lchild) {
-                ptr->parent->lchild = NULL;
-                mem_free(ptr);
-                ptr = type_table_iterator_top(&it);
-            }
-            else {
-                ptr->parent->rchild = NULL;
-                mem_free(ptr);
-                ptr = type_table_iterator_top(&it);
-                type_table_iterator_pop(&it);
-            }
+            node->parent->rchild = NULL;
         }
-    }
-    type_table_iterator_destroy(&it);
-}
-
-/****** methods of type_table_iterator ******/
-
-void type_table_iterator_init(type_table_iterator* it) {
-    it->top = NULL;
-}
-
-void type_table_iterator_push(type_table_iterator* it, type_table_node* log) {
-    type_table_iterator_node* create = (type_table_iterator_node*)mem_alloc(sizeof(type_table_iterator_node));
-    create->log  = log;
-    create->next = NULL;
-    if (it->top != NULL) {
-        create->next = it->top;
-        it->top = create;
-    }
-    else {
-        it->top = create;
+        mem_free(node);
     }
 }
 
-type_table_node* type_table_iterator_top(type_table_iterator* it) {
-    if (it->top == NULL) {
-        return NULL;
-    }
-    return it->top->log;
-}
-
-error type_table_iterator_pop(type_table_iterator* it) {
-    if (it->top != NULL) {
-        type_table_iterator_node* temp = it->top;
-        it->top = it->top->next;
-        mem_free(temp);
-    }
-    else {
-        return new_error("err: the type table iterator is empty.");
-    }
-}
-
-void type_table_iterator_destroy(type_table_iterator* it) {
-    type_table_iterator_node* temp;
-    for (;;) {
-        if (it->top == NULL) {
-            return;
-        }
-        temp = it->top;
-        it->top = it->top->next;
-        mem_free(temp);
-    }
-}
-
-void type_table_iterator_debug(type_table_iterator* it) {
-    printf("all nodes in the type table iterator:\r\n");
-    if (it->top == NULL) {
-        printf("none node\r\n");
-        return;
-    }
-    printf("%s <-top\r\n", it->top->log->typeinfo.type_name);
-    type_table_iterator_node* ptr;
-    for (ptr = it->top->next; ptr != NULL; ptr = ptr->next) {
-        printf("%s\r\n", ptr->log->typeinfo.type_name);
-    }
+void type_table_destroy(type_table* typetab) {
+    type_table_delete_node(typetab->root);
 }

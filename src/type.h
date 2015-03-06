@@ -57,23 +57,4 @@ extern error type_table_add    (type_table* typetab, type  typeinfo);
 extern error type_table_search (type_table* typetab, type* search);
 extern void  type_table_destroy(type_table* typetab);
 
-typedef struct type_table_iterator_node {
-    type_table_node* log;
-    struct type_table_iterator_node* next;
-}type_table_iterator_node;
-
-// type_table_iterator is a stack which used to travel
-// the type_table. the traveling is often in postorder
-// because this order has no need for extra visited-flag.
-typedef struct {
-    type_table_iterator_node* top;
-}type_table_iterator;
-
-extern void             type_table_iterator_init    (type_table_iterator* it);
-extern void             type_table_iterator_push    (type_table_iterator* it, type_table_node* log);
-extern type_table_node* type_table_iterator_top     (type_table_iterator* it);
-extern error            type_table_iterator_pop     (type_table_iterator* it);
-extern void             type_table_iterator_destroy (type_table_iterator* it);
-extern void             type_table_iterator_debug   (type_table_iterator* it);
-
 #endif
