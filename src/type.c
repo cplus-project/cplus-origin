@@ -127,6 +127,85 @@ error type_table_right_rotate(type_table* typetab, type_table_node* node) {
     node->parent->rchild = node;
 }
 
+// R -> red
+// B -> black
+//
+// case 1: the uncle of the node added is red
+//           |                          |
+//        grandpa(B)                 grandpa(R)
+// a)    /       \        ----\     /       \
+//    parent(R) uncle(R)  ----/  parent(B) uncle(B)
+//          \                          \
+//         added(R)                   added(R)
+//
+//           |                          |
+//        grandpa(B)                 grandpa(R)
+// b)    /       \        ----\     /       \
+//    parent(R) uncle(R)  ----/  parent(B) uncle(B)
+//   /                          /
+// added(R)                   added(R)
+//
+// case 2: the uncle of the node added is black
+//           |                           |                        |
+//        grandpa(B)                  grandpa(B)                parent(B)
+//       /       \       ----\       /       \       ----\     /      \
+// a) parent(R) uncle(B) ----/    parent(R) uncle(B) ----/  added(R) grandpa(R)
+//          \                    /                                          \
+//         added(R)            added(R)                                    uncle(B)
+//
+//           |                         |                            |
+//        grandpa(B)                grandpa(B)                    parent(B)
+//       /       \       ----\     /       \         ----\       /      \
+// b) uncle(B) parent(R) ----/  uncle(B) parent(R)   ----/    grandpa(R) added(R)
+//            /                                \             /
+//         added(R)                           added(R)    uncle(B)
+void type_table_add_fixup(type_table* typetab, type_table_node* added) {
+    if (added->parent == NULL || added->parent->parent == NULL) {
+        return;
+    }
+    type_table_node* uncle = NULL;
+    if (added->parent == added->parent->parent->lchild) {
+        uncle = added->parent->parent->rchild;
+        if (uncle == NULL) {
+            return;
+        }
+        if (uncle->color == NODE_COLOR_BLACK) {
+            if (added == added->parent->rchild) {
+                added->parent->rchild = NULL;
+                added->parent->lchild = added;
+            }
+            added->parent->color         = NODE_COLOR_BLACK;
+            added->parent->parent->color = NODE_COLOR_RED;
+            type_table_right_rotate(typetab, added->parent);
+        }
+        else {
+            uncle->color         = NODE_COLOR_BLACK;
+            uncle->parent->color = NODE_COLOR_RED;
+            added->parent->color = NODE_COLOR_BLACK;
+        }
+    }
+    else {
+        uncle = added->parent->parent->lchild;
+        if (uncle == NULL) {
+            return;
+        }
+        if (uncle->color == NODE_COLOR_BLACK) {
+            if (added == added->parent->lchild) {
+                added->parent->lchild = NULL;
+                added->parent->rchild = added;
+            }
+            added->parent->color         = NODE_COLOR_BLACK;
+            added->parent->parent->color = NODE_COLOR_RED;
+            type_table_left_rotate(typetab, added->parent);
+        }
+        else {
+            uncle->color         = NODE_COLOR_BLACK;
+            uncle->parent->color = NODE_COLOR_RED;
+            added->parent->color = NODE_COLOR_BLACK;
+        }
+    }
+}
+
 // note:
 //   the typeinfo should be initialized with type_init()
 //   before being assigned and being passed into the
@@ -137,6 +216,7 @@ error type_table_add(type_table* typetab, type typeinfo) {
     }
     type_table_node* create = (type_table_node*)mem_alloc(sizeof(type_table_node));
     create->typeinfo = typeinfo;
+    create->color    = NODE_COLOR_RED;
     create->parent   = NULL;
     create->lchild   = NULL;
     create->rchild   = NULL;
@@ -148,6 +228,7 @@ error type_table_add(type_table* typetab, type typeinfo) {
                 if (ptr->lchild == NULL) {
                     ptr->lchild = create;
                     create->parent = ptr;
+                    type_table_add_fixup(typetab, create);
                     return NULL;
                 }
                 ptr = ptr->lchild;
@@ -156,6 +237,7 @@ error type_table_add(type_table* typetab, type typeinfo) {
                 if (ptr->rchild == NULL) {
                     ptr->rchild = create;
                     create->parent = ptr;
+                    type_table_add_fixup(typetab, create);
                     return NULL;
                 }
                 ptr = ptr->rchild;
