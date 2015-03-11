@@ -32,6 +32,30 @@ int type_table_deepth(type_table_node* node) {
     return ldeepth > rdeepth ? ldeepth+1 : rdeepth+1;
 }
 
+void type_table_preorder_travel(type_table_node* node) {
+    if (node != NULL) {
+        printf("%s ", node->typeinfo.type_name);
+        if (node->lchild != NULL) type_table_preorder_travel(node->lchild);
+        if (node->rchild != NULL) type_table_preorder_travel(node->rchild);
+    }
+}
+
+void type_table_inorder_travel(type_table_node* node) {
+    if (node != NULL) {
+        if (node->lchild != NULL) type_table_inorder_travel(node->lchild);
+        printf("%s ", node->typeinfo.type_name);
+        if (node->rchild != NULL) type_table_inorder_travel(node->rchild);
+    }
+}
+
+void type_table_postorder_travel(type_table_node* node) {
+    if (node != NULL) {
+        if (node->lchild != NULL) type_table_postorder_travel(node->lchild);
+        if (node->rchild != NULL) type_table_postorder_travel(node->rchild);
+        printf("%s ", node->typeinfo.type_name);
+    }
+}
+
 int main() {
     int   i;
     error err = NULL;
@@ -97,6 +121,15 @@ int main() {
         }
     }
     type_destroy(&search);
+
+    printf("\r\n\r\n---Travel The Tree In Preorder---\r\n");
+    type_table_preorder_travel(typetab.root);
+
+    printf("\r\n\r\n---Travel The Tree In Inorder---\r\n");
+    type_table_inorder_travel(typetab.root);
+
+    printf("\r\n\r\n---Travel The Tree In Postorder---\r\n");
+    type_table_postorder_travel(typetab.root);
 
     printf("\r\n\r\n---Count Every Branch's Black Node Amount---\r\n");
     int counted = 0;

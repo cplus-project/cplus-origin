@@ -81,15 +81,17 @@ error type_table_left_rotate(type_table* typetab, type_table_node* node) {
     else {
         if (node == node->parent->lchild) {
             node->parent->lchild = node->rchild;
-            node->rchild->parent = node->parent;
         }
         else {
             node->parent->rchild = node->rchild;
-            node->rchild->parent = node->parent;
         }
+        node->rchild->parent = node->parent;
     }
-    node->parent         = node->rchild;
-    node->rchild         = node->rchild->lchild;
+    node->parent = node->rchild;
+    node->rchild = node->rchild->lchild;
+    if (node->parent->lchild != NULL) {
+        node->parent->lchild->parent = node;
+    }
     node->parent->lchild = node;
 }
 
@@ -115,93 +117,69 @@ error type_table_right_rotate(type_table* typetab, type_table_node* node) {
     else {
         if (node == node->parent->lchild) {
             node->parent->lchild = node->lchild;
-            node->lchild->parent = node->parent;
         }
         else {
             node->parent->rchild = node->lchild;
-            node->lchild->parent = node->parent;
         }
+        node->lchild->parent = node->parent;
     }
-    node->parent         = node->lchild;
-    node->lchild         = node->lchild->rchild;
+    node->parent = node->lchild;
+    node->lchild = node->lchild->rchild;
+    if (node->parent->rchild != NULL) {
+        node->parent->rchild->parent = node;
+    }
     node->parent->rchild = node;
 }
 
-// R -> red
-// B -> black
-//
-// case 1: the uncle of the node added is red
-//           |                          |
-//        grandpa(B)                 grandpa(R)
-// a)    /       \        ----\     /       \
-//    parent(R) uncle(R)  ----/  parent(B) uncle(B)
-//          \                          \
-//         added(R)                   added(R)
-//
-//           |                          |
-//        grandpa(B)                 grandpa(R)
-// b)    /       \        ----\     /       \
-//    parent(R) uncle(R)  ----/  parent(B) uncle(B)
-//   /                          /
-// added(R)                   added(R)
-//
-// case 2: the uncle of the node added is black
-//           |                           |                        |
-//        grandpa(B)                  grandpa(B)                parent(B)
-//       /       \       ----\       /       \       ----\     /      \
-// a) parent(R) uncle(B) ----/    parent(R) uncle(B) ----/  added(R) grandpa(R)
-//          \                    /                                          \
-//         added(R)            added(R)                                    uncle(B)
-//
-//           |                         |                            |
-//        grandpa(B)                grandpa(B)                    parent(B)
-//       /       \       ----\     /       \         ----\       /      \
-// b) uncle(B) parent(R) ----/  uncle(B) parent(R)   ----/    grandpa(R) added(R)
-//            /                                \             /
-//         added(R)                           added(R)    uncle(B)
+// fix the balance of the tree and try to keep the properties
+// of the red black tree.
 void type_table_add_fixup(type_table* typetab, type_table_node* added) {
-    if (added->parent == NULL || added->parent->parent == NULL) {
-        return;
-    }
     type_table_node* uncle = NULL;
-    if (added->parent == added->parent->parent->lchild) {
-        uncle = added->parent->parent->rchild;
-        if (uncle == NULL || uncle->color == NODE_COLOR_BLACK) {
-            if (added == added->parent->rchild) {
-                added->parent->rchild = NULL;
-                added->parent->lchild = added;
+    for (;;) {
+        if (added->parent == NULL || added->parent->parent == NULL) {
+            break;
+        }
+
+        if (added->color == NODE_COLOR_RED && added->parent->color == NODE_COLOR_RED) {
+            // the uncle is black or NULL
+            if (added->parent == added->parent->parent->lchild) {
+                uncle = added->parent->parent->rchild;
+                if (uncle == NULL || uncle->color == NODE_COLOR_BLACK) {
+                    if (added == added->parent->rchild) {
+                        added =  added->parent;
+                        type_table_left_rotate(typetab, added);
+                    }
+                    added->parent->color         = NODE_COLOR_BLACK;
+                    added->parent->parent->color = NODE_COLOR_RED;
+                    type_table_right_rotate(typetab, added->parent->parent);
+                    break;
+                }
             }
-            added->parent->color         = NODE_COLOR_BLACK;
-            added->parent->parent->color = NODE_COLOR_RED;
-            type_table_right_rotate(typetab, added->parent);
+            else {
+                uncle = added->parent->parent->lchild;
+                if (uncle == NULL || uncle->color == NODE_COLOR_BLACK) {
+                    if (added == added->parent->lchild) {
+                        added =  added->parent;
+                        type_table_right_rotate(typetab, added);
+                    }
+                    added->parent->color         = NODE_COLOR_BLACK;
+                    added->parent->parent->color = NODE_COLOR_RED;
+                    type_table_left_rotate(typetab, added->parent->parent);
+                    break;
+                }
+            }
+
+            // the uncle is red
+            uncle->color         = NODE_COLOR_BLACK;
+            uncle->parent->color = NODE_COLOR_RED;
+            added->parent->color = NODE_COLOR_BLACK;
+            added = added->parent->parent;
         }
         else {
-            if (uncle->parent != typetab->root) {
-                uncle->color         = NODE_COLOR_BLACK;
-                uncle->parent->color = NODE_COLOR_RED;
-                added->parent->color = NODE_COLOR_BLACK;
-            }
+            break;
         }
     }
-    else {
-        uncle = added->parent->parent->lchild;
-        if (uncle == NULL || uncle->color == NODE_COLOR_BLACK) {
-            if (added == added->parent->lchild) {
-                added->parent->lchild = NULL;
-                added->parent->rchild = added;
-            }
-            added->parent->color         = NODE_COLOR_BLACK;
-            added->parent->parent->color = NODE_COLOR_RED;
-            type_table_left_rotate(typetab, added->parent);
-        }
-        else {
-            if (uncle->parent != typetab->root) {
-                uncle->color         = NODE_COLOR_BLACK;
-                uncle->parent->color = NODE_COLOR_RED;
-                added->parent->color = NODE_COLOR_BLACK;
-            }
-        }
-    }
+    typetab->root->color = NODE_COLOR_BLACK;
 }
 
 // note:
