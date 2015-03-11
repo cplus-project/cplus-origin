@@ -41,34 +41,34 @@ int main() {
         t[i].type_access = TYPE_ACCESS_OUT;
     }
 
-    t[0].type_name    = "createTree";
+    t[0].type_name    = "A";
     t[0].type_namelen = strlen(t[0].type_name);
 
-    t[1].type_name    = "travelGraph";
+    t[1].type_name    = "B";
     t[1].type_namelen = strlen(t[1].type_name);
 
-    t[2].type_name    = "addChild";
+    t[2].type_name    = "C";
     t[2].type_namelen = strlen(t[2].type_name);
 
-    t[3].type_name    = "sum";
+    t[3].type_name    = "D";
     t[3].type_namelen = strlen(t[3].type_name);
 
-    t[4].type_name    = "subString";
+    t[4].type_name    = "E";
     t[4].type_namelen = strlen(t[4].type_name);
 
-    t[5].type_name    = "personSay";
+    t[5].type_name    = "F";
     t[5].type_namelen = strlen(t[5].type_name);
 
-    t[6].type_name    = "personWalk";
+    t[6].type_name    = "G";
     t[6].type_namelen = strlen(t[6].type_name);
 
-    t[7].type_name    = "init";
+    t[7].type_name    = "H";
     t[7].type_namelen = strlen(t[7].type_name);
 
-    t[8].type_name    = "add";
+    t[8].type_name    = "I";
     t[8].type_namelen = strlen(t[8].type_name);
 
-    t[9].type_name    = "showMessage";
+    t[9].type_name    = "J";
     t[9].type_namelen = strlen(t[9].type_name);
 
     type_table typetab;

@@ -56,5 +56,6 @@ extern void  type_table_init   (type_table* typetab);
 extern error type_table_add    (type_table* typetab, type  typeinfo);
 extern error type_table_search (type_table* typetab, type* search);
 extern void  type_table_destroy(type_table* typetab);
+extern void  type_table_debug  (type_table* typetab);
 
 #endif

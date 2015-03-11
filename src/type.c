@@ -166,10 +166,7 @@ void type_table_add_fixup(type_table* typetab, type_table_node* added) {
     type_table_node* uncle = NULL;
     if (added->parent == added->parent->parent->lchild) {
         uncle = added->parent->parent->rchild;
-        if (uncle == NULL) {
-            return;
-        }
-        if (uncle->color == NODE_COLOR_BLACK) {
+        if (uncle == NULL || uncle->color == NODE_COLOR_BLACK) {
             if (added == added->parent->rchild) {
                 added->parent->rchild = NULL;
                 added->parent->lchild = added;
@@ -179,17 +176,16 @@ void type_table_add_fixup(type_table* typetab, type_table_node* added) {
             type_table_right_rotate(typetab, added->parent);
         }
         else {
-            uncle->color         = NODE_COLOR_BLACK;
-            uncle->parent->color = NODE_COLOR_RED;
-            added->parent->color = NODE_COLOR_BLACK;
+            if (uncle->parent != typetab->root) {
+                uncle->color         = NODE_COLOR_BLACK;
+                uncle->parent->color = NODE_COLOR_RED;
+                added->parent->color = NODE_COLOR_BLACK;
+            }
         }
     }
     else {
         uncle = added->parent->parent->lchild;
-        if (uncle == NULL) {
-            return;
-        }
-        if (uncle->color == NODE_COLOR_BLACK) {
+        if (uncle == NULL || uncle->color == NODE_COLOR_BLACK) {
             if (added == added->parent->lchild) {
                 added->parent->lchild = NULL;
                 added->parent->rchild = added;
@@ -199,9 +195,11 @@ void type_table_add_fixup(type_table* typetab, type_table_node* added) {
             type_table_left_rotate(typetab, added->parent);
         }
         else {
-            uncle->color         = NODE_COLOR_BLACK;
-            uncle->parent->color = NODE_COLOR_RED;
-            added->parent->color = NODE_COLOR_BLACK;
+            if (uncle->parent != typetab->root) {
+                uncle->color         = NODE_COLOR_BLACK;
+                uncle->parent->color = NODE_COLOR_RED;
+                added->parent->color = NODE_COLOR_BLACK;
+            }
         }
     }
 }
@@ -252,6 +250,7 @@ error type_table_add(type_table* typetab, type typeinfo) {
     else {
         create->color = NODE_COLOR_BLACK;
         typetab->root = create;
+        return NULL;
     }
 }
 
@@ -295,12 +294,6 @@ void type_table_destroy_node(type_table_node* node) {
     if (node != NULL) {
         if (node->lchild != NULL) type_table_destroy_node(node->lchild);
         if (node->rchild != NULL) type_table_destroy_node(node->rchild);
-        if (node == node->parent->lchild) {
-            node->parent->lchild = NULL;
-        }
-        else {
-            node->parent->rchild = NULL;
-        }
         mem_free(node);
     }
 }
