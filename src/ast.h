@@ -127,12 +127,12 @@ typedef struct {
 // one of the stmt_xxxx struct according to the value of
 // syntax_type.
 typedef struct ast_node {
-    uint32 line_count;  // record the line number of the syntax unit
-    uint16 line_pos;    // record the position of the syntax unit in the line
-    uint8  syntax_type; // one of the micros define prefixed with 'STMT_'
-    void*  syntax_info; // point to the struct which storages the information of
-                        // the syntax unit. it will be NULL if the syntax_type is
-                        // STMT_UNKNOWN.
+    int32 line_count;  // record the line number of the syntax unit
+    int16 line_pos;    // record the position of the syntax unit in the line
+    int8  syntax_type; // one of the micros define prefixed with 'STMT_'
+    void* syntax_info; // point to the struct which storages the information of
+                       // the syntax unit. it will be NULL if the syntax_type is
+                       // STMT_UNKNOWN.
 }ast_node;
 
 typedef struct {

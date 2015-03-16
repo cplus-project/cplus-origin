@@ -25,11 +25,11 @@
 // of the identifiers which parsed in lexical analyzing
 // stage.
 typedef struct id_info{
-    char*  id_name;
-    uint64 id_len;
-    int8   id_type;
-    char*  id_datatype; // only meaningful to ID_CONST and ID_VAR
-    char*  id_value;    // only meaningful to ID_CONST and ID_VAR
+    char* id_name;
+    int64 id_len;
+    int8  id_type;
+    char* id_datatype; // only meaningful to ID_CONST and ID_VAR
+    char* id_value;    // only meaningful to ID_CONST and ID_VAR
 }id_info;
 
 typedef struct idtable_node{

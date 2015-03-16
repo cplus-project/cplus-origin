@@ -14,6 +14,6 @@
 #include "dynamicarr.h"
 
 extern char* conv_itoa             (int64 num);
-extern int64 conv_binary_to_decimal(char* binary_num, uint64 conv_len);
+extern int64 conv_binary_to_decimal(char* binary_num, int64 conv_len);
 
 #endif

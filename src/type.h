@@ -28,7 +28,7 @@
 typedef struct {
     int8       type_access;     // the accessibility of the type, TYPE_ACCESS_IN or TYPE_ACCESS_OUT
     char*      type_name;       // the name of the type, the first letter should be upper case
-    uint64     type_namelen;    // the length of the type name
+    int64      type_namelen;    // the length of the type name
     decl_list  type_properties; // the properties(or called members) of the type
     func_table type_methods;    // the methods(or called behaviour) of the type
 }type;

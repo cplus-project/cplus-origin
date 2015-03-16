@@ -6,7 +6,7 @@
 
 #include "dynamicarr.h"
 
-error dynamicarr_char_init(dynamicarr_char* darr, uint64 capacity) {
+error dynamicarr_char_init(dynamicarr_char* darr, int64 capacity) {
     if (capacity <= 0) {
         return new_error("err: the capacity of the dynamic char array should be a positive number!");
     }
@@ -29,7 +29,7 @@ error dynamicarr_char_init(dynamicarr_char* darr, uint64 capacity) {
     return NULL;
 }
 
-void dynamicarr_char_append(dynamicarr_char* darr, char* str, uint64 len) {
+void dynamicarr_char_append(dynamicarr_char* darr, char* str, int64 len) {
     int64 j = 0;
     int64 need = darr->used + len;
     if (need <= darr->total_cap) {
@@ -91,12 +91,12 @@ void dynamicarr_char_appendc(dynamicarr_char* darr, char ch) {
 
 // return true if the given string is equal to the content
 // in the dynamic char array.
-bool dynamicarr_char_equal(dynamicarr_char* darr, char* str, uint64 len) {
+bool dynamicarr_char_equal(dynamicarr_char* darr, char* str, int64 len) {
     if (darr->used != len) {
         return false;
     }
-    int i;
-    int j = 0;
+    int64 i;
+    int64 j = 0;
     dynamicarr_char_node* ptr = darr->first;
     for (i = 0; i < len;) {
         if (j < ptr->cap) {
@@ -115,9 +115,9 @@ bool dynamicarr_char_equal(dynamicarr_char* darr, char* str, uint64 len) {
 }
 
 char* dynamicarr_char_getstr(dynamicarr_char* darr) {
-    int i;
-    int j = 0;
-    int len = darr->used;
+    int64 i;
+    int64 j   = 0;
+    int64 len = darr->used;
     // alloc an extra byte to add an '\0'. because when the string is using
     // outside the dynamic array, it will be used to do some operation like
     // strcmp or strcpy, and they are all think the '\0' is the end of a
@@ -189,9 +189,9 @@ void dynamicarr_char_destroy(dynamicarr_char* darr) {
 }
 
 void dynamicarr_char_debug(dynamicarr_char* darr) {
-    int i = 0;
-    int j = 0;
-    int count = 0;
+    int64 i = 0;
+    int64 j = 0;
+    int64 count = 0;
     dynamicarr_char_node* ptr = darr->first;
     printf("all characters in the dynamic array is:\r\n");
     for (i = 0; i < darr->used;) {
@@ -209,7 +209,7 @@ void dynamicarr_char_debug(dynamicarr_char* darr) {
     printf("\r\nthe space already used: %lld", darr->used);
     printf("\r\n\r\nthe info of nodes in the dynamic array are as below:\n");
     for (ptr = darr->first; ptr != NULL; ptr = ptr->next) {
-        printf("node #%04d:", count);
+        printf("node #%04lld:", count);
         printf("\r\n    the capacity of node  : %lld", ptr->cap);
         printf("\r\n    the space already used: %lld\r\n", ptr->i);
         count++;

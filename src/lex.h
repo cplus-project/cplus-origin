@@ -90,13 +90,13 @@
 
 typedef struct {
     dynamicarr_char token;      // one dynamic char array to store the token's content
-    uint64          token_len;  // token's length
+    int64           token_len;  // token's length
     int32           token_type; // will be assigned with one of micro definitions prefixed with 'TOKEN_...'
 }lex_token;
 
-extern error lex_token_init   (lex_token* lextkn, uint64 capacity);
-extern void  lex_token_append (lex_token* lextkn, char* str, uint64 len);
-extern void  lex_token_appendc(lex_token* lextkn, char ch);
+extern error lex_token_init   (lex_token* lextkn, int64 capacity);
+extern void  lex_token_append (lex_token* lextkn, char* str, int64 len);
+extern void  lex_token_appendc(lex_token* lextkn, char  ch);
 extern char* lex_token_getstr (lex_token* lextkn);
 extern void  lex_token_clear  (lex_token* lextkn);
 extern void  lex_token_debug  (lex_token* lextkn);
@@ -104,19 +104,22 @@ extern void  lex_token_destroy(lex_token* lextkn);
 
 // if want to change the lexical analyzer's buffer size and file
 // read rate, just modify the under micro definition.
+// node:
+//   the LEX_BUFF_SIZE should not exceed 32767(is 2^16/2-1), because
+//   the index 'i' and 'buff_end_index' are 16bits numbers.
 #define LEX_BUFF_SIZE 4096
 typedef struct{
     FILE* srcfile;
     char  buffer[LEX_BUFF_SIZE];
-    int64 i;              // the array index of buffer
-    int64 buff_end_index; // the last index of the buffer. the buffer will not be
+    int16 i;              // the array index of buffer
+    int16 buff_end_index; // the last index of the buffer. the buffer will not be
                           // always filled with the capacity of LEX_BUFF_SIZE so
                           // the buff_end_index will flag this situation
 
-    uint32     line;       // record the current analyzing line count
-    lex_token  lextkn;     // to storage the information of the token which is parsing now
-    bool       parse_lock; // if the parse_lock == true, the lexical analyzer can not
-                           // continue to parse the next token
+    int32     line;       // record the current analyzing line count
+    lex_token lextkn;     // to storage the information of the token which is parsing now
+    bool      parse_lock; // if the parse_lock == true, the lexical analyzer can not
+                          // continue to parse the next token
 }lex_analyzer;
 
 // first initialize the lexical analyzer before using it.

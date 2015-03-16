@@ -26,9 +26,9 @@ char* conv_itoa(int64 num) {
     }
     char  ch;
     char* numstr      = dynamicarr_char_getstr(&darr);
-    int   reverse_len = darr.used;
-    int   reverse_end = reverse_len >> 1;
-    int   i;
+    int64 reverse_len = darr.used;
+    int64 reverse_end = reverse_len >> 1;
+    int64 i;
     dynamicarr_char_destroy(&darr);
     for (i = 0; i < reverse_end; i++) {
         ch = numstr[i];
@@ -42,9 +42,9 @@ char* conv_itoa(int64 num) {
 // transfor binary format to the decimal format.
 // for example: 1011 = 1<<3 + 1<<1 + 1<<0
 //              0110 = 1<<2 + 1<<1
-int64 conv_binary_to_decimal(char* binary_num, uint64 conv_len) {
-    int   i;
-    int   digit  = conv_len - 1;
+int64 conv_binary_to_decimal(char* binary_num, int64 conv_len) {
+    int64 i;
+    int64 digit  = conv_len - 1;
     int64 decval = 0;
     for (i = 0; i < conv_len; i++) {
         if (binary_num[i] == '1') {

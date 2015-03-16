@@ -36,14 +36,14 @@ error scope_update_id(scope* scp, id_info new_info) {
 // scope. the search result will be saved in the parameter
 // 'ret'. if there is any error occur, an error will be
 // returned.
-error scope_search_id(scope* scp, id_info* ret) {
+error scope_search_id(scope* scp, id_info* search) {
     scope* ptr = scp;
     error  err = NULL;
     for (;;) {
         if (ptr == NULL) {
             return new_error("err: not found the id in all scope.");
         }
-        err = idtable_search(&ptr->idt, ret);
+        err = idtable_search(&ptr->idt, search);
         if (err == NULL) {
             return NULL;
         }

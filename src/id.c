@@ -66,8 +66,8 @@ error idtable_update(idtable* idt, id_info new_info) {
     if (new_info.id_name == NULL || new_info.id_len <= 0 || new_info.id_type == ID_UNKNOWN) {
         return new_error("err: can not be update to an invalid id.");
     }
-    int i;
-    int index = idtable_hash(new_info.id_name, new_info.id_len);
+    int64 i;
+    int   index = idtable_hash(new_info.id_name, new_info.id_len);
     idtable_node* ptr = NULL;
     for (ptr = idt->ids_head[index]; ptr != NULL; ptr = ptr->next) {
         if (ptr->id.id_len == new_info.id_len) {
@@ -87,8 +87,8 @@ error idtable_search(idtable* idt, id_info* search) {
     if (search->id_name == NULL || search->id_len <= 0) {
         return new_error("err: can not search the id through an invalid id name.");
     }
-    int i;
-    int index = idtable_hash(search->id_name, search->id_len);
+    int64 i;
+    int   index = idtable_hash(search->id_name, search->id_len);
     idtable_node* ptr = NULL;
     for (ptr = idt->ids_head[index]; ptr != NULL; ptr = ptr->next) {
         if (ptr->id.id_len == search->id_len) {

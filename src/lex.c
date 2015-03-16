@@ -20,7 +20,7 @@ if (lex_analyzer->i >= lex_analyzer->buff_end_index) { \
     }                                                  \
 }
 
-error lex_token_init(lex_token* lextkn, uint64 capacity) {
+error lex_token_init(lex_token* lextkn, int64 capacity) {
     error err = dynamicarr_char_init(&lextkn->token, capacity);
     if (err != NULL) {
         return err;
@@ -30,7 +30,7 @@ error lex_token_init(lex_token* lextkn, uint64 capacity) {
     return NULL;
 }
 
-void lex_token_append(lex_token* lextkn, char* str, uint64 len) {
+void lex_token_append(lex_token* lextkn, char* str, int64 len) {
     dynamicarr_char_append(&lextkn->token, str, len);
     lextkn->token_len += len;
 }
@@ -51,7 +51,7 @@ void lex_token_clear(lex_token* lextkn) {
 }
 
 void lex_token_debug(lex_token* lextkn) {
-    int type = lextkn->token_type;
+    int32 type = lextkn->token_type;
     if (type == 100) {
         printf("identifier: %s\r\n", lex_token_getstr(lextkn));
         return;
@@ -153,7 +153,7 @@ error lex_init(lex_analyzer* lex) {
     if (err != NULL) {
         return err;
     }
-    int j;
+    int16 j;
     for (j = 0; j < LEX_BUFF_SIZE; j++) {
         lex->buffer[j] = 0;
     }
