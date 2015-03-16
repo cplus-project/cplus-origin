@@ -9,7 +9,7 @@
 /****** methods of type ******/
 
 void type_init(type* typ) {
-    typ->type_access  = TYPE_ACCESS_IN;
+    typ->type_access  = TYPE_ACCESS_OUT;
     typ->type_name    = NULL;
     typ->type_namelen = 0;
     decl_list_init (&typ->type_properties);
@@ -27,8 +27,8 @@ void type_table_init(type_table* typetab) {
     typetab->root = NULL;
 }
 
-int type_table_cmp(type* t1, type* t2) {
-    int i = 0;
+static int type_table_cmp(type* t1, type* t2) {
+    int64 i = 0;
     // compare every character of the two typename from index 0.
     // if t1's typename[index] < t2's typename[index] -> NODE_CMP_LT.
     // if t1's typename[index] > t2's typename[index] -> NODE_CMP_GT.
@@ -66,7 +66,7 @@ int type_table_cmp(type* t1, type* t2) {
 //  a   rchild   ----/    node      c
 //     /      \          /    \
 //    b        c        a      b
-error type_table_left_rotate(type_table* typetab, type_table_node* node) {
+static error type_table_left_rotate(type_table* typetab, type_table_node* node) {
     if (node == NULL) {
         return new_error("err: the node will be left rotated should not be NULL.");
     }
@@ -102,7 +102,7 @@ error type_table_left_rotate(type_table* typetab, type_table_node* node) {
 //   lchild   c ----/  a      node
 //  /      \                 /    \
 // a        b               b      c
-error type_table_right_rotate(type_table* typetab, type_table_node* node) {
+static error type_table_right_rotate(type_table* typetab, type_table_node* node) {
     if (node == NULL) {
         return new_error("err: the node will be right rotated should not be NULL.");
     }
@@ -133,7 +133,7 @@ error type_table_right_rotate(type_table* typetab, type_table_node* node) {
 
 // fix the balance of the tree and try to keep the properties
 // of the red black tree.
-void type_table_add_fixup(type_table* typetab, type_table_node* added) {
+static void type_table_add_fixup(type_table* typetab, type_table_node* added) {
     type_table_node* uncle = NULL;
     for (;;) {
         if (added->parent == NULL || added->parent->parent == NULL) {
@@ -233,7 +233,7 @@ error type_table_add(type_table* typetab, type typeinfo) {
 }
 
 // note:
-//   you should assign the ret->type_name and ret->type_namelen
+//   you should assign the search->type_name and search->type_namelen
 //   when you want to search a type from the table.
 // an error will returned if the type is not in the table or
 // some errors occur.
@@ -258,9 +258,7 @@ error type_table_search(type_table* typetab, type* search) {
             }
             break;
         case NODE_CMP_EQ:
-            search->type_access     = ptr->typeinfo.type_access;
-            search->type_properties = ptr->typeinfo.type_properties;
-            search->type_methods    = ptr->typeinfo.type_methods;
+            search = &ptr->typeinfo;
             return NULL;
         default:
             return new_error("err: can not compare the two type names.");
@@ -268,10 +266,11 @@ error type_table_search(type_table* typetab, type* search) {
     }
 }
 
-void type_table_destroy_node(type_table_node* node) {
+static void type_table_destroy_node(type_table_node* node) {
     if (node != NULL) {
         if (node->lchild != NULL) type_table_destroy_node(node->lchild);
         if (node->rchild != NULL) type_table_destroy_node(node->rchild);
+        type_destroy(&node->typeinfo);
         mem_free(node);
     }
 }
