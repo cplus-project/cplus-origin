@@ -10,19 +10,19 @@
 
 void include_list_init(include_list* icldlist) {
     icldlist->head = NULL;
-    icldlist->cur  = NULL;
+    icldlist->tail = NULL;
 }
 
 void include_list_add(include_list* icldlist, char* file) {
     include_list_node* create = (include_list_node*)mem_alloc(sizeof(include_list_node));
     create->file = file;
     if (icldlist->head != NULL) {
-        icldlist->cur->next = create;
-        icldlist->cur       = create;
+        icldlist->tail->next = create;
+        icldlist->tail       = create;
     }
     else {
         icldlist->head = create;
-        icldlist->cur  = create;
+        icldlist->tail = create;
     }
 }
 
@@ -51,16 +51,15 @@ bool include_list_exist(include_list* icldlist, char* file) {
 }
 
 void include_list_destroy(include_list* icldlist) {
-    include_list_node* ptr = icldlist->head;
     include_list_node* temp;
+    icldlist->tail = icldlist->head;
     for (;;) {
-        if (ptr == NULL) {
-            icldlist->head = NULL;
-            icldlist->cur  = NULL;
+        if (icldlist->tail == NULL) {
+            icldlist->head =  NULL;
             return;
         }
-        temp = ptr;
-        ptr  = ptr->next;
+        temp = icldlist->tail;
+        icldlist->tail = icldlist->tail->next;
         mem_free(temp);
     }
 }
@@ -75,11 +74,45 @@ void include_list_debug(include_list* icldlist) {
     include_list_node* ptr = icldlist->head->next;
     for (;;) {
         if (ptr == NULL) {
-            printf(" <-cur\r\n");
+            printf(" <-tail\r\n");
             return;
         }
         printf("\r\n");
         printf("%s", ptr->file);
         ptr = ptr->next;
+    }
+}
+
+/****** methods of stmt_block  ******/
+void stmt_block_init(stmt_block* block) {
+    block->fst = NULL;
+    block->lst = NULL;
+}
+
+void stmt_block_add(stmt_block* block, ast_node* astnode) {
+    stmt_block_entry* create = (stmt_block_entry*)mem_alloc(sizeof(stmt_block_entry));
+    create->astnode = astnode;
+    create->next    = NULL;
+    if (block->fst != NULL) {
+        block->lst->next = create;
+        block->lst       = create;
+    }
+    else {
+        block->fst = create;
+        block->lst = create;
+    }
+}
+
+void stmt_block_destroy(stmt_block* block) {
+    stmt_block_entry* temp;
+    block->lst = block->fst;
+    for (;;) {
+        if (block->lst == NULL) {
+            block->fst =  NULL;
+            return;
+        }
+        temp = block->lst;
+        block->lst = block->lst->next;
+        mem_free(temp);
     }
 }

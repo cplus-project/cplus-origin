@@ -91,7 +91,7 @@
 typedef struct {
     dynamicarr_char token;      // one dynamic char array to store the token's content
     int64           token_len;  // token's length
-    int32           token_type; // will be assigned with one of micro definitions prefixed with 'TOKEN_...'
+    int16           token_type; // will be assigned with one of micro definitions prefixed with 'TOKEN_...'
 }lex_token;
 
 extern error lex_token_init   (lex_token* lextkn, int64 capacity);
