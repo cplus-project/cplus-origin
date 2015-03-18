@@ -18,6 +18,9 @@
 #define STMT_UNKNOWN
 #define STMT_BLOCK
 #define STMT_ASSIGN
+#define STMT_IF
+#define STMT_EF
+#define STMT_ELSE
 #define STMT_LOOP_FOR
 #define STMT_LOOP_WHILE
 #define STMT_LOOP_INFINITE
@@ -59,29 +62,98 @@ extern void stmt_block_init   (stmt_block* block);
 extern void stmt_block_add    (stmt_block* block, ast_node* astnode);
 extern void stmt_block_destroy(stmt_block* block);
 
-typedef struct {
-    char* oprd;
-    int16 optr; // the operator's token type code
-}expr_unary;
+// the stmt_expr represents the expression structure
+// in the source.
+//
+// note:
+//   you should parse the two operand based on each
+//   oprdx_is_expr flag. see the example followed.
+//
+// example:
+//   stmt_expr expr;
+//   ...
+//   if (expr.optr == TOKEN_OP_XXXX) {
+//       if (expr.oprd1_is_expr == true) {
+//           // parse the expr.oprd1.expr
+//       }
+//       else {
+//           // using the expr.oprd1.oprd
+//       }
+//       if (expr.oprd2_is_expr == true) {
+//           // parse the expr.oprd2.expr
+//       }
+//       else {
+//           // using the expr.oprd2.oprd
+//       }
+//   }
+//   ...
+typedef struct stmt_expr {
+    int16 optr;
+    bool  oprd1_is_expr;
+    union {
+        char* oprd;
+        struct stmt_expr* expr;
+    }oprd1;
+    bool  oprd2_is_expr;
+    union {
+        char* oprd;
+        struct stmt_expr* expr;
+    }oprd2;
+}stmt_expr;
 
 typedef struct {
-    char* oprd1;
-    char* oprd2;
-    int16 optr; // the operator's token type code
-}expr_binary;
+    char*     decl_type;
+    id_info   decl_id;
+    stmt_expr decl_init_expr;
+}stmt_decl;
 
 typedef struct {
-    id_info id;
-    // expr
+    id_info   assign_id;
+    stmt_expr assign_expr;
 }stmt_assign;
 
 typedef struct {
-    stmt_assign assign;
-    // end
-    // step
+    stmt_expr  expr;
     scope      scp;
     stmt_block stmts;
+}stmt_if;
+
+typedef struct {
+    stmt_expr  expr;
+    scope      scp;
+    stmt_block block;
+}stmt_ef;
+
+typedef struct {
+    scope      scp;
+    stmt_block block;
+}stmt_else;
+
+typedef struct {
+    stmt_assign assign;
+    stmt_expr   end;
+    stmt_expr   step;
+    scope       scp;
+    stmt_block  stmts;
 }stmt_loop_for;
+
+typedef struct {
+    stmt_expr  end;
+    scope      scp;
+    stmt_block stmts;
+}stmt_loop_while;
+
+typedef struct {
+    scope      scp;
+    stmt_block stmts;
+}stmt_loop_infinite;
+
+typedef struct {
+    id_info    value;
+    id_info    index;
+    scope      scp;
+    stmt_block stmts;
+}stmt_loop_foreach;
 
 // the whole abstract syntax tree is composed of the struct
 // ast_node, so you can travel the whole tree with only one

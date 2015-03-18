@@ -84,6 +84,7 @@ void include_list_debug(include_list* icldlist) {
 }
 
 /****** methods of stmt_block  ******/
+
 void stmt_block_init(stmt_block* block) {
     block->fst = NULL;
     block->lst = NULL;
