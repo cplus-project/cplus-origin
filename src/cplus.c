@@ -10,6 +10,7 @@
 #include <string.h>
 #include "common.h"
 #include "lex.h"
+#include "ast.h"
 
 int main(int argc, char* argv[]) {
     error err = NULL;
@@ -35,6 +36,9 @@ int main(int argc, char* argv[]) {
 
         lex_analyzer lex;
         lex_token*   lextkn;
+        ast          astree;
+        // TODO: initialized the astree !!!
+        // TODO: destroy the astree !!!
 
         err = lex_init(&lex);
         if (err != NULL) {
@@ -54,7 +58,17 @@ int main(int argc, char* argv[]) {
             // the syntax parser read the every token
             // here and use them to build the ast.
             lextkn = lex_read_token(&lex);
-
+            switch (lextkn->token_type) {
+            case TOKEN_ID:
+                parse_id(&lex, &astree);
+                break;
+            case TOKEN_KEYWORD_IF:
+                parse_if(&lex, &astree);
+                break;
+            case TOKEN_KEYWORD_FOR:
+                parse_for(&lex, &astree);
+                break;
+            }
         }
 
         lex_close_srcfile(&lex);

@@ -6,15 +6,10 @@
 
 #include "syntax.h"
 
-#define peek_next_type(lex) lex_read_token(lex)->token_type
-
-error parse_stmt_for(lex_analyzer* lex, ast* tree) {
+error parse_id(lex_analyzer* lex, ast* astree) {
     error      err    = NULL;
-    int8       state  = FOR_INIT;
     lex_token* lextkn = NULL;
-    char*      start  = NULL;
-    char*      end    = NULL;
-    char*      step   = NULL;
+    int8       state  = PARSE_INIT;
     for (;;) {
         err = lex_parse_token(lex);
         if (err != NULL) {
@@ -24,33 +19,44 @@ error parse_stmt_for(lex_analyzer* lex, ast* tree) {
         lex_next_token(lex);
 
         switch (state) {
-        case FOR_INIT:
-            switch (lextkn->token_type) {
-            case TOKEN_ID:
-                // the first token is an id, then peek one next token and
-                // if this token after the id is:
-                //   ';' => for start; end; step; {...}
-                //   '{' => for end {...}
-                //   ':' => for val : array {...}
-                //   ',' => for val, index : array {...}
-                switch (peek_next_type(lex)) {
-                case TOKEN_OP_SEMC:
-                    break;
-                case TOKEN_OP_LBRACE:
-                    break;
-                case TOKEN_OP_COLON:
-                    break;
-                case TOKEN_OP_COMMA:
-                    break;
-                }
-                break;
-            case TOKEN_OP_LBRACE:
-                // TODO: parse the stmts in the new block...
-                break;
-            case TOKEN_OP_SEMC:
-                break;
+        case PARSE_INIT:
+            err = lex_parse_token(lex);
+            if (err != NULL) {
+                return err;
             }
-            break;
+            // peek the next token's type after the current id,
+            // if it is:
+            // (1) id  =>  declaration
+            // (2) =   =>  assignment
+            // (3) .   =>  reference the member or method
+            // (4) (   =>  call function
+            // (5) [   =>  reference the array
+            // (6) ++  =>  increase
+            // (7) --  =>  decrease
+            switch (lex_read_token(lex)->token_type) {
+            case TOKEN_ID:
+                break;
+            case TOKEN_OP_ASSIGN:
+                break;
+            case TOKEN_OP_SPOT:
+                break;
+            case TOKEN_OP_LPARENTHESE:
+                break;
+            case TOKEN_OP_LBRACKET:
+                break;
+            case TOKEN_OP_INC:
+                break;
+            case TOKEN_OP_DEC:
+                break;
+            default:
+                return new_error("err: unknown context.");
+            }
         }
     }
+}
+
+error parse_if(lex_analyzer* lex, ast* astree) {
+}
+
+error parse_for(lex_analyzer* lex, ast* astree) {
 }

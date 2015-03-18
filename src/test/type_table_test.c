@@ -66,34 +66,15 @@ int main() {
     }
 
     t[0].type_name    = "createTree";
-    t[0].type_namelen = strlen(t[0].type_name);
-
     t[1].type_name    = "travelGraph";
-    t[1].type_namelen = strlen(t[1].type_name);
-
     t[2].type_name    = "addChild";
-    t[2].type_namelen = strlen(t[2].type_name);
-
     t[3].type_name    = "sum";
-    t[3].type_namelen = strlen(t[3].type_name);
-
     t[4].type_name    = "subString";
-    t[4].type_namelen = strlen(t[4].type_name);
-
     t[5].type_name    = "personSay";
-    t[5].type_namelen = strlen(t[5].type_name);
-
     t[6].type_name    = "personWalk";
-    t[6].type_namelen = strlen(t[6].type_name);
-
     t[7].type_name    = "init";
-    t[7].type_namelen = strlen(t[7].type_name);
-
     t[8].type_name    = "add";
-    t[8].type_namelen = strlen(t[8].type_name);
-
     t[9].type_name    = "showMessage";
-    t[9].type_namelen = strlen(t[9].type_name);
 
     type_table typetab;
     type_table_init(&typetab);
@@ -106,21 +87,16 @@ int main() {
         }
     }
     // search test
-    type search;
-    type_init(&search);
+    type* ret = NULL;
     for (i = 9; i >= 0; i--) {
-        search.type_name    = t[i].type_name;
-        search.type_namelen = t[i].type_namelen;
-        err = type_table_search(&typetab, &search);
-        if (err != NULL) {
-            debug(err);
-            err = NULL;
+        ret = type_table_search(&typetab, t[i].type_name);
+        if (ret == NULL) {
+            printf("function %s search failed.\r\n", t[i].type_name);
         }
         else {
-            printf("function name: %s\r\n", search.type_name);
+            printf("function %s search success.\r\n", ret->type_name);
         }
     }
-    type_destroy(&search);
 
     printf("\r\n\r\n---Travel The Tree In Preorder---\r\n");
     type_table_preorder_travel(typetab.root);

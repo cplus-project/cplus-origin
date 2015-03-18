@@ -42,7 +42,6 @@ extern void param_list_destroy(param_list* paralst);
 typedef struct {
     int8       func_access;
     char*      func_name;
-    int64      func_namelen;
     param_list func_params;
     param_list func_retval;
 }func;
@@ -68,7 +67,7 @@ typedef struct {
 
 extern void  func_table_init   (func_table* functab);
 extern error func_table_add    (func_table* functab, func  funcinfo);
-extern error func_table_search (func_table* functab, func* search);
+extern func* func_table_search (func_table* functab, char* func_name);
 extern void  func_table_destroy(func_table* functab);
 
 #endif

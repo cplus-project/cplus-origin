@@ -11,7 +11,6 @@
 void type_init(type* typ) {
     typ->type_access  = TYPE_ACCESS_OUT;
     typ->type_name    = NULL;
-    typ->type_namelen = 0;
     decl_list_init (&typ->type_properties);
     func_table_init(&typ->type_methods);
 }
@@ -27,8 +26,7 @@ void type_table_init(type_table* typetab) {
     typetab->root = NULL;
 }
 
-static int type_table_cmp(type* t1, type* t2) {
-    int64 i = 0;
+ int type_table_cmp(char* name1, char* name2) {
     // compare every character of the two typename from index 0.
     // if t1's typename[index] < t2's typename[index] -> NODE_CMP_LT.
     // if t1's typename[index] > t2's typename[index] -> NODE_CMP_GT.
@@ -36,26 +34,23 @@ static int type_table_cmp(type* t1, type* t2) {
     // typenames' length. if the t1's length is longer, return
     // NODE_CMP_GT, if the t1's length is equal to the t2's length,
     // then return NODE_CMP_EQ.
-    if (t1->type_namelen < t2->type_namelen) {
-        for (i = 0; i < t1->type_namelen; i++) {
-            if (t1->type_name[i] < t2->type_name[i]) return NODE_CMP_LT;
-            if (t1->type_name[i] > t2->type_name[i]) return NODE_CMP_GT;
+    int64 i;
+    for (i = 0; ; i++) {
+        if (name1[i] < name2[i]) {
+            return NODE_CMP_LT;
         }
-        return NODE_CMP_LT;
-    }
-    else if (t1->type_namelen > t2->type_namelen) {
-        for (i = 0; i < t2->type_namelen; i++) {
-            if (t1->type_name[i] < t2->type_name[i]) return NODE_CMP_LT;
-            if (t1->type_name[i] > t2->type_name[i]) return NODE_CMP_GT;
+        if (name1[i] > name2[i]){
+            return NODE_CMP_GT;
         }
-        return NODE_CMP_GT;
-    }
-    else {
-        for (i = 0; i < t2->type_namelen; i++) {
-            if (t1->type_name[i] < t2->type_name[i]) return NODE_CMP_LT;
-            if (t1->type_name[i] > t2->type_name[i]) return NODE_CMP_GT;
+        if (name1[i] == '\0' && name2[i] == '\0') {
+            return NODE_CMP_EQ;
         }
-        return NODE_CMP_EQ;
+        if (name1[i] == '\0' && name2[i] != '\0') {
+            return NODE_CMP_LT;
+        }
+        if (name1[i] != '\0' && name2[i] == '\0'){
+            return NODE_CMP_GT;
+        }
     }
 }
 
@@ -199,7 +194,7 @@ error type_table_add(type_table* typetab, type typeinfo) {
     if (typetab->root != NULL) {
         type_table_node* ptr = typetab->root;
         for (;;) {
-            switch (type_table_cmp(&typeinfo, &ptr->typeinfo)) {
+            switch (type_table_cmp(typeinfo.type_name, ptr->typeinfo.type_name)) {
             case NODE_CMP_LT:
                 if (ptr->lchild == NULL) {
                     ptr->lchild = create;
@@ -232,21 +227,19 @@ error type_table_add(type_table* typetab, type typeinfo) {
     }
 }
 
-// note:
-//   you should assign the search->type_name and search->type_namelen
-//   when you want to search a type from the table.
-// an error will returned if the type is not in the table or
-// some errors occur.
-error type_table_search(type_table* typetab, type* search) {
+// return:
+//       NULL -> not found the detail of the type
+//   NOT NULL -> get the detail of the specific type
+type* type_table_search(type_table* typetab, char* type_name) {
     type_table_node* ptr = typetab->root;
     for (;;) {
-        switch (type_table_cmp(search, &ptr->typeinfo)) {
+        switch (type_table_cmp(type_name, ptr->typeinfo.type_name)) {
         case NODE_CMP_LT:
             if (ptr->lchild != NULL) {
                 ptr = ptr->lchild;
             }
             else {
-                return new_error("err: the type searched not found.");
+                return NULL;
             }
             break;
         case NODE_CMP_GT:
@@ -254,14 +247,13 @@ error type_table_search(type_table* typetab, type* search) {
                 ptr = ptr->rchild;
             }
             else {
-                return new_error("err: the type searched not found.");
+                return NULL;
             }
             break;
         case NODE_CMP_EQ:
-            search = &ptr->typeinfo;
-            return NULL;
+            return &ptr->typeinfo;
         default:
-            return new_error("err: can not compare the two type names.");
+            return NULL;
         }
     }
 }

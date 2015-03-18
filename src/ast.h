@@ -14,6 +14,7 @@
 #include "common.h"
 #include "id.h"
 #include "scope.h"
+#include "type.h"
 
 #define STMT_UNKNOWN
 #define STMT_BLOCK
@@ -102,7 +103,7 @@ typedef struct stmt_expr {
 }stmt_expr;
 
 typedef struct {
-    char*     decl_type;
+    type      decl_type;
     id_info   decl_id;
     stmt_expr decl_init_expr;
 }stmt_decl;
@@ -180,5 +181,7 @@ typedef struct {
     idtable      modules;       // all modules imported in one source file
     // TODO: other elements...
 }ast;
+
+extern void ast_add_stmt_decl(ast* astree, stmt_decl* decl);
 
 #endif

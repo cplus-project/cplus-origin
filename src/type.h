@@ -28,7 +28,6 @@
 typedef struct {
     int8       type_access;     // the accessibility of the type, TYPE_ACCESS_IN or TYPE_ACCESS_OUT
     char*      type_name;       // the name of the type, the first letter should be upper case
-    int64      type_namelen;    // the length of the type name
     decl_list  type_properties; // the properties(or called members) of the type
     func_table type_methods;    // the methods(or called behaviour) of the type
 }type;
@@ -54,7 +53,7 @@ typedef struct {
 
 extern void  type_table_init   (type_table* typetab);
 extern error type_table_add    (type_table* typetab, type  typeinfo);
-extern error type_table_search (type_table* typetab, type* search);
+extern type* type_table_search (type_table* typetab, char* type_name);
 extern void  type_table_destroy(type_table* typetab);
 
 #endif

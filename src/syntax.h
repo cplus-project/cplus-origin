@@ -15,21 +15,43 @@
 #include "lex.h"
 #include "ast.h"
 
-#define FOR_INIT 0x00
+#define PARSE_INIT           0x00
+#define PARSE_DECL_TYPE      0x01
+#define PARSE_DECL_ID        0x02
+#define PARSE_DECL_INIT_EXPR 0x03
 
+// using the parsing functions based on the start symbol
+// which you are meeting.
+//
 // note:
 //   the start symbol(such as 'if', 'for', etc.) should
-//   be eliminated before being passed to the parsing
+//   be reserved when being passed to the parsing
 //   functions.
-extern error parse_stmt_decl  (lex_analyzer* lex, ast* tree);
-extern error parse_stmt_assign(lex_analyzer* lex, ast* tree);
-extern error parse_stmt_if    (lex_analyzer* lex, ast* tree);
-extern error parse_stmt_switch(lex_analyzer* lex, ast* tree);
-extern error parse_stmt_for   (lex_analyzer* lex, ast* tree);
-extern error parse_stmt_func  (lex_analyzer* lex, ast* tree);
-extern error parse_stmt_return(lex_analyzer* lex, ast* tree);
-extern error parse_stmt_error (lex_analyzer* lex, ast* tree);
-extern error parse_stmt_deal  (lex_analyzer* lex, ast* tree);
-extern error parse_stmt_type  (lex_analyzer* lex, ast* tree);
+//
+// example:
+//   lex_analyzer lex;
+//   lex_token*   lextkn;
+//   ast          astree;
+//   ...
+//   for (;;) {
+//       // lex_parse_token
+//       lextkn = lex_read_token(&lex);
+//       switch (lextkn->token_type) {
+//       case TOKEN_ID:
+//           parse_id(&lex, &astree);
+//           break;
+//       case TOKEN_KEYWORD_IF:
+//           parse_if(&lex, &astree);
+//           break;
+//       case TOKEN_KEYWORD_FOR:
+//           parse_for(&lex, &astree);
+//           break;
+//       ...
+//       }
+//   }
+//   ...
+extern error parse_id (lex_analyzer* lex, ast* astree);
+extern error parse_if (lex_analyzer* lex, ast* astree);
+extern error parse_for(lex_analyzer* lex, ast* astree);
 
 #endif

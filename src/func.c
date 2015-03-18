@@ -46,7 +46,6 @@ void param_list_destroy(param_list* paralst) {
 void func_init(func* fn) {
     fn->func_access  = FUNC_ACCESS_OUT;
     fn->func_name    = NULL;
-    fn->func_namelen = 0;
     param_list_init(&fn->func_params);
     param_list_init(&fn->func_retval);
 }
@@ -64,28 +63,24 @@ void func_table_init(func_table* functab) {
 }
 
 // the algorithm is the same with type_table_cmp in src/type.c
-static int func_table_cmp(func* f1, func* f2) {
-    int64 i = 0;
-    if (f1->func_namelen < f2->func_namelen) {
-        for (i = 0; i < f1->func_namelen; i++) {
-            if (f1->func_name[i] < f2->func_name[i]) return NODE_CMP_LT;
-            if (f1->func_name[i] > f2->func_name[i]) return NODE_CMP_GT;
+static int func_table_cmp(char* name1, char* name2) {
+    int64 i;
+    for (i = 0; ; i++) {
+        if (name1[i] < name2[i]) {
+            return NODE_CMP_LT;
         }
-        return NODE_CMP_LT;
-    }
-    else if (f1->func_namelen > f2->func_namelen) {
-        for (i = 0; i < f2->func_namelen; i++) {
-            if (f1->func_name[i] < f2->func_name[i]) return NODE_CMP_LT;
-            if (f1->func_name[i] > f2->func_name[i]) return NODE_CMP_GT;
+        if (name1[i] > name2[i]){
+            return NODE_CMP_GT;
         }
-        return NODE_CMP_GT;
-    }
-    else {
-        for (i = 0; i < f2->func_namelen; i++) {
-            if (f1->func_name[i] < f2->func_name[i]) return NODE_CMP_LT;
-            if (f1->func_name[i] > f2->func_name[i]) return NODE_CMP_GT;
+        if (name1[i] == '\0' && name2[i] == '\0') {
+            return NODE_CMP_EQ;
         }
-        return NODE_CMP_EQ;
+        if (name1[i] == '\0' && name2[i] != '\0') {
+            return NODE_CMP_LT;
+        }
+        if (name1[i] != '\0' && name2[i] == '\0'){
+            return NODE_CMP_GT;
+        }
     }
 }
 
@@ -229,7 +224,7 @@ error func_table_add(func_table* functab, func funcinfo) {
     if (functab->root != NULL) {
         func_table_node* ptr = functab->root;
         for (;;) {
-            switch (func_table_cmp(&funcinfo, &ptr->funcinfo)) {
+            switch (func_table_cmp(funcinfo.func_name, ptr->funcinfo.func_name)) {
             case NODE_CMP_LT:
                 if (ptr->lchild == NULL) {
                     ptr->lchild = create;
@@ -262,21 +257,19 @@ error func_table_add(func_table* functab, func funcinfo) {
     }
 }
 
-// note:
-//   you should assign the search->type_name and search->type_namelen
-//   when you want to search a function' information from the table.
-// an error will returned if the function is not in the table or
-// some errors occur.
-error func_table_search(func_table* functab, func* search) {
+// return:
+//       NULL -> not found the detail of the function
+//   NOT NULL -> get the detail of the specific function
+func* func_table_search(func_table* functab, char* func_name) {
     func_table_node* ptr = functab->root;
     for (;;) {
-        switch (func_table_cmp(search, &ptr->funcinfo)) {
+        switch (func_table_cmp(func_name, ptr->funcinfo.func_name)) {
         case NODE_CMP_LT:
             if (ptr->lchild != NULL) {
                 ptr = ptr->lchild;
             }
             else {
-                return new_error("err: the function searched not found.");
+                return NULL;
             }
             break;
         case NODE_CMP_GT:
@@ -284,14 +277,13 @@ error func_table_search(func_table* functab, func* search) {
                 ptr = ptr->rchild;
             }
             else {
-                return new_error("err: the function searched not found.");
+                return NULL;
             }
             break;
         case NODE_CMP_EQ:
-            search = &ptr->funcinfo;
-            return NULL;
+            return &ptr->funcinfo;
         default:
-            return new_error("err: can not compare the two function names.");
+            return NULL;
         }
     }
 }

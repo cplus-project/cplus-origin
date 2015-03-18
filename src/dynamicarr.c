@@ -120,8 +120,7 @@ char* dynamicarr_char_getstr(dynamicarr_char* darr) {
     int64 len = darr->used;
     // alloc an extra byte to add an '\0'. because when the string is using
     // outside the dynamic array, it will be used to do some operation like
-    // strcmp or strcpy, and they are all think the '\0' is the end of a
-    // string.
+    // strcmp or strcpy, and they all think the '\0' is the end of a string.
     char* str = (char*)mem_alloc(sizeof(char)*len + 1);
     dynamicarr_char_node* ptr = darr->first;
     for (i = 0; i < len;) {
