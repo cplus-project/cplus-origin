@@ -11,6 +11,7 @@
 #define CPLUS_COMMON_H
 
 #include <stdio.h>
+#include <string.h>
 #include <assert.h>
 #include <malloc.h>
 

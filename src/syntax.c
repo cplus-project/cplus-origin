@@ -6,57 +6,74 @@
 
 #include "syntax.h"
 
-error parse_id(lex_analyzer* lex, ast* astree) {
-    error      err    = NULL;
-    lex_token* lextkn = NULL;
-    int8       state  = PARSE_INIT;
-    for (;;) {
-        err = lex_parse_token(lex);
-        if (err != NULL) {
-            return err;
-        }
-        lextkn = lex_read_token(lex);
-        lex_next_token(lex);
+/****** methods of token_buffer ******/
 
-        switch (state) {
-        case PARSE_INIT:
-            err = lex_parse_token(lex);
-            if (err != NULL) {
-                return err;
-            }
-            // peek the next token's type after the current id,
-            // if it is:
-            // (1) id  =>  declaration
-            // (2) =   =>  assignment
-            // (3) .   =>  reference the member or method
-            // (4) (   =>  call function
-            // (5) [   =>  reference the array
-            // (6) ++  =>  increase
-            // (7) --  =>  decrease
-            switch (lex_read_token(lex)->token_type) {
-            case TOKEN_ID:
-                break;
-            case TOKEN_OP_ASSIGN:
-                break;
-            case TOKEN_OP_SPOT:
-                break;
-            case TOKEN_OP_LPARENTHESE:
-                break;
-            case TOKEN_OP_LBRACKET:
-                break;
-            case TOKEN_OP_INC:
-                break;
-            case TOKEN_OP_DEC:
-                break;
-            default:
-                return new_error("err: unknown context.");
-            }
-        }
+void token_buffer_init(token_buffer* tknbuff) {
+    tknbuff->top = NULL;
+}
+
+// return true is the stack is empty.
+bool token_buffer_isempty(token_buffer* tknbuff) {
+    if (tknbuff->top == NULL) {
+        return true;
+    }
+    return false;
+}
+
+void token_buffer_push(token_buffer* tknbuff, lex_token tkninfo) {
+    token_buffer_node* create = (token_buffer_node*)mem_alloc(sizeof(token_buffer_node));
+    create->tkninfo = tkninfo;
+    create->next    = NULL;
+    if (tknbuff->top != NULL) {
+        create->next = tknbuff->top;
+        tknbuff->top = create;
+    } else {
+        tknbuff->top = create;
     }
 }
 
-error parse_if(lex_analyzer* lex, ast* astree) {
+lex_token* token_buffer_top(token_buffer* tknbuff) {
+    return &tknbuff->top->tkninfo;
 }
 
-error parse_for(lex_analyzer* lex, ast* astree) {
+error token_buffer_pop(token_buffer* tknbuff) {
+    if (tknbuff->top != NULL) {
+        token_buffer_node* temp = tknbuff->top;
+        tknbuff->top = tknbuff->top->next;
+        mem_free(temp);
+        return NULL;
+    }
+    else {
+        return new_error("err: the token buffer is empty.");
+    }
+}
+
+void token_buffer_destroy(token_buffer* tknbuff) {
+    token_buffer_node* temp;
+    for (;;) {
+        if (tknbuff->top == NULL) {
+            return;
+        }
+        temp = tknbuff->top;
+        tknbuff->top = tknbuff->top->next;
+        mem_free(temp);
+    }
+}
+
+/****** methods of syntax_analyzer ******/
+
+void syntax_analyzer_init(syntax_analyzer* syx, char* file) {
+    lex_init(&syx->lex);
+    token_buffer_init(&syx->tkn_buff);
+    // TODO: initialize the syx->astree
+}
+
+error syntax_analyzer_generate_ast(syntax_analyzer* syx) {
+    return NULL;
+}
+
+void syntax_analyzer_destroy(syntax_analyzer* syx) {
+    lex_destroy(&syx->lex);
+    token_buffer_destroy(&syx->tkn_buff);
+    // TODO; destroy the syx->astree
 }

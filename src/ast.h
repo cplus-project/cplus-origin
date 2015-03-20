@@ -179,9 +179,10 @@ typedef struct ast_node {
 typedef struct {
     include_list include_files; // all file included in one source file
     idtable      modules;       // all modules imported in one source file
-    // TODO: other elements...
+    stmt_block   global_block;     // the global block of the source file
 }ast;
 
-extern void ast_add_stmt_decl(ast* astree, stmt_decl* decl);
+extern void ast_init   (ast* astree);
+extern void ast_destroy(ast* astree);
 
 #endif

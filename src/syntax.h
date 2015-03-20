@@ -15,43 +15,34 @@
 #include "lex.h"
 #include "ast.h"
 
-#define PARSE_INIT           0x00
-#define PARSE_DECL_TYPE      0x01
-#define PARSE_DECL_ID        0x02
-#define PARSE_DECL_INIT_EXPR 0x03
+typedef struct token_buffer_node {
+    lex_token tkninfo;
+    struct token_buffer_node* next;
+}token_buffer_node;
 
-// using the parsing functions based on the start symbol
-// which you are meeting.
-//
-// note:
-//   the start symbol(such as 'if', 'for', etc.) should
-//   be reserved when being passed to the parsing
-//   functions.
-//
-// example:
-//   lex_analyzer lex;
-//   lex_token*   lextkn;
-//   ast          astree;
-//   ...
-//   for (;;) {
-//       // lex_parse_token
-//       lextkn = lex_read_token(&lex);
-//       switch (lextkn->token_type) {
-//       case TOKEN_ID:
-//           parse_id(&lex, &astree);
-//           break;
-//       case TOKEN_KEYWORD_IF:
-//           parse_if(&lex, &astree);
-//           break;
-//       case TOKEN_KEYWORD_FOR:
-//           parse_for(&lex, &astree);
-//           break;
-//       ...
-//       }
-//   }
-//   ...
-extern error parse_id (lex_analyzer* lex, ast* astree);
-extern error parse_if (lex_analyzer* lex, ast* astree);
-extern error parse_for(lex_analyzer* lex, ast* astree);
+// the token_buffer is used to save the tokens related
+// to the current parsing context.
+typedef struct {
+    token_buffer_node* top;
+}token_buffer;
+
+extern void       token_buffer_init   (token_buffer* tknbuff);
+extern bool       token_buffer_isempty(token_buffer* tknbuff);
+extern void       token_buffer_push   (token_buffer* tknbuff, lex_token tkninfo);
+extern lex_token* token_buffer_top    (token_buffer* tknbuff);
+extern error      token_buffer_pop    (token_buffer* tknbuff);
+extern void       token_buffer_destroy(token_buffer* tknbuff);
+
+// the syntax_analyzer is the parser of the C+. it
+// will check the syntax and generate the ast.
+typedef struct {
+    lex_analyzer lex;
+    token_buffer tkn_buff;
+    ast          astree;
+}syntax_analyzer;
+
+extern void  syntax_analyzer_init        (syntax_analyzer* syx, char* file);
+extern error syntax_analyzer_generate_ast(syntax_analyzer* syx);
+extern void  syntax_analyzer_destroy     (syntax_analyzer* syx);
 
 #endif

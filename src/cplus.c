@@ -34,45 +34,7 @@ int main(int argc, char* argv[]) {
             return 0;
         }
 
-        lex_analyzer lex;
-        lex_token*   lextkn;
-        ast          astree;
-        // TODO: initialized the astree !!!
-        // TODO: destroy the astree !!!
-
-        err = lex_init(&lex);
-        if (err != NULL) {
-            fprintf(stderr, "%s\r\n", err);
-            return 0;
-        }
-        err = lex_open_srcfile(&lex, filename);
-        if (err != NULL) {
-            fprintf(stderr, "%s\r\n", err);
-            return 0;
-        }
-        for (;;) {
-            err = lex_parse_token(&lex);
-            if (err != NULL) {
-                break;
-            }
-            // the syntax parser read the every token
-            // here and use them to build the ast.
-            lextkn = lex_read_token(&lex);
-            switch (lextkn->token_type) {
-            case TOKEN_ID:
-                parse_id(&lex, &astree);
-                break;
-            case TOKEN_KEYWORD_IF:
-                parse_if(&lex, &astree);
-                break;
-            case TOKEN_KEYWORD_FOR:
-                parse_for(&lex, &astree);
-                break;
-            }
-        }
-
-        lex_close_srcfile(&lex);
-        lex_destroy(&lex);
+        // TODO: start compiling the src files here...
     }
 
     return 0;
