@@ -9,6 +9,8 @@
 void scope_init(scope* scp, scope* outer) {
     scp->outer = outer;
     idtable_init(&scp->idt);
+    func_table_init(&scp->functab);
+    type_table_init(&scp->typetab);
 }
 
 error scope_insert_id(scope* scp, id_info id) {
@@ -51,9 +53,27 @@ error scope_search_id(scope* scp, id_info* search) {
     }
 }
 
+error scope_insert_type(scope* scp, type tp) {
+    return type_table_add(&scp->typetab, tp);
+}
+
+type* scope_search_type(scope* scp, char* tp_name) {
+    return type_table_search(&scp->typetab, tp_name);
+}
+
+error scope_insert_func(scope* scp, func fn) {
+    return func_table_add(&scp->functab, fn);
+}
+
+func* scope_search_func(scope* scp, char* fn_name) {
+    return func_table_search(&scp->functab, fn_name);
+}
+
 void scope_destroy(scope* scp) {
     scp->outer = NULL;
     idtable_destroy(&scp->idt);
+    func_table_destroy(&scp->functab);
+    type_table_destroy(&scp->typetab);
 }
 
 void scope_debug(scope* scp) {

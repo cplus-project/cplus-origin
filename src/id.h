@@ -66,7 +66,7 @@ typedef struct decl_list_node {
 // travel the list from the head pointer by yourself.
 typedef struct {
     decl_list_node* head;
-    decl_list_node* cur;
+    decl_list_node* tail;
 }decl_list;
 
 extern void decl_list_init   (decl_list* declist);

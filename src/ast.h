@@ -16,16 +16,28 @@
 #include "scope.h"
 #include "type.h"
 
-#define STMT_UNKNOWN
-#define STMT_BLOCK
-#define STMT_ASSIGN
-#define STMT_IF
-#define STMT_EF
-#define STMT_ELSE
-#define STMT_LOOP_FOR
-#define STMT_LOOP_WHILE
-#define STMT_LOOP_INFINITE
-#define STMT_LOOP_FOREACH
+#define STMT_UNKNOWN       0x00
+#define STMT_BLOCK         0x00
+#define STMT_CONST_INTEGER 0x00
+#define STMT_CONST_FLOAT   0x00
+#define STMT_CONST_CHAR    0x00
+#define STMT_CONST_STRING  0x00
+#define STMT_ID            0x00
+#define STMT_FUNC_DEF      0x00
+#define STMT_FUNC_CALL     0x00
+#define STMT_EXPR_UNARY    0x00
+#define STMT_EXPR_BINARY   0x00
+#define STMT_ASSIGN        0x00
+#define STMT_IF            0x00
+#define STMT_EF            0x00
+#define STMT_ELSE          0x00
+#define STMT_LOOP_FOR      0x00
+#define STMT_LOOP_WHILE    0x00
+#define STMT_LOOP_INFINITE 0x00
+#define STMT_LOOP_FOREACH  0x00
+#define STMT_ERROR         0x00
+#define STMT_DEAL_SINGLE   0x00
+#define STMT_DEAL_MULTI   0x00
 
 typedef struct ast_node ast_node;
 
@@ -47,139 +59,144 @@ extern bool include_list_exist  (include_list* icldlist, char* file);
 extern void include_list_destroy(include_list* icldlist);
 extern void include_list_debug  (include_list* icldlist);
 
-typedef struct stmt_block_entry {
-    ast_node* astnode;
-    struct stmt_block_entry* next;
-}stmt_block_entry;
-
 // a block represents a set of statements in
 // a couple of braces('{' and '}').
 typedef struct {
-    stmt_block_entry* fst;
-    stmt_block_entry* lst;
+    scope     scp;
+    ast_node* fst;
 }stmt_block;
 
-extern void stmt_block_init   (stmt_block* block);
-extern void stmt_block_add    (stmt_block* block, ast_node* astnode);
+extern void stmt_block_init   (stmt_block* block, stmt_block* outer);
 extern void stmt_block_destroy(stmt_block* block);
 
-// the stmt_expr represents the expression structure
-// in the source.
-//
-// note:
-//   you should parse the two operand based on each
-//   oprdx_is_expr flag. see the example followed.
-//
-// example:
-//   stmt_expr expr;
-//   ...
-//   if (expr.optr == TOKEN_OP_XXXX) {
-//       if (expr.oprd1_is_expr == true) {
-//           // parse the expr.oprd1.expr
-//       }
-//       else {
-//           // using the expr.oprd1.oprd
-//       }
-//       if (expr.oprd2_is_expr == true) {
-//           // parse the expr.oprd2.expr
-//       }
-//       else {
-//           // using the expr.oprd2.oprd
-//       }
-//   }
-//   ...
-typedef struct stmt_expr {
-    int16 optr;
-    bool  oprd1_is_expr;
-    union {
-        char* oprd;
-        struct stmt_expr* expr;
-    }oprd1;
-    bool  oprd2_is_expr;
-    union {
-        char* oprd;
-        struct stmt_expr* expr;
-    }oprd2;
-}stmt_expr;
+typedef struct {
+    char* value;
+}stmt_const_integer;
 
 typedef struct {
-    type      decl_type;
-    id_info   decl_id;
-    stmt_expr decl_init_expr;
-}stmt_decl;
+    char* value;
+}stmt_const_float;
 
 typedef struct {
-    id_info   assign_id;
-    stmt_expr assign_expr;
+    char value;
+}stmt_const_char;
+
+typedef struct {
+    char* value;
+}stmt_const_string;
+
+typedef struct {
+    id_info id;
+}stmt_id;
+
+typedef struct {
+    char*     func_name;
+    decl_list params;
+    decl_list retval;
+    ast_node* implement;
+}stmt_func_def;
+
+typedef struct {
+    decl_list retval;
+    char* func_name;
+    decl_list params;
+}stmt_func_call;
+
+typedef struct {
+    int16     optr_code; // the operator's token code
+    ast_node* oprd;
+}stmt_expr_unary;
+
+typedef struct {
+    int16     optr_code; // the operator's token code
+    ast_node* oprd1;
+    ast_node* oprd2;
+}stmt_expr_binary;
+
+typedef struct {
+    id_info   id;
+    ast_node* expr;
 }stmt_assign;
 
 typedef struct {
-    stmt_expr  expr;
-    scope      scp;
-    stmt_block stmts;
+    ast_node* expr;
+    ast_node* block;
 }stmt_if;
 
 typedef struct {
-    stmt_expr  expr;
-    scope      scp;
-    stmt_block block;
+    ast_node* expr;
+    ast_node* block;
 }stmt_ef;
 
 typedef struct {
-    scope      scp;
-    stmt_block block;
+    ast_node* block;
 }stmt_else;
 
 typedef struct {
-    stmt_assign assign;
-    stmt_expr   end;
-    stmt_expr   step;
-    scope       scp;
-    stmt_block  stmts;
+    ast_node* init;
+    ast_node* cond;
+    ast_node* post;
+    ast_node* block;
 }stmt_loop_for;
 
 typedef struct {
-    stmt_expr  end;
-    scope      scp;
-    stmt_block stmts;
+    ast_node* cond;
+    ast_node* block;
 }stmt_loop_while;
 
 typedef struct {
-    scope      scp;
-    stmt_block stmts;
+    ast_node* block;
 }stmt_loop_infinite;
 
 typedef struct {
-    id_info    value;
-    id_info    index;
-    scope      scp;
-    stmt_block stmts;
+    ast_node* data;
+    ast_node* idx;
+    ast_node* arr;
+    ast_node* block;
 }stmt_loop_foreach;
 
+typedef struct {
+    char* tag;
+    bool  is_must;
+}stmt_error;
+
+typedef struct {
+    char*     tag;
+    ast_node* block;
+}stmt_deal_single;
+
+typedef struct {
+    // TODO: implement a list like "tag list"...
+}stmt_deal_multi;
+
 // the whole abstract syntax tree is composed of the struct
-// ast_node, so you can travel the whole tree with only one
+// ast_node, so you can travel the whole tree with one
 // ast_node pointer.
 //
 // note:
 //   the syntax_type and syntax_info are the most import fields
-//   of the ast_node. the syntax_info pointer should point to
+//   of the ast_node. ** the syntax_info pointer should point to
 //   one of the stmt_xxxx struct according to the value of
-//   syntax_type.
+//   syntax_type. **
 typedef struct ast_node {
     int32 line_count;  // record the line number of the syntax unit
     int16 line_pos;    // record the position of the syntax unit in the line
     int8  syntax_type; // one of the micros define prefixed with 'STMT_'
     // point to the struct which storages the elements of one syntax
-    // unit. it will be NULL if the syntax_type is STMT_UNKNOWN.
+    // unit. it will not be used if the syntax_type is STMT_UNKNOWN.
     union {
-        stmt_block* block;
-    }syntax_form;
+        stmt_block* syntax_block;
+    }syntax_entity;
+
+    struct ast_node* next;
 }ast_node;
 
 typedef struct {
     include_list include_files; // all file included in one source file
     idtable      modules;       // all modules imported in one source file
-    stmt_block   global_block;     // the global block of the source file
+    ast_node*    fst;           // always be the stmt_block (global block)
+    ast_node*    cur;
+    stmt_block*  cur_block;     // always point to the now parsing block
 }ast;
 
 extern void ast_init   (ast* astree);

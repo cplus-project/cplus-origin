@@ -157,7 +157,7 @@ void idtable_debug(idtable* idt) {
 
 void decl_list_init(decl_list* declist) {
     declist->head = NULL;
-    declist->cur  = NULL;
+    declist->tail = NULL;
 }
 
 void decl_list_add(decl_list* declist, declare decl) {
@@ -165,12 +165,12 @@ void decl_list_add(decl_list* declist, declare decl) {
     create->decl = decl;
     create->next = NULL;
     if (declist->head != NULL) {
-        declist->cur->next = create;
-        declist->cur       = create;
+        declist->tail->next = create;
+        declist->tail       = create;
     }
     else {
         declist->head = create;
-        declist->cur  = create;
+        declist->tail = create;
     }
 }
 
@@ -186,7 +186,7 @@ void decl_list_destroy(decl_list* declist) {
         mem_free(temp);
     }
     declist->head = NULL;
-    declist->cur  = NULL;
+    declist->tail = NULL;
 }
 
 void decl_list_debug(decl_list* declist) {

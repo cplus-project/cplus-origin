@@ -83,37 +83,37 @@ void include_list_debug(include_list* icldlist) {
     }
 }
 
-/****** methods of stmt_block  ******/
+/****** methods of stmt_block ******/
 
-void stmt_block_init(stmt_block* block) {
+void stmt_block_init(stmt_block* block, stmt_block* outer) {
+    scope_init(&block->scp, &outer->scp);
     block->fst = NULL;
-    block->lst = NULL;
-}
-
-void stmt_block_add(stmt_block* block, ast_node* astnode) {
-    stmt_block_entry* create = (stmt_block_entry*)mem_alloc(sizeof(stmt_block_entry));
-    create->astnode = astnode;
-    create->next    = NULL;
-    if (block->fst != NULL) {
-        block->lst->next = create;
-        block->lst       = create;
-    }
-    else {
-        block->fst = create;
-        block->lst = create;
-    }
 }
 
 void stmt_block_destroy(stmt_block* block) {
-    stmt_block_entry* temp;
-    block->lst = block->fst;
-    for (;;) {
-        if (block->lst == NULL) {
-            block->fst =  NULL;
-            return;
-        }
-        temp = block->lst;
-        block->lst = block->lst->next;
-        mem_free(temp);
-    }
+    scope_destroy(&block->scp);
+    block->fst = NULL;
+}
+
+/****** methods of ast ******/
+
+void ast_init(ast* astree) {
+    include_list_init(&astree->include_files);
+    idtable_init(&astree->modules);
+    astree->fst = (ast_node*)mem_alloc(sizeof(ast_node));
+    astree->fst->next        = NULL;
+    astree->fst->line_count  = 0;
+    astree->fst->line_pos    = 0;
+    astree->fst->syntax_type = STMT_BLOCK;
+    astree->fst->syntax_entity.syntax_block = (stmt_block*)mem_alloc(sizeof(stmt_block));
+    // the astree->fst point to the global block of the parsing
+    // file, so set its outer block to NULL.
+    stmt_block_init(astree->fst->syntax_entity.syntax_block, NULL);
+    astree->cur       = astree->fst;
+    astree->cur_block = astree->fst->syntax_entity.syntax_block;
+}
+
+void ast_destroy(ast* astree) {
+    include_list_destroy(&astree->include_files);
+    idtable_destroy(&astree->modules);
 }
