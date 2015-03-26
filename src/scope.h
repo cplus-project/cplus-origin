@@ -16,21 +16,20 @@
 #include "type.h"
 
 typedef struct scope {
-    idtable    idt;
+    id_table   idtab;
     type_table typetab;
     func_table functab;
     struct scope* outer;
 }scope;
 
 extern void  scope_init       (scope* scp, scope* outer);
-extern error scope_insert_id  (scope* scp, id_info  id);
-extern error scope_update_id  (scope* scp, id_info  new_info);
-extern error scope_search_id  (scope* scp, id_info* search);
-extern error scope_insert_type(scope* scp, type  tp);
-extern type* scope_search_type(scope* scp, char* tp_name);
-extern error scope_insert_func(scope* scp, func  fn);
-extern func* scope_search_func(scope* scp, char* fn_name);
+extern error scope_insert_id  (scope* scp, id     idinfo);
+extern error scope_update_id  (scope* scp, id     idinfo);
+extern id*   scope_search_id  (scope* scp, char*  id_name);
+extern error scope_insert_type(scope* scp, type   tp);
+extern type* scope_search_type(scope* scp, char*  tp_name);
+extern error scope_insert_func(scope* scp, func   fn);
+extern func* scope_search_func(scope* scp, char*  fn_name);
 extern void  scope_destroy    (scope* scp);
-extern void  scope_debug      (scope* scp);
 
 #endif

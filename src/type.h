@@ -13,6 +13,7 @@
 
 #include "common.h"
 #include "id.h"
+#include "decl.h"
 #include "func.h"
 
 #define TYPE_ACCESS_IN   0x00

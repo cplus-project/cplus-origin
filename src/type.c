@@ -26,7 +26,7 @@ void type_table_init(type_table* typetab) {
     typetab->root = NULL;
 }
 
- int type_table_cmp(char* name1, char* name2) {
+static int type_table_cmp(char* name1, char* name2) {
     // compare every character of the two typename from index 0.
     // if t1's typename[index] < t2's typename[index] -> NODE_CMP_LT.
     // if t1's typename[index] > t2's typename[index] -> NODE_CMP_GT.
@@ -231,6 +231,9 @@ error type_table_add(type_table* typetab, type typeinfo) {
 //       NULL -> not found the detail of the type
 //   NOT NULL -> get the detail of the specific type
 type* type_table_search(type_table* typetab, char* type_name) {
+    if (typetab->root == NULL) {
+        return NULL;
+    }
     type_table_node* ptr = typetab->root;
     for (;;) {
         switch (type_table_cmp(type_name, ptr->typeinfo.type_name)) {

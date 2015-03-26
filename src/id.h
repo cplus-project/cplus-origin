@@ -3,12 +3,9 @@
  * Use of this source code is governed by a BSD-style
  * license that can be found in the LICENSE file.
  *
- *     The id_h and id.c implement a kind of table to
- * save the infomation about tokens defined in the
- * same scope. You can insert, update or search these
- * tokens when necessary.
- *     There is also a kind of list to save the ids'
- * declarations.
+ *     The id_h and id.c implement a red black tree
+ * to save the informations of all ids parsed from the
+ * source file.
  **/
 
 #ifndef CPLUS_IDTABLE_H
@@ -16,62 +13,48 @@
 
 #include "common.h"
 
-#define ID_UNKNOWN 0x00
-#define ID_CONST   0x01
-#define ID_VAR     0x02
-#define ID_MOD     0x03
+#define ID_UNKNOWN       0x00
+#define ID_CONST         0x01
+#define ID_VAR           0x02
+#define ID_MOD           0x03
+
+#define NODE_COLOR_RED   0x00
+#define NODE_COLOR_BLACK 0x01
+
+#define NODE_CMP_LT      0x00
+#define NODE_CMP_EQ      0x01
+#define NODE_CMP_GT      0x02
 
 // this struct is used to save the necessary information
 // of the identifiers which parsed in lexical analyzing
 // stage.
-typedef struct id_info{
+typedef struct {
     char* id_name;
-    int64 id_len;
     int8  id_type;
     char* id_datatype; // only meaningful to ID_CONST and ID_VAR
     char* id_value;    // only meaningful to ID_CONST and ID_VAR
-}id_info;
+}id;
 
-typedef struct idtable_node{
-    id_info id;
-    struct idtable_node* next;
-}idtable_node;
+typedef struct id_table_node{
+    id   idinfo;
+    int8 color; // NODE_COLOR_RED or NODE_COLOR_BLACK
+    struct id_table_node* parent;
+    struct id_table_node* lchild;
+    struct id_table_node* rchild;
+}id_table_node;
 
-// the id table is a hash table. the detail of the hash
-// implementation is the idtable_hash(...) function in
-// id.c
+// the id table saves a set of struct 'id'. because
+// it is implemented with the rbtree data-struct, the
+// search performance will be always not bad for most
+// situations.
 typedef struct{
-    idtable_node* ids_head[16];
-}idtable;
+    id_table_node* root;
+}id_table;
 
-extern void  idtable_init   (idtable* idt);
-extern error idtable_insert (idtable* idt, id_info  id);
-extern error idtable_update (idtable* idt, id_info  new_info);
-extern error idtable_search (idtable* idt, id_info* search);
-extern void  idtable_destroy(idtable* idt);
-extern void  idtable_debug  (idtable* idt);
-
-typedef struct {
-    char* decl_type;
-    char* decl_name;
-    char* decl_assign;
-}declare;
-
-typedef struct decl_list_node {
-    declare decl;
-    struct decl_list_node* next;
-}decl_list_node;
-
-// the decl_list is used to save the declares. you should
-// travel the list from the head pointer by yourself.
-typedef struct {
-    decl_list_node* head;
-    decl_list_node* tail;
-}decl_list;
-
-extern void decl_list_init   (decl_list* declist);
-extern void decl_list_add    (decl_list* declist, declare decl);
-extern void decl_list_destroy(decl_list* declist);
-extern void decl_list_debug  (decl_list* declist);
+extern void  id_table_init   (id_table* idtab);
+extern error id_table_add    (id_table* idtab, id idinfo);
+extern error id_table_update (id_table* idtab, id idinfo);
+extern id*   id_table_search (id_table* idtab, char* id_name);
+extern void  id_table_destroy(id_table* idtab);
 
 #endif

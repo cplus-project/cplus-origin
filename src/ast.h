@@ -86,7 +86,7 @@ typedef struct {
 }stmt_const_string;
 
 typedef struct {
-    id_info id;
+    id idinfo;
 }stmt_id;
 
 typedef struct {
@@ -114,7 +114,7 @@ typedef struct {
 }stmt_expr_binary;
 
 typedef struct {
-    id_info   id;
+    id        idinfo;
     ast_node* expr;
 }stmt_assign;
 
@@ -193,7 +193,7 @@ typedef struct ast_node {
 
 typedef struct {
     include_list include_files; // all file included in one source file
-    idtable      modules;       // all modules imported in one source file
+    id_table     modules;       // all modules imported in one source file
     ast_node*    fst;           // always be the stmt_block (global block)
     ast_node*    cur;
     stmt_block*  cur_block;     // always point to the now parsing block

@@ -261,6 +261,9 @@ error func_table_add(func_table* functab, func funcinfo) {
 //       NULL -> not found the detail of the function
 //   NOT NULL -> get the detail of the specific function
 func* func_table_search(func_table* functab, char* func_name) {
+    if (functab->root) {
+        return NULL;
+    }
     func_table_node* ptr = functab->root;
     for (;;) {
         switch (func_table_cmp(func_name, ptr->funcinfo.func_name)) {

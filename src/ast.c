@@ -99,7 +99,7 @@ void stmt_block_destroy(stmt_block* block) {
 
 void ast_init(ast* astree) {
     include_list_init(&astree->include_files);
-    idtable_init(&astree->modules);
+    id_table_init(&astree->modules);
     astree->fst = (ast_node*)mem_alloc(sizeof(ast_node));
     astree->fst->next        = NULL;
     astree->fst->line_count  = 0;
@@ -115,5 +115,5 @@ void ast_init(ast* astree) {
 
 void ast_destroy(ast* astree) {
     include_list_destroy(&astree->include_files);
-    idtable_destroy(&astree->modules);
+    id_table_destroy(&astree->modules);
 }

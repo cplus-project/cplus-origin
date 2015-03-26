@@ -6,200 +6,281 @@
 
 #include "id.h"
 
-/****** methods of idtable ******/
+void id_table_init(id_table* idtab) {
+    idtab->root = NULL;
+}
 
-void idtable_init(idtable* idt) {
-    int i;
-    for (i = 0; i < 16; i++) {
-        idt->ids_head[i] = NULL;
+static int id_table_cmp(char* name1, char* name2) {
+    int64 i;
+    for (i = 0; ; i++) {
+        if (name1[i] < name2[i]) {
+            return NODE_CMP_LT;
+        }
+        if (name1[i] > name2[i]){
+            return NODE_CMP_GT;
+        }
+        if (name1[i] == '\0' && name2[i] == '\0') {
+            return NODE_CMP_EQ;
+        }
+        if (name1[i] == '\0' && name2[i] != '\0') {
+            return NODE_CMP_LT;
+        }
+        if (name1[i] != '\0' && name2[i] == '\0'){
+            return NODE_CMP_GT;
+        }
     }
 }
 
-// how to get the hash value from the key:
-// the raw key is the id's name. we explain the algorithm with
-// an example. now we will see what the hash value for the id's
-// name "req":
-//   1. get the last and the middle letter, they are 'q' and 'e'.
-//      we use the last and the middle one because we often name
-//      our variables with the same prefix.
-//   2. convert their ascii number to the binary format:
-//      'q' -> 01110001
-//      'e' -> 01100101
-//   3. we will only use their rightmost two digit:
-//      'q' -> xxxxxx01
-//      'e' -> xxxxxx01
-//      (we can get it by doing an &3 computing)
-//   4. the hash value is:
-//      (('q' & 3) << 2) + ('e' & 3) = 01 << 2 + 01 = 0101
-//      0101 is 5 in decimal, so we use the 5 as the key to do
-//      some operation to the id saved in the table.
-int idtable_hash(char* key, int key_len) {
-    return ((key[key_len-1]&3) << 2) + (key[key_len>>1]&3);
+// example:
+//     |                       |
+//    node                   rchild
+//   /    \      ----\      /      \
+//  a   rchild   ----/    node      c
+//     /      \          /    \
+//    b        c        a      b
+static error id_table_left_rotate(id_table* idtab, id_table_node* node) {
+    if (node == NULL) {
+        return new_error("err: the node will be left rotated should not be NULL.");
+    }
+    if (node->rchild == NULL) {
+        return new_error("err: the node will be left rotated should have the right child.");
+    }
+
+    if (node == idtab->root) {
+        idtab->root = node->rchild;
+        node->rchild->parent = NULL;
+    }
+    else {
+        if (node == node->parent->lchild) {
+            node->parent->lchild = node->rchild;
+        }
+        else {
+            node->parent->rchild = node->rchild;
+        }
+        node->rchild->parent = node->parent;
+    }
+    node->parent = node->rchild;
+    node->rchild = node->rchild->lchild;
+    if (node->parent->lchild != NULL) {
+        node->parent->lchild->parent = node;
+    }
+    node->parent->lchild = node;
 }
 
-error idtable_insert(idtable* idt, id_info id) {
-    if (id.id_name == NULL || id.id_len <= 0 || id.id_type == ID_UNKNOWN) {
-        return new_error("err: can not insert an invalid id.");
+// example:
+//        |                |
+//       node            lchild
+//      /    \  ----\   /      \
+//   lchild   c ----/  a      node
+//  /      \                 /    \
+// a        b               b      c
+static error id_table_right_rotate(id_table* idtab, id_table_node* node) {
+    if (node == NULL) {
+        return new_error("err: the node will be right rotated should not be NULL.");
     }
-    int index = idtable_hash(id.id_name, id.id_len);
-    if (idt->ids_head[index] == NULL) {
-        idt->ids_head[index] = (idtable_node*)mem_alloc(sizeof(idtable_node));
-        idt->ids_head[index]->id   = id;
-        idt->ids_head[index]->next = NULL;
+    if (node->lchild == NULL) {
+        return new_error("err: the node will be right rotated should have the left child");
+    }
+
+    if (node == idtab->root) {
+        idtab->root = node->lchild;
+        node->lchild->parent = NULL;
+    }
+    else {
+        if (node == node->parent->lchild) {
+            node->parent->lchild = node->lchild;
+        }
+        else {
+            node->parent->rchild = node->lchild;
+        }
+        node->lchild->parent = node->parent;
+    }
+    node->parent = node->lchild;
+    node->lchild = node->lchild->rchild;
+    if (node->parent->rchild != NULL) {
+        node->parent->rchild->parent = node;
+    }
+    node->parent->rchild = node;
+}
+
+// fix the balance of the tree and try to keep the properties
+// of the red black tree.
+static void id_table_add_fixup(id_table* idtab, id_table_node* added) {
+    id_table_node* uncle = NULL;
+    for (;;) {
+        if (added->parent == NULL || added->parent->parent == NULL) {
+            break;
+        }
+
+        if (added->color == NODE_COLOR_RED && added->parent->color == NODE_COLOR_RED) {
+            // the uncle is black or NULL
+            if (added->parent == added->parent->parent->lchild) {
+                uncle = added->parent->parent->rchild;
+                if (uncle == NULL || uncle->color == NODE_COLOR_BLACK) {
+                    if (added == added->parent->rchild) {
+                        added =  added->parent;
+                        id_table_left_rotate(idtab, added);
+                    }
+                    added->parent->color         = NODE_COLOR_BLACK;
+                    added->parent->parent->color = NODE_COLOR_RED;
+                    id_table_right_rotate(idtab, added->parent->parent);
+                    break;
+                }
+            }
+            else {
+                uncle = added->parent->parent->lchild;
+                if (uncle == NULL || uncle->color == NODE_COLOR_BLACK) {
+                    if (added == added->parent->lchild) {
+                        added =  added->parent;
+                        id_table_right_rotate(idtab, added);
+                    }
+                    added->parent->color         = NODE_COLOR_BLACK;
+                    added->parent->parent->color = NODE_COLOR_RED;
+                    id_table_left_rotate(idtab, added->parent->parent);
+                    break;
+                }
+            }
+
+            // the uncle is red
+            uncle->color         = NODE_COLOR_BLACK;
+            uncle->parent->color = NODE_COLOR_RED;
+            added->parent->color = NODE_COLOR_BLACK;
+            added = added->parent->parent;
+        }
+        else {
+            break;
+        }
+    }
+    idtab->root->color = NODE_COLOR_BLACK;
+}
+
+error id_table_add(id_table* idtab, id idinfo) {
+    if (idinfo.id_name == NULL) {
+        return new_error("err: the id name can not be NULL.");
+    }
+    id_table_node* create = (id_table_node*)mem_alloc(sizeof(id_table_node));
+    create->idinfo   = idinfo;
+    create->color    = NODE_COLOR_RED;
+    create->parent   = NULL;
+    create->lchild   = NULL;
+    create->rchild   = NULL;
+    if (idtab->root != NULL) {
+        id_table_node* ptr = idtab->root;
+        for (;;) {
+            switch (id_table_cmp(idinfo.id_name, ptr->idinfo.id_name)) {
+            case NODE_CMP_LT:
+                if (ptr->lchild == NULL) {
+                    ptr->lchild = create;
+                    create->parent = ptr;
+                    id_table_add_fixup(idtab, create);
+                    return NULL;
+                }
+                ptr = ptr->lchild;
+                break;
+            case NODE_CMP_GT:
+                if (ptr->rchild == NULL) {
+                    ptr->rchild = create;
+                    create->parent = ptr;
+                    id_table_add_fixup(idtab, create);
+                    return NULL;
+                }
+                ptr = ptr->rchild;
+                break;
+            case NODE_CMP_EQ:
+                return new_error("err: type redefined.");
+            default:
+                return new_error("err: can not compare the two type names.");
+            }
+        }
+    }
+    else {
+        create->color = NODE_COLOR_BLACK;
+        idtab->root = create;
         return NULL;
     }
-    else {
-        idtable_node* ptr = idt->ids_head[index];
-        for (;;) {
-            if (ptr->next == NULL) {
-                ptr->next = (idtable_node*)mem_alloc(sizeof(idtable_node));
-                ptr->next->id   = id;
-                ptr->next->next = NULL;
+}
+
+// node:
+//   you shouldn't update an id through the id_table_update() if
+//   that id will be updated many times, because this function
+//   will always do an extra search operation.
+//
+//   I suggest you first call the function id_table_search() to
+//   get the pointer of the id you want to modify, and then you
+//   can modify it more efficiently.
+error id_table_update(id_table* idtab, id idinfo) {
+    if (idtab->root == NULL) {
+        return new_error("err: the id table is empty.");
+    }
+    id_table_node* ptr = idtab->root;
+    for (;;) {
+        switch (id_table_cmp(idinfo.id_name, ptr->idinfo.id_name)) {
+        case NODE_CMP_LT:
+            if (ptr->lchild != NULL) {
+                ptr = ptr->lchild;
+            }
+            else {
+                return new_error("err: not found the specific id and can not update it.");
+            }
+            break;
+        case NODE_CMP_GT:
+            if (ptr->rchild != NULL) {
+                ptr = ptr->rchild;
+            }
+            else {
+                return new_error("err: not found the specific id and can not update it.");
+            }
+            break;
+        case NODE_CMP_EQ:
+            ptr->idinfo = idinfo;
+        default:
+            return new_error("err: compare error.");
+        }
+    }
+}
+
+// return:
+//       NULL -> not found the detail of the id
+//   NOT NULL -> get the detail of the specific id
+id* id_table_search(id_table* idtab, char* id_name) {
+    if (idtab->root == NULL) {
+        return NULL;
+    }
+    id_table_node* ptr = idtab->root;
+    for (;;) {
+        switch (id_table_cmp(id_name, ptr->idinfo.id_name)) {
+        case NODE_CMP_LT:
+            if (ptr->lchild != NULL) {
+                ptr = ptr->lchild;
+            }
+            else {
                 return NULL;
             }
-            ptr = ptr->next;
-        }
-    }
-}
-
-error idtable_update(idtable* idt, id_info new_info) {
-    if (new_info.id_name == NULL || new_info.id_len <= 0 || new_info.id_type == ID_UNKNOWN) {
-        return new_error("err: can not be update to an invalid id.");
-    }
-    int64 i;
-    int   index = idtable_hash(new_info.id_name, new_info.id_len);
-    idtable_node* ptr = NULL;
-    for (ptr = idt->ids_head[index]; ptr != NULL; ptr = ptr->next) {
-        if (ptr->id.id_len == new_info.id_len) {
-            for (i = 0; i < ptr->id.id_len; i++) {
-                if (ptr->id.id_name[i] != new_info.id_name[i]) {
-                    break;
-                }
+            break;
+        case NODE_CMP_GT:
+            if (ptr->rchild != NULL) {
+                ptr = ptr->rchild;
             }
-            ptr->id = new_info;
+            else {
+                return NULL;
+            }
+            break;
+        case NODE_CMP_EQ:
+            return &ptr->idinfo;
+        default:
             return NULL;
         }
     }
-    return new_error("err: the id entry not found.");
 }
 
-error idtable_search(idtable* idt, id_info* search) {
-    if (search->id_name == NULL || search->id_len <= 0) {
-        return new_error("err: can not search the id through an invalid id name.");
-    }
-    int64 i;
-    int   index = idtable_hash(search->id_name, search->id_len);
-    idtable_node* ptr = NULL;
-    for (ptr = idt->ids_head[index]; ptr != NULL; ptr = ptr->next) {
-        if (ptr->id.id_len == search->id_len) {
-            for (i = 0; i < ptr->id.id_len; i++) {
-                if (ptr->id.id_name[i] != search->id_name[i]) {
-                    break;
-                }
-            }
-            *search = ptr->id;
-            return NULL;
-        }
-    }
-    return new_error("err: id not found.");
-}
-
-void idtable_destroy(idtable* idt) {
-    int i;
-    idtable_node* ptr = NULL;
-    for (i = 0; i < 16; i++) {
-        for (ptr = idt->ids_head[i]; ptr != NULL; ptr = ptr->next) {
-            mem_free(ptr);
-        }
+static void id_table_destroy_node(id_table_node* node) {
+    if (node != NULL) {
+        if (node->lchild != NULL) id_table_destroy_node(node->lchild);
+        if (node->rchild != NULL) id_table_destroy_node(node->rchild);
+        mem_free(node);
     }
 }
 
-void idtable_debug(idtable* idt) {
-    if (idt->ids_head == NULL) {
-        assert("the id table is not initialized");
-    }
-    int i;
-    idtable_node* ptr = NULL;
-    for (i = 0; i < 16; i++) {
-        printf("id_node #%02d:\r\n", i+1);
-        for (ptr = idt->ids_head[i]; ptr != NULL; ptr = ptr->next) {
-            if (ptr->id.id_name != NULL)
-                printf("\t%s  ", ptr->id.id_name);
-            else
-                printf("\tnone  ");
-
-            switch (ptr->id.id_type) {
-            case ID_CONST:
-                printf("const  ");
-                break;
-            case ID_VAR:
-                printf("variable  ");
-                break;
-            case ID_MOD:
-                printf("modular  ");
-                break;
-            }
-
-            if (ptr->id.id_datatype != NULL)
-                printf("%s  ", ptr->id.id_datatype);
-            else
-                printf("none  ");
-
-            if (ptr->id.id_value != NULL)
-                printf("%s\r\n", ptr->id.id_value);
-            else
-                printf("none\r\n");
-        }
-    }
-}
-
-/****** methods of decl_list ******/
-
-void decl_list_init(decl_list* declist) {
-    declist->head = NULL;
-    declist->tail = NULL;
-}
-
-void decl_list_add(decl_list* declist, declare decl) {
-    decl_list_node* create = (decl_list_node*)mem_alloc(sizeof(decl_list_node));
-    create->decl = decl;
-    create->next = NULL;
-    if (declist->head != NULL) {
-        declist->tail->next = create;
-        declist->tail       = create;
-    }
-    else {
-        declist->head = create;
-        declist->tail = create;
-    }
-}
-
-void decl_list_destroy(decl_list* declist) {
-    decl_list_node* ptr = declist->head;
-    decl_list_node* temp;
-    for (;;) {
-        if (ptr == NULL) {
-            return;
-        }
-        temp = ptr;
-        ptr  = ptr->next;
-        mem_free(temp);
-    }
-    declist->head = NULL;
-    declist->tail = NULL;
-}
-
-void decl_list_debug(decl_list* declist) {
-    decl_list_node* ptr;
-    printf("all nodes in the declare list is:\r\n");
-    if (declist->head == NULL) {
-        printf("none nodes\r\n");
-        return;
-    }
-    printf("column1->type  column2->name  column3->assign\r\n");
-    printf("%s %s %s <-top", declist->head->decl.decl_type, declist->head->decl.decl_name, declist->head->decl.decl_assign);
-    for (ptr = declist->head->next; ptr != NULL; ptr = ptr->next) {
-        printf("\r\n%s %s %s", ptr->decl.decl_type, ptr->decl.decl_name, ptr->decl.decl_assign);
-    }
-    printf(" <-cur\r\n");
+void id_table_destroy(id_table* idtab) {
+    id_table_destroy_node(idtab->root);
 }
