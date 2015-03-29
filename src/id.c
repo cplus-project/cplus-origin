@@ -16,7 +16,7 @@ static int id_table_cmp(char* name1, char* name2) {
         if (name1[i] < name2[i]) {
             return NODE_CMP_LT;
         }
-        if (name1[i] > name2[i]){
+        if (name1[i] > name2[i]) {
             return NODE_CMP_GT;
         }
         if (name1[i] == '\0' && name2[i] == '\0') {
@@ -25,7 +25,7 @@ static int id_table_cmp(char* name1, char* name2) {
         if (name1[i] == '\0' && name2[i] != '\0') {
             return NODE_CMP_LT;
         }
-        if (name1[i] != '\0' && name2[i] == '\0'){
+        if (name1[i] != '\0' && name2[i] == '\0') {
             return NODE_CMP_GT;
         }
     }

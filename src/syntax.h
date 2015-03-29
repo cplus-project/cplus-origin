@@ -37,11 +37,12 @@ extern void       token_buffer_destroy(token_buffer* tknbuff);
 // will check the syntax and generate the ast.
 typedef struct {
     lex_analyzer lex;
+    lex_token*   cur_token;
     token_buffer tkn_buff;
-    ast          astree;
+    ast*         astree;
 }syntax_analyzer;
 
-extern void  syntax_analyzer_init        (syntax_analyzer* syx, char* file);
+extern error syntax_analyzer_init        (syntax_analyzer* syx, char* file, ast* astree);
 extern error syntax_analyzer_generate_ast(syntax_analyzer* syx);
 extern void  syntax_analyzer_destroy     (syntax_analyzer* syx);
 
