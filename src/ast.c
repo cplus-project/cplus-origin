@@ -95,6 +95,53 @@ void stmt_block_destroy(stmt_block* block) {
     block->fst = NULL;
 }
 
+/****** methods of ast_node_stack ******/
+
+void ast_node_stack_init(ast_node_stack* stk) {
+    stk->top = NULL;
+}
+
+void ast_node_stack_push(ast_node_stack* stk, ast_node node) {
+    ast_node_stack_node* create = (ast_node_stack_node*)mem_alloc(sizeof(ast_node_stack_node));
+    create->node = node;
+    create->next = NULL;
+    if (stk->top != NULL) {
+        create->next = stk->top;
+        stk->top = create;
+    }
+    else {
+        stk->top = create;
+    }
+}
+
+error ast_node_stack_pop(ast_node_stack* stk) {
+    if (stk->top == NULL) {
+        return new_error("err: the ast node stack is empty.");
+    }
+    ast_node_stack_node* temp = stk->top;
+    stk->top = stk->top->next;
+    mem_free(temp);
+}
+
+ast_node* ast_node_stack_top(ast_node_stack* stk) {
+    if (stk->top != NULL) {
+        return &stk->top->node;
+    }
+    return NULL;
+}
+
+void ast_node_stack_destroy(ast_node_stack* stk) {
+    ast_node_stack_node* temp = NULL;
+    for (;;) {
+        if (stk->top == NULL) {
+            return;
+        }
+        temp = stk->top;
+        stk->top = stk->top->next;
+        mem_free(temp);
+    }
+}
+
 /****** methods of ast ******/
 
 void ast_init(ast* astree) {

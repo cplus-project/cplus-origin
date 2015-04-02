@@ -191,6 +191,24 @@ typedef struct ast_node {
     struct ast_node* next;
 }ast_node;
 
+typedef struct ast_node_stack_node {
+    ast_node node;
+    struct ast_node_stack_node* next;
+}ast_node_stack_node;
+
+// the ast_node_stack is used to store ast nodes in a stack for
+// some specific purposes. for example, this data-struct can be
+// used to parse expression and condition.
+typedef struct {
+    ast_node_stack_node* top;
+}ast_node_stack;
+
+extern void      ast_node_stack_init   (ast_node_stack* stk);
+extern void      ast_node_stack_push   (ast_node_stack* stk, ast_node node);
+extern error     ast_node_stack_pop    (ast_node_stack* stk);
+extern ast_node* ast_node_stack_top    (ast_node_stack* stk);
+extern void      ast_node_stack_destroy(ast_node_stack* stk);
+
 typedef struct {
     include_list include_files; // all file included in one source file
     id_table     modules;       // all modules imported in one source file
