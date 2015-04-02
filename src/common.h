@@ -45,6 +45,34 @@ typedef unsigned char          uchar;
 typedef char* error;
 extern error new_error(char* errmsg);
 
+
+#define ERROR_TYPE_GENERAL   0x00
+#define ERROR_TYPE_LEXICAL   0x01
+#define ERROR_TYPE_SYNTACTIC 0x02
+#define ERROR_TYPE_SEMANTIC  0x03
+
+typedef struct error_list_node {
+    error err;
+    int32 err_type;
+    int32 line_count;
+    int16 line_pos;
+    struct error_list_node* next;
+}error_list_node;
+
+// the error_list is used to store a set of compile-error.
+// it is different from the another error of C+ language.
+typedef struct {
+    int8 err_count;
+    int8 upper_limit;
+    error_list_node* head;
+    error_list_node* tail;
+}error_list;
+
+extern void error_list_init     (error_list* errlist, int8 upper_limit);
+extern bool error_list_add      (error_list* errlist, error err, int32 err_type, int32 line_count, int16 line_pos);
+extern int8 error_list_err_count(error_list* errlist);
+extern void error_list_destroy  (error_list* errlist);
+
 // all operations about memory allocating/releasing must use
 // the function mem_alloc and mem_free. mem_alloc can process
 // the error automatically. mem_free will work well even

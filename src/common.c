@@ -13,6 +13,55 @@ error new_error(char* errmsg) {
     return errmsg;
 }
 
+void error_list_init(error_list* errlist, int8 upper_limit) {
+    errlist->err_count   = 0;
+    errlist->upper_limit = upper_limit;
+    errlist->head        = NULL;
+}
+
+// add an error into the error list. if the number of the errors in
+// the list will exceed the errlist->upper_limit, the return value
+// will be false and the compiler can stop the work and tell the
+// programmers to correct errors.
+bool error_list_add(error_list* errlist, error err, int32 err_type, int32 line_count, int16 line_pos) {
+    if (errlist->err_count+1 > errlist->upper_limit) {
+        return false;
+    }
+    error_list_node* create = (error_list_node*)mem_alloc(sizeof(error_list_node));
+    create->err        = err;
+    create->err_type   = err_type;
+    create->line_count = line_count;
+    create->line_pos   = line_pos;
+    create->next       = NULL;
+    if (errlist->head != NULL) {
+        errlist->tail->next = create;
+        errlist->tail = create;
+    }
+    else {
+        errlist->head = create;
+        errlist->tail = create;
+    }
+    errlist->err_count++;
+    return true;
+}
+
+int8 error_list_err_count(error_list* errlist) {
+    return errlist->err_count;
+}
+
+void error_list_destroy(error_list* errlist) {
+    error_list_node* ptr = NULL;
+    for (;;) {
+        if (errlist->head == NULL) {
+            errlist->tail =  NULL;
+            return;
+        }
+        ptr = errlist->head;
+        errlist->head = errlist->head->next;
+        mem_free(ptr);
+    }
+}
+
 void* mem_alloc(size_t size) {
     void* ptr = malloc(size);
     if (ptr != NULL) {
