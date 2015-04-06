@@ -85,13 +85,53 @@ error syntax_analyzer_init(syntax_analyzer* syx, char* file, ast* astree) {
     syx->cur_token = NULL;
     token_buffer_init(&syx->tkn_buff);
     syx->astree = astree;
+    error_list_init(&syx->err_list, 50);
 }
 
-static error syntax_analyzer_parse_stmt_include(syntax_analyzer* syx) {
-    return NULL;
+static error syntax_analyzer_parse_import(syntax_analyzer* syx) {
+    error err = NULL;
+    for (;;) {
+        err = lex_parse_token(&syx->lex);
+        if (err != NULL) {
+            return err;
+        }
+        syx->cur_token = lex_read_token(&syx->lex);
+
+        switch (syx->cur_token->token_type) {
+        case TOKEN_KEYWORD_INCLUDE:
+            lex_next_token(&syx->lex);
+            syntax_analyzer_get_token(syx);
+            switch (syx->cur_token->token_type) {
+            case TOKEN_OP_LT:
+                break;
+            case TOKEN_CONST_STRING:
+                break;
+            default:
+                // TODO: log the error in the error_list...
+                break;
+            }
+            break;
+        case TOKEN_KEYWORD_MODULE:
+            lex_next_token(&syx->lex);
+            syntax_analyzer_get_token(syx);
+            if (syx->cur_token->token_type == TOKEN_ID) {
+
+            }
+            break;
+        default:
+            return NULL;
+        }
+    }
 }
 
-static error syntax_analyzer_parse_stmt_module(syntax_analyzer* syx) {
+static error syntax_analyzer_parse_stmt_expr(syntax_analyzer* syx) {
+    ast_node_stack oprd_stack;
+    ast_node_stack optr_stack;
+    ast_node_stack_init(&oprd_stack);
+    ast_node_stack_init(&optr_stack);
+
+    ast_node_stack_destroy(&oprd_stack);
+    ast_node_stack_destroy(&optr_stack);
     return NULL;
 }
 
@@ -163,7 +203,7 @@ static error syntax_analyzer_parse_stmt_deal_multi(syntax_analyzer* syx) {
     return NULL;
 }
 
-error syntax_analyzer_generate_ast(syntax_analyzer* syx) {
+static error syntax_analyzer_parse_stmt_block(syntax_analyzer* syx) {
     error err = NULL;
     for (;;) {
         syntax_analyzer_get_token(syx);
@@ -327,9 +367,23 @@ error syntax_analyzer_generate_ast(syntax_analyzer* syx) {
     return NULL;
 }
 
+error syntax_analyzer_generate_ast(syntax_analyzer* syx) {
+    error err = NULL;
+    err = syntax_analyzer_parse_import(syx);
+    if (err != NULL) {
+        return err;
+    }
+    err = syntax_analyzer_parse_stmt_block(syx);
+    if (err != NULL) {
+        return err;
+    }
+    return NULL;
+}
+
 void syntax_analyzer_destroy(syntax_analyzer* syx) {
     lex_destroy(&syx->lex);
     syx->cur_token = NULL;
     token_buffer_destroy(&syx->tkn_buff);
     syx->astree = NULL;
+    error_list_destroy(&syx->err_list);
 }

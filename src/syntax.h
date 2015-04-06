@@ -40,6 +40,7 @@ typedef struct {
     lex_token*   cur_token;
     token_buffer tkn_buff;
     ast*         astree;
+    error_list   err_list;
 }syntax_analyzer;
 
 extern error syntax_analyzer_init        (syntax_analyzer* syx, char* file, ast* astree);

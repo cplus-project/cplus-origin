@@ -37,7 +37,7 @@
 #define STMT_LOOP_FOREACH  0x00
 #define STMT_ERROR         0x00
 #define STMT_DEAL_SINGLE   0x00
-#define STMT_DEAL_MULTI   0x00
+#define STMT_DEAL_MULTI    0x00
 
 typedef struct ast_node ast_node;
 
