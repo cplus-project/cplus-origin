@@ -49,6 +49,15 @@ int8 error_list_err_count(error_list* errlist) {
     return errlist->err_count;
 }
 
+void error_list_display(error_list* errlist) {
+    int count = 1;
+    error_list_node* ptr;
+    for (ptr = errlist->head; ptr != NULL; ptr = ptr->next) {
+        printf("error %d: %s\r\n", count, ptr->err);
+        count++;
+    }
+}
+
 void error_list_destroy(error_list* errlist) {
     error_list_node* ptr = NULL;
     for (;;) {

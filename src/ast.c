@@ -26,24 +26,19 @@ void include_list_add(include_list* icldlist, char* file) {
     }
 }
 
-// check whether the file included is already in the list.
-// return true if in the list.
-// return false if not in the list.
+// return value:
+//     true  -> exist already
+//     false -> not exist
 bool include_list_exist(include_list* icldlist, char* file) {
     int i;
-    int len_para = strlen(file);
-    int len_comp;
     include_list_node* ptr;
     for (ptr = icldlist->head; ptr != NULL; ptr = ptr->next) {
-        len_comp = strlen(ptr->file);
-        if (len_para == len_comp) {
-            for (i = 0; i <= len_para; i++) {
-                if (i == len_para) {
-                    return true;
-                }
-                if (file[i] != ptr->file[i]) {
-                    break;
-                }
+        for (i = 0; ; i++) {
+            if (ptr->file[i] == '\0' && file[i] == '\0') {
+                return true;
+            }
+            if (ptr->file[i] != file[i]) {
+                break;
             }
         }
     }
@@ -64,22 +59,57 @@ void include_list_destroy(include_list* icldlist) {
     }
 }
 
-void include_list_debug(include_list* icldlist) {
-    printf("all nodes of the include list:\r\n");
-    if (icldlist->head == NULL) {
-        printf("none nodes\r\n");
-        return;
+/****** methods of module_list ******/
+
+void module_list_init(module_list* modlist) {
+    modlist->head = NULL;
+    modlist->tail = NULL;
+}
+
+void module_list_add(module_list* modlist, char* module) {
+    module_list_node* create = (module_list_node*)mem_alloc(sizeof(module_list_node));
+    create->module = module;
+    create->next   = NULL;
+    if (modlist->head != NULL) {
+        modlist->tail->next = create;
+        modlist->tail       = create;
     }
-    printf("%s <-head", icldlist->head->file);
-    include_list_node* ptr = icldlist->head->next;
+    else {
+        modlist->head = create;
+        modlist->tail = create;
+    }
+}
+
+// return value:
+//     true  -> exist already
+//     false -> not exist
+bool module_list_exist(module_list* modlist, char* module) {
+    int i;
+    module_list_node* ptr;
+    for (ptr = modlist->head; ptr != NULL; ptr = ptr->next) {
+        for (i = 0; ; i++) {
+            if (ptr->module[i] == '\0' && module[i] == '\0') {
+                return true;
+            }
+            if (ptr->module[i] != module[i]) {
+                break;
+            }
+        }
+    }
+    return false;
+}
+
+void module_list_destroy(module_list* modlist) {
+    module_list_node* temp = NULL;
+    modlist->tail = modlist->head;
     for (;;) {
-        if (ptr == NULL) {
-            printf(" <-tail\r\n");
+        if (modlist->tail == NULL) {
+            modlist->head =  NULL;
             return;
         }
-        printf("\r\n");
-        printf("%s", ptr->file);
-        ptr = ptr->next;
+        temp = modlist->tail;
+        modlist->tail = modlist->tail->next;
+        mem_free(temp);
     }
 }
 
@@ -146,7 +176,7 @@ void ast_node_stack_destroy(ast_node_stack* stk) {
 
 void ast_init(ast* astree) {
     include_list_init(&astree->include_files);
-    id_table_init(&astree->modules);
+    module_list_init(&astree->modules);
     astree->fst = (ast_node*)mem_alloc(sizeof(ast_node));
     astree->fst->next        = NULL;
     astree->fst->line_count  = 0;
@@ -162,5 +192,5 @@ void ast_init(ast* astree) {
 
 void ast_destroy(ast* astree) {
     include_list_destroy(&astree->include_files);
-    id_table_destroy(&astree->modules);
+    module_list_destroy(&astree->modules);
 }

@@ -46,7 +46,7 @@ typedef struct include_list_node {
     struct include_list_node* next;
 }include_list_node;
 
-// include_list is used to save all files included
+// include_list is used to save all file names included
 // temporary.
 typedef struct {
     include_list_node* head;
@@ -57,7 +57,23 @@ extern void include_list_init   (include_list* icldlist);
 extern void include_list_add    (include_list* icldlist, char* file);
 extern bool include_list_exist  (include_list* icldlist, char* file);
 extern void include_list_destroy(include_list* icldlist);
-extern void include_list_debug  (include_list* icldlist);
+
+typedef struct module_list_node {
+    char* module;
+    struct module_list_node* next;
+}module_list_node;
+
+// module_list is used to save all module names included
+// temporary.
+typedef struct {
+    module_list_node* head;
+    module_list_node* tail;
+}module_list;
+
+extern void module_list_init   (module_list* modlist);
+extern void module_list_add    (module_list* modlist, char* module);
+extern bool module_list_exist  (module_list* modlost, char* module);
+extern void module_list_destroy(module_list* modlist);
 
 // a block represents a set of statements in
 // a couple of braces('{' and '}').
@@ -211,7 +227,7 @@ extern void      ast_node_stack_destroy(ast_node_stack* stk);
 
 typedef struct {
     include_list include_files; // all file included in one source file
-    id_table     modules;       // all modules imported in one source file
+    module_list  modules;       // all modules imported in one source file
     ast_node*    fst;           // always be the stmt_block (global block)
     ast_node*    cur;
     stmt_block*  cur_block;     // always point to the now parsing block

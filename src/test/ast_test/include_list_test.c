@@ -32,7 +32,11 @@ int main() {
         }
     }
     printf("\r\n\r\n");
-    include_list_debug(&icldlist);
+    debug("The Node Of The List:");
+    include_list_node* ptr;
+    for (ptr = icldlist.head; ptr != NULL; ptr = ptr->next) {
+        printf("%s\r\n", ptr->file);
+    }
     include_list_destroy(&icldlist);
     debug("\r\nrun over~");
     return 0;

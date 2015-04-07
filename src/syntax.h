@@ -12,6 +12,7 @@
 #define CPLUS_SYNTAX_H
 
 #include "common.h"
+#include "dynamicarr.h"
 #include "lex.h"
 #include "ast.h"
 

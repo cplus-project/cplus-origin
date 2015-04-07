@@ -89,36 +89,98 @@ error syntax_analyzer_init(syntax_analyzer* syx, char* file, ast* astree) {
 }
 
 static error syntax_analyzer_parse_import(syntax_analyzer* syx) {
-    error err = NULL;
+    dynamicarr_char darr;
+    error err = dynamicarr_char_init(&darr, 255);
+    if (err != NULL) {
+        return err;
+    }
     for (;;) {
         err = lex_parse_token(&syx->lex);
         if (err != NULL) {
+            dynamicarr_char_destroy(&darr);
             return err;
         }
         syx->cur_token = lex_read_token(&syx->lex);
 
-        switch (syx->cur_token->token_type) {
-        case TOKEN_KEYWORD_INCLUDE:
+        if (syx->cur_token->token_type == TOKEN_KEYWORD_INCLUDE) {
             lex_next_token(&syx->lex);
             syntax_analyzer_get_token(syx);
-            switch (syx->cur_token->token_type) {
-            case TOKEN_OP_LT:
-                break;
-            case TOKEN_CONST_STRING:
-                break;
-            default:
-                // TODO: log the error in the error_list...
-                break;
+            if (syx->cur_token->token_type == TOKEN_OP_LT) {
+                for (;;) {
+                    syntax_analyzer_get_token(syx);
+                    if (syx->cur_token->token_type == TOKEN_OP_GT) {
+                        char* icld_fname = dynamicarr_char_getstr(&darr);
+                        if (include_list_exist(&syx->astree->include_files, icld_fname) == false) {
+                            include_list_add(&syx->astree->include_files, icld_fname);
+                        }
+                        else {
+                            error errmsg = new_error("err: file reincluded.");
+                            if (error_list_add(&syx->err_list, errmsg, ERROR_TYPE_GENERAL, syx->lex.line, 0) == false) {
+                                error_list_display(&syx->err_list);
+                                dynamicarr_char_destroy(&darr);
+                                exit(EXIT_FAILURE);
+                            }
+                        }
+                    }
+                    else {
+                        dynamicarr_char_append(&darr, lex_token_getstr(syx->cur_token), syx->cur_token->token_len);
+                    }
+                }
             }
-            break;
-        case TOKEN_KEYWORD_MODULE:
+            else if (syx->cur_token->token_type == TOKEN_CONST_STRING) {
+                char* icld_fname = lex_token_getstr(syx->cur_token);
+                if (include_list_exist(&syx->astree->include_files, icld_fname) == false) {
+                    include_list_add(&syx->astree->include_files, icld_fname);
+                }
+                else {
+                    error errmsg = new_error("err: file reincluded.");
+                    if (error_list_add(&syx->err_list, errmsg, ERROR_TYPE_GENERAL, syx->lex.line, 0) == false) {
+                        error_list_display(&syx->err_list);
+                        dynamicarr_char_destroy(&darr);
+                        exit(EXIT_FAILURE);
+                    }
+                }
+            }
+            else {
+                error errmsg = new_error("err: unaccepted token type behind the keyword 'include'.");
+                if (error_list_add(&syx->err_list, errmsg, ERROR_TYPE_GENERAL, syx->lex.line, 0) == false) {
+                    error_list_display(&syx->err_list);
+                    dynamicarr_char_destroy(&darr);
+                    exit(EXIT_FAILURE);
+                }
+            }
+        }
+        else if (syx->cur_token->token_type == TOKEN_KEYWORD_MODULE) {
             lex_next_token(&syx->lex);
-            syntax_analyzer_get_token(syx);
-            if (syx->cur_token->token_type == TOKEN_ID) {
-
+            for (;;) {
+                err = lex_parse_token(&syx->lex);
+                if (err != NULL) {
+                    dynamicarr_char_destroy(&darr);
+                    return err;
+                }
+                syx->cur_token = lex_read_token(&syx->lex);
+                if (syx->cur_token->token_type == TOKEN_ID || syx->cur_token->token_type == TOKEN_OP_DIV) {
+                    dynamicarr_char_append(&darr, lex_token_getstr(syx->cur_token), syx->cur_token->token_len);
+                    lex_next_token(&syx->lex);
+                }
+                else {
+                    char* mod_name = dynamicarr_char_getstr(&darr);
+                    if (module_list_exist(&syx->astree->modules, mod_name) == false) {
+                        module_list_add(&syx->astree->modules, mod_name);
+                        break;
+                    }
+                    else {
+                        error errmsg = new_error("err: module reimported.");
+                        if (error_list_add(&syx->err_list, errmsg, ERROR_TYPE_GENERAL, syx->lex.line, 0) == false) {
+                            error_list_display(&syx->err_list);
+                            dynamicarr_char_destroy(&darr);
+                            exit(EXIT_FAILURE);
+                        }
+                    }
+                }
             }
-            break;
-        default:
+        }
+        else {
             return NULL;
         }
     }
@@ -129,6 +191,11 @@ static error syntax_analyzer_parse_stmt_expr(syntax_analyzer* syx) {
     ast_node_stack optr_stack;
     ast_node_stack_init(&oprd_stack);
     ast_node_stack_init(&optr_stack);
+
+    for (;;) {
+        syntax_analyzer_get_token(syx);
+
+    }
 
     ast_node_stack_destroy(&oprd_stack);
     ast_node_stack_destroy(&optr_stack);
@@ -208,16 +275,6 @@ static error syntax_analyzer_parse_stmt_block(syntax_analyzer* syx) {
     for (;;) {
         syntax_analyzer_get_token(syx);
         switch (syx->cur_token->token_type) {
-        case TOKEN_KEYWORD_INCLUDE:
-            err = syntax_analyzer_parse_stmt_include(syx);
-            if (err != NULL) return err;
-            break;
-
-        case TOKEN_KEYWORD_MODULE:
-            err = syntax_analyzer_parse_stmt_module(syx);
-            if (err != NULL) return err;
-            break;
-
         case TOKEN_ID:
             token_buffer_push(&syx->tkn_buff, *syx->cur_token);
             syntax_analyzer_get_token(syx);

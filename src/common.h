@@ -11,6 +11,7 @@
 #define CPLUS_COMMON_H
 
 #include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
 #include <assert.h>
 #include <malloc.h>
@@ -71,6 +72,7 @@ typedef struct {
 extern void error_list_init     (error_list* errlist, int8 upper_limit);
 extern bool error_list_add      (error_list* errlist, error err, int32 err_type, int32 line_count, int16 line_pos);
 extern int8 error_list_err_count(error_list* errlist);
+extern void error_list_display  (error_list* errlist);
 extern void error_list_destroy  (error_list* errlist);
 
 // all operations about memory allocating/releasing must use
