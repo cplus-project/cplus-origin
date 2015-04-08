@@ -22,6 +22,7 @@
 #define STMT_CONST_FLOAT   0x00
 #define STMT_CONST_CHAR    0x00
 #define STMT_CONST_STRING  0x00
+#define STMT_OPERATOR      0x00
 #define STMT_ID            0x00
 #define STMT_FUNC_DEF      0x00
 #define STMT_FUNC_CALL     0x00
@@ -100,6 +101,10 @@ typedef struct {
 typedef struct {
     char* value;
 }stmt_const_string;
+
+typedef struct {
+    int16 op_type;
+}stmt_operator;
 
 typedef struct {
     id idinfo;
@@ -196,12 +201,19 @@ typedef struct {
 //   syntax_type. **
 typedef struct ast_node {
     int32 line_count;  // record the line number of the syntax unit
-    int16 line_pos;    // record the position of the syntax unit in the line
     int8  syntax_type; // one of the micros define prefixed with 'STMT_'
     // point to the struct which storages the elements of one syntax
     // unit. it will not be used if the syntax_type is STMT_UNKNOWN.
     union {
-        stmt_block* syntax_block;
+        stmt_block*         syntax_block;
+        stmt_const_integer* syntax_const_integer;
+        stmt_const_float*   syntax_const_float;
+        stmt_const_char*    syntax_const_char;
+        stmt_const_string*  syntax_const_string;
+        stmt_operator*      syntax_operator;
+        stmt_id*            syntax_id;
+        stmt_expr_unary*    syntax_expr_unary;
+        stmt_expr_binary*   syntax_expr_binary;
     }syntax_entity;
 
     struct ast_node* next;

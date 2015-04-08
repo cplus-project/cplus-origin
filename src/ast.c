@@ -180,7 +180,6 @@ void ast_init(ast* astree) {
     astree->fst = (ast_node*)mem_alloc(sizeof(ast_node));
     astree->fst->next        = NULL;
     astree->fst->line_count  = 0;
-    astree->fst->line_pos    = 0;
     astree->fst->syntax_type = STMT_BLOCK;
     astree->fst->syntax_entity.syntax_block = (stmt_block*)mem_alloc(sizeof(stmt_block));
     // the astree->fst point to the global block of the parsing

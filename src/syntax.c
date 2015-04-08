@@ -194,8 +194,25 @@ static error syntax_analyzer_parse_stmt_expr(syntax_analyzer* syx) {
     ast_node_stack_init(&optr_stack);
 
     for (;;) {
-        syntax_analyzer_get_token(syx);
+        err = lex_parse_token(&syx->lex);
+        if (err != NULL) {
+            return err;
+        }
+        syx->cur_token = lex_read_token(&syx->lex);
 
+        if (TOKEN_OP_ADD <= syx->cur_token->token_type && syx->cur_token->token_type <= TOKEN_OP_NEG) {
+            ast_node node;
+            node.next        = NULL;
+            node.line_count  = syx->lex.line_count;
+            node.syntax_type = STMT_OPERATOR;
+            node.syntax_entity.syntax_operator = (stmt_operator*)mem_alloc(sizeof(stmt_operator));
+            node.syntax_entity.syntax_operator->op_type = syx->cur_token->token_type;
+            ast_node_stack_push(&optr_stack, node);
+            lex_next_token(&syx->lex);
+        }
+        else {
+            // TODO: push the operands into the stack...
+        }
     }
 
     ast_node_stack_destroy(&oprd_stack);
