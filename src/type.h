@@ -13,7 +13,6 @@
 
 #include "common.h"
 #include "id.h"
-#include "decl.h"
 #include "func.h"
 
 #define TYPE_ACCESS_IN   0x00
@@ -26,11 +25,28 @@
 #define NODE_CMP_EQ      0x01
 #define NODE_CMP_GT      0x02
 
+typedef struct property_list_node {
+    char* property_type;
+    char* property_name;
+    struct property_list_node* next;
+}property_list_node;
+
+// this list is used to save the type's properties' defination.
+// you should travel the list from the head by yourself.
 typedef struct {
-    int8       type_access;     // the accessibility of the type, TYPE_ACCESS_IN or TYPE_ACCESS_OUT
-    char*      type_name;       // the name of the type, the first letter should be upper case
-    decl_list  type_properties; // the properties(or called members) of the type
-    func_table type_methods;    // the methods(or called behaviour) of the type
+    property_list_node* head;
+    property_list_node* tail;
+}property_list;
+
+extern void property_list_init   (property_list* pptlist);
+extern void property_list_add    (property_list* pptlist, char* property_type, char* property_name);
+extern void property_list_destroy(property_list* pptlist);
+
+typedef struct {
+    int8          type_access;     // the accessibility of the type, TYPE_ACCESS_IN or TYPE_ACCESS_OUT
+    char*         type_name;       // the name of the type, the first letter should be upper case
+    property_list type_properties; // the properties(or called members) of the type
+    func_table    type_methods;    // the methods(or called behaviour) of the type
 }type;
 
 extern void type_init   (type* typ);

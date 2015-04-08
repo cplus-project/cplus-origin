@@ -19,7 +19,7 @@
 #include "utf.h"
 
 #define TOKEN_UNKNOWN          000  // all unknown token type
-#define TOKEN_ID               100  // identifiers
+#define TOKEN_ID               100  // identifier
 #define TOKEN_KEYWORD_IF       200  // if
 #define TOKEN_KEYWORD_EF       201  // ef
 #define TOKEN_KEYWORD_ELSE     202  // else
@@ -38,9 +38,10 @@
 #define TOKEN_KEYWORD_OT       215  // ot
 #define TOKEN_KEYWORD_INCLUDE  216  // include
 #define TOKEN_KEYWORD_MODULE   217  // module
-#define TOKEN_CONST_NUMBER     300  // const-number
-#define TOKEN_CONST_CHAR       301  // const-char
-#define TOKEN_CONST_STRING     302  // const-string
+#define TOKEN_CONST_INTEGER    300  // const-integer
+#define TOKEN_CONST_FLOAT      301  // const-float
+#define TOKEN_CONST_CHAR       302  // const-char
+#define TOKEN_CONST_STRING     303  // const-string
 #define TOKEN_OP_ASSIGN        400  // =
 #define TOKEN_OP_ADD           401  // +
 #define TOKEN_OP_SUB           402  // -
@@ -87,6 +88,7 @@
 #define TOKEN_OP_LOGIC_OR      443  // ||
 #define TOKEN_OP_SINGLE_CMT    444  // //
 #define TOKEN_OP_MULTIL_CMT    445  // /**/
+#define TOKEN_NEXT_LINE        500  // \r or \n
 
 typedef struct {
     dynamicarr_char token;      // one dynamic char array to store the token's content

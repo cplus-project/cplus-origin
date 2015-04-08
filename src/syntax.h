@@ -16,36 +16,18 @@
 #include "lex.h"
 #include "ast.h"
 
-typedef struct token_buffer_node {
-    lex_token tkninfo;
-    struct token_buffer_node* next;
-}token_buffer_node;
-
-// the token_buffer is used to save the tokens related
-// to the current parsing context.
-typedef struct {
-    token_buffer_node* top;
-}token_buffer;
-
-extern void       token_buffer_init   (token_buffer* tknbuff);
-extern bool       token_buffer_isempty(token_buffer* tknbuff);
-extern void       token_buffer_push   (token_buffer* tknbuff, lex_token tkninfo);
-extern lex_token* token_buffer_top    (token_buffer* tknbuff);
-extern error      token_buffer_pop    (token_buffer* tknbuff);
-extern void       token_buffer_destroy(token_buffer* tknbuff);
-
 // the syntax_analyzer is the parser of the C+. it
 // will check the syntax and generate the ast.
 typedef struct {
-    lex_analyzer lex;
-    lex_token*   cur_token;
-    token_buffer tkn_buff;
-    ast*         astree;
-    error_list   err_list;
+    lex_analyzer   lex;
+    lex_token*     cur_token;
+    ast            astree;
+    ast_elem_stack analy_stk;
+    error_list     err_list;
 }syntax_analyzer;
 
-extern error syntax_analyzer_init        (syntax_analyzer* syx, char* file, ast* astree);
-extern error syntax_analyzer_generate_ast(syntax_analyzer* syx);
+extern error syntax_analyzer_init        (syntax_analyzer* syx, char* file);
+extern ast*  syntax_analyzer_generate_ast(syntax_analyzer* syx);
 extern void  syntax_analyzer_destroy     (syntax_analyzer* syx);
 
 #endif

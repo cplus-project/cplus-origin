@@ -6,17 +6,52 @@
 
 #include "type.h"
 
+/****** methods of property_list ******/
+
+void property_list_init(property_list* pptlist) {
+    pptlist->head = NULL;
+    pptlist->tail = NULL;
+}
+
+void property_list_add(property_list* pptlist, char* property_type, char* property_name) {
+    property_list_node* create = (property_list_node*)mem_alloc(sizeof(property_list_node));
+    create->property_type = property_type;
+    create->property_name = property_name;
+    create->next          = NULL;
+    if (pptlist->head != NULL) {
+        pptlist->tail->next = create;
+        pptlist->tail       = create;
+    }
+    else {
+        pptlist->head = create;
+        pptlist->tail = create;
+    }
+}
+
+void property_list_destroy(property_list* pptlist) {
+    property_list_node* temp = NULL;
+    for (;;) {
+        if (pptlist->head == NULL) {
+            pptlist->tail  = NULL;
+            return;
+        }
+        temp = pptlist->head;
+        pptlist->head = pptlist->head->next;
+        mem_free(temp);
+    }
+}
+
 /****** methods of type ******/
 
 void type_init(type* typ) {
-    typ->type_access  = TYPE_ACCESS_OUT;
+    typ->type_access  = TYPE_ACCESS_IN;
     typ->type_name    = NULL;
-    decl_list_init (&typ->type_properties);
+    property_list_init(&typ->type_properties);
     func_table_init(&typ->type_methods);
 }
 
 void type_destroy(type* typ) {
-    decl_list_destroy (&typ->type_properties);
+    property_list_destroy(&typ->type_properties);
     func_table_destroy(&typ->type_methods);
 }
 

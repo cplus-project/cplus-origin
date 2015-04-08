@@ -116,8 +116,11 @@ void lex_token_debug(lex_token* lextkn) {
     }
     else if (300 <= type && type < 400) {
         switch (type) {
-        case TOKEN_CONST_NUMBER:
-            printf("const-numer: %s\r\n", lex_token_getstr(lextkn));
+        case TOKEN_CONST_INTEGER:
+            printf("const-integer: %s\r\n", lex_token_getstr(lextkn));
+            return;
+        case TOKEN_CONST_FLOAT:
+            printf("const-float: %s\r\n", lex_token_getstr(lextkn));
             return;
         case TOKEN_CONST_CHAR:
             printf("const-char: %s\r\n", lex_token_getstr(lextkn));
@@ -182,11 +185,11 @@ void lex_close_srcfile(lex_analyzer* lex) {
 // now in the lex->buffer are all processed completely. and now the lexical
 // analyzer can read next LEX_BUFF_SIZE bytes source codes from the source
 // file.
-error lex_read_file(lex_analyzer* lex) {
+static error lex_read_file(lex_analyzer* lex) {
     int64 read_len = fread(lex->buffer, 1, LEX_BUFF_SIZE, lex->srcfile);
     // process the end-of-file.
     if (feof(lex->srcfile) != 0 && read_len == 0) {
-        return new_error("parse over.");
+        return new_error("EOF");
     }
     // process the read errors.
     if (ferror(lex->srcfile) != 0 || read_len < 0) {
@@ -197,7 +200,7 @@ error lex_read_file(lex_analyzer* lex) {
     return NULL;
 }
 
-char lex_readc(lex_analyzer* lex) {
+static char lex_readc(lex_analyzer* lex) {
     return lex->buffer[lex->i];
 }
 
@@ -219,7 +222,7 @@ char lex_readc(lex_analyzer* lex) {
 //       }
 //   }
 //   ...
-error lex_parse_scientific_notation(lex_analyzer* lex, lex_token* lextkn) {
+static error lex_parse_scientific_notation(lex_analyzer* lex, lex_token* lextkn) {
     lex_token_appendc(lextkn, 'E');
     char ch = lex_readc(lex);
     if (ch == '-' || ch == '+') {
@@ -233,7 +236,6 @@ error lex_parse_scientific_notation(lex_analyzer* lex, lex_token* lextkn) {
             lex_next(lex);
         }
         else {
-            lextkn->token_type = TOKEN_CONST_NUMBER;
             return NULL;
         }
     }
@@ -264,6 +266,9 @@ error lex_parse_token(lex_analyzer* lex) {
             // counting the line numbers to make some preparations for
             // debuging and error/warning reporting.
             lex->line_count++;
+            lex->lextkn.token_type = TOKEN_NEXT_LINE;
+            lex->parse_lock = true;
+            return NULL;
         }
         else {
             break;
@@ -431,13 +436,13 @@ error lex_parse_token(lex_analyzer* lex) {
                                 return err;
                             }
                             else {
-                                lex->lextkn.token_type = TOKEN_CONST_NUMBER;
+                                lex->lextkn.token_type = TOKEN_CONST_FLOAT;
                                 lex->parse_lock = true;
                                 return NULL;
                             }
                         }
                         else {
-                            lex->lextkn.token_type = TOKEN_CONST_NUMBER;
+                            lex->lextkn.token_type = TOKEN_CONST_FLOAT;
                             lex->parse_lock = true;
                             return NULL;
                         }
@@ -450,13 +455,13 @@ error lex_parse_token(lex_analyzer* lex) {
                         return err;
                     }
                     else {
-                        lex->lextkn.token_type = TOKEN_CONST_NUMBER;
+                        lex->lextkn.token_type = TOKEN_CONST_INTEGER;
                         lex->parse_lock = true;
                         return NULL;
                     }
                 }
                 else {
-                    lex->lextkn.token_type = TOKEN_CONST_NUMBER;
+                    lex->lextkn.token_type = TOKEN_CONST_INTEGER;
                     lex->parse_lock = true;
                     return NULL;
                 }
@@ -476,7 +481,7 @@ error lex_parse_token(lex_analyzer* lex) {
                         lex_next(lex);
                     }
                     else {
-                        lex->lextkn.token_type = TOKEN_CONST_NUMBER;
+                        lex->lextkn.token_type = TOKEN_CONST_INTEGER;
                         lex->parse_lock = true;
                         return NULL;
                     }
@@ -496,7 +501,7 @@ error lex_parse_token(lex_analyzer* lex) {
                         char* decimal = conv_itoa(conv_binary_to_decimal(lex_token_getstr(&lex->lextkn), lex->lextkn.token_len));
                         lex_token_clear(&lex->lextkn);
                         lex_token_append(&lex->lextkn, decimal, strlen(decimal));
-                        lex->lextkn.token_type = TOKEN_CONST_NUMBER;
+                        lex->lextkn.token_type = TOKEN_CONST_INTEGER;
                         lex->parse_lock = true;
                         return NULL;
                     }
@@ -512,7 +517,7 @@ error lex_parse_token(lex_analyzer* lex) {
                         lex_next(lex);
                     }
                     else {
-                        lex->lextkn.token_type = TOKEN_CONST_NUMBER;
+                        lex->lextkn.token_type = TOKEN_CONST_INTEGER;
                         lex->parse_lock = true;
                         return NULL;
                     }
@@ -529,7 +534,7 @@ error lex_parse_token(lex_analyzer* lex) {
                         lex_next(lex);
                     }
                     else {
-                        lex->lextkn.token_type = TOKEN_CONST_NUMBER;
+                        lex->lextkn.token_type = TOKEN_CONST_INTEGER;
                         lex->parse_lock = true;
                         return NULL;
                     }
@@ -970,3 +975,5 @@ void lex_destroy(lex_analyzer* lex) {
     lex_token_destroy(&lex->lextkn);
     lex_close_srcfile(lex);
 }
+
+#undef lex_next
