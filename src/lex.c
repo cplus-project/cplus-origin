@@ -145,7 +145,7 @@ void lex_token_destroy(lex_token* lextkn) {
 
 error lex_init(lex_analyzer* lex) {
     lex->srcfile        = NULL;
-    lex->line           = 1;
+    lex->line_count     = 1;
     lex->buff_end_index = 0;
     lex->i              = 0;
     lex->parse_lock     = false;
@@ -263,7 +263,7 @@ error lex_parse_token(lex_analyzer* lex) {
             lex_next(lex);
             // counting the line numbers to make some preparations for
             // debuging and error/warning reporting.
-            lex->line++;
+            lex->line_count++;
         }
         else {
             break;

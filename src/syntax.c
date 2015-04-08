@@ -115,7 +115,7 @@ static error syntax_analyzer_parse_import(syntax_analyzer* syx) {
                         }
                         else {
                             error errmsg = new_error("err: file reincluded.");
-                            if (error_list_add(&syx->err_list, errmsg, ERROR_TYPE_GENERAL, syx->lex.line, 0) == false) {
+                            if (error_list_add(&syx->err_list, errmsg, ERROR_TYPE_GENERAL, syx->lex.line_count) == false) {
                                 error_list_display(&syx->err_list);
                                 dynamicarr_char_destroy(&darr);
                                 exit(EXIT_FAILURE);
@@ -134,7 +134,7 @@ static error syntax_analyzer_parse_import(syntax_analyzer* syx) {
                 }
                 else {
                     error errmsg = new_error("err: file reincluded.");
-                    if (error_list_add(&syx->err_list, errmsg, ERROR_TYPE_GENERAL, syx->lex.line, 0) == false) {
+                    if (error_list_add(&syx->err_list, errmsg, ERROR_TYPE_GENERAL, syx->lex.line_count) == false) {
                         error_list_display(&syx->err_list);
                         dynamicarr_char_destroy(&darr);
                         exit(EXIT_FAILURE);
@@ -143,7 +143,7 @@ static error syntax_analyzer_parse_import(syntax_analyzer* syx) {
             }
             else {
                 error errmsg = new_error("err: unaccepted token type behind the keyword 'include'.");
-                if (error_list_add(&syx->err_list, errmsg, ERROR_TYPE_GENERAL, syx->lex.line, 0) == false) {
+                if (error_list_add(&syx->err_list, errmsg, ERROR_TYPE_GENERAL, syx->lex.line_count) == false) {
                     error_list_display(&syx->err_list);
                     dynamicarr_char_destroy(&darr);
                     exit(EXIT_FAILURE);
@@ -171,7 +171,7 @@ static error syntax_analyzer_parse_import(syntax_analyzer* syx) {
                     }
                     else {
                         error errmsg = new_error("err: module reimported.");
-                        if (error_list_add(&syx->err_list, errmsg, ERROR_TYPE_GENERAL, syx->lex.line, 0) == false) {
+                        if (error_list_add(&syx->err_list, errmsg, ERROR_TYPE_GENERAL, syx->lex.line_count) == false) {
                             error_list_display(&syx->err_list);
                             dynamicarr_char_destroy(&darr);
                             exit(EXIT_FAILURE);
@@ -187,6 +187,7 @@ static error syntax_analyzer_parse_import(syntax_analyzer* syx) {
 }
 
 static error syntax_analyzer_parse_stmt_expr(syntax_analyzer* syx) {
+    error err = NULL;
     ast_node_stack oprd_stack;
     ast_node_stack optr_stack;
     ast_node_stack_init(&oprd_stack);
@@ -425,8 +426,7 @@ static error syntax_analyzer_parse_stmt_block(syntax_analyzer* syx) {
 }
 
 error syntax_analyzer_generate_ast(syntax_analyzer* syx) {
-    error err = NULL;
-    err = syntax_analyzer_parse_import(syx);
+    error err = syntax_analyzer_parse_import(syx);
     if (err != NULL) {
         return err;
     }

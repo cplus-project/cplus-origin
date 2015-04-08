@@ -56,7 +56,6 @@ typedef struct error_list_node {
     error err;
     int32 err_type;
     int32 line_count;
-    int16 line_pos;
     struct error_list_node* next;
 }error_list_node;
 
@@ -70,7 +69,7 @@ typedef struct {
 }error_list;
 
 extern void error_list_init     (error_list* errlist, int8 upper_limit);
-extern bool error_list_add      (error_list* errlist, error err, int32 err_type, int32 line_count, int16 line_pos);
+extern bool error_list_add      (error_list* errlist, error err, int32 err_type, int32 line_count);
 extern int8 error_list_err_count(error_list* errlist);
 extern void error_list_display  (error_list* errlist);
 extern void error_list_destroy  (error_list* errlist);

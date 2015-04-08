@@ -23,7 +23,7 @@ void error_list_init(error_list* errlist, int8 upper_limit) {
 // the list will exceed the errlist->upper_limit, the return value
 // will be false and the compiler can stop the work and tell the
 // programmers to correct errors.
-bool error_list_add(error_list* errlist, error err, int32 err_type, int32 line_count, int16 line_pos) {
+bool error_list_add(error_list* errlist, error err, int32 err_type, int32 line_count) {
     if (errlist->err_count+1 > errlist->upper_limit) {
         return false;
     }
@@ -31,7 +31,6 @@ bool error_list_add(error_list* errlist, error err, int32 err_type, int32 line_c
     create->err        = err;
     create->err_type   = err_type;
     create->line_count = line_count;
-    create->line_pos   = line_pos;
     create->next       = NULL;
     if (errlist->head != NULL) {
         errlist->tail->next = create;
