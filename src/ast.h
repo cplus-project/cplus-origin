@@ -45,10 +45,11 @@
 #define AST_ELEM_NEW            0x1C
 #define AST_ELEM_FUNC_DEF       0X1D
 #define AST_ELEM_FUNC_CALL      0x1E
-#define AST_ELEM_RET            0x1F
+#define AST_ELEM_RETURN         0x1F
 #define AST_ELEM_ERROR          0x20
 #define AST_ELEM_DEAL_SINGLE    0x21
-#define AST_ELEM_DEAL_MULTI     0x22
+#define AST_ELEM_DEAL_CASE      0x22
+#define AST_ELEM_DEAL_MULTI     0x23
 
 typedef struct ast_elem                ast_elem;
 typedef struct ast_elem_block          ast_elem_block;
@@ -80,9 +81,10 @@ typedef struct ast_elem_type_def       ast_elem_type_def;
 typedef struct ast_elem_new            ast_elem_new;
 typedef struct ast_elem_func_def       ast_elem_func_def;
 typedef struct ast_elem_func_call      ast_elem_func_call;
-typedef struct ast_elem_ret            ast_elem_ret;
+typedef struct ast_elem_return         ast_elem_return;
 typedef struct ast_elem_error          ast_elem_error;
 typedef struct ast_elem_deal_single    ast_elem_deal_single;
+typedef struct ast_elem_deal_case      ast_elem_decl_case;
 typedef struct ast_elem_deal_multi     ast_elem_deal_multi;
 
 typedef struct include_list_node {
@@ -158,7 +160,7 @@ typedef struct ast_elem {
         ast_elem_new*           elem_new;
         ast_elem_func_def*      elem_func_def;
         ast_elem_func_call*     elem_func_call;
-        ast_elem_ret*           elem_ret;
+        ast_elem_return*        elem_return;
         ast_elem_error*         elem_error;
         ast_elem_deal_single*   elem_deal_single;
         ast_elem_deal_multi*    elem_deal_multi;
@@ -534,7 +536,7 @@ typedef struct decl_list_node {
 // the decl_list is used to save a set of declarations.
 // it can be used to represents the members of the custom type or
 // formal parameters of the function definitions.
-typedef struct decl_list {
+typedef struct {
     decl_list_node* head;
     decl_list_node* tail;
 }decl_list;
@@ -580,14 +582,104 @@ typedef struct ast_elem_type_def {
     decl_list* member_list;
 }ast_elem_type_def;
 
+typedef struct {
+    int8 actual_param_type;
+    union {
+        ast_elem_const_integer* param_const_integer;
+        ast_elem_const_float*   param_const_float;
+        ast_elem_const_char*    param_const_char;
+        ast_elem_const_string*  param_const_string;
+        ast_elem_id*            param_id;
+        ast_elem_arrelem*       param_arrelem;
+        ast_elem_derefer*       param_derefer;
+        ast_elem_new*           param_new;
+        ast_elem_func_call*     param_func_call;
+    }param;
+}actual_param;
+
+typedef struct actual_param_list_node {
+    actual_param* param;
+    struct actual_param_list_node* next;
+}actual_param_list_node;
+
+// the actual_param_list is used to save a set of actual parameters.
+// this struct will be used when calling a function or using the new
+// keyword.
+typedef struct {
+    actual_param_list_node* head;
+    actual_param_list_node* tail;
+}actual_param_list;
+
+extern void actual_param_list_init   (actual_param_list* actparamlst);
+extern void actual_param_list_add    (actual_param_list* actparamlst, actual_param* param);
+extern void actual_param_list_destroy(actual_param_list* actparamlst);
+
+// a new represents a instantiation operation.
+// example: Person p = new Person ("JiKai", 24) [1]
+typedef struct ast_elem_new {
+    char*              new_type_name;
+    actual_param_list* new_init_params; // no parameters if set NULL
+    int32              new_amount;      // set to 1 by default
+}ast_elem_new;
+
 // a func_def represents a function definition.
 // example: func funcName(Type1 para1, Type2 para2) (Type1 ret1, Type2 ret2) {...}
 typedef struct ast_elem_func_def {
-    char*           func_name;
-    decl_list*      params_list;
-    decl_list*      retval_list;
+    char*           func_def_name;
+    decl_list*      func_def_params_list;
+    decl_list*      func_def_retval_list;
     ast_elem_block* func_def_block;
 }ast_elem_func_def;
+
+// a func_call represents a function invoking operation.
+typedef struct ast_elem_func_call {
+    char*              func_call_name;
+    actual_param_list* func_callparameters; // no parameters if set NULL
+}ast_elem_func_call;
+
+typedef struct ast_elem_return {
+    // TODO: need a list to save the return values
+}ast_elem_return;
+
+// a error represents a error statement.
+typedef struct ast_elem_error {
+    char* error_errtag;
+    bool  error_mustdeal;
+}ast_elem_error;
+
+// a deal_single represents one error handling operation.
+typedef struct ast_elem_deal_single {
+    char*           deal_single_errtag;
+    bool            deal_single_wildcard;
+    ast_elem_block* deal_single_block;
+}ast_elem_deal_single;
+
+// a decl_case represents a case of the deal(multiple version) statement.
+typedef struct ast_elem_deal_case {
+    char*           deal_case_errtag;
+    bool            deal_case_wildcard;
+    ast_elem_block* deal_case_block;
+}ast_elem_deal_case;
+
+typedef struct deal_case_list_node {
+    ast_elem_deal_case* deal_case;
+    struct deal_case_list_node* next;
+}deal_case_list_node;
+
+// the deal_case_list is used to save a set of case of the deal statement.
+typedef struct {
+    deal_case_list_node* head;
+    deal_case_list_node* tail;
+}deal_case_list;
+
+extern void deal_case_list_init   (deal_case_list* dealcslist);
+extern void deal_case_list_add    (deal_case_list* dealcslist, ast_elem_deal_case* deal_case);
+extern void deal_case_list_destroy(deal_case_list* dealcslist);
+
+// a decl_multi represents a set of error handling operations.
+typedef struct ast_elem_deal_multi {
+    deal_case_list* cases;
+}ast_elem_deal_multi;
 
 typedef struct ast_elem_stack_node {
     ast_elem* elem;

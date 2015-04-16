@@ -303,6 +303,74 @@ void decl_list_destroy(decl_list* decllist) {
 
 /****** methods of ast_elem_stack ******/
 
+void actual_param_list_init(actual_param_list* actparamlst) {
+    actparamlst->head = NULL;
+    actparamlst->tail = NULL;
+}
+
+void actual_param_list_add(actual_param_list* actparamlst, actual_param* param) {
+    actual_param_list_node* create = (actual_param_list_node*)mem_alloc(sizeof(actual_param_list_node));
+    create->param = param;
+    create->next  = NULL;
+    if (actparamlst->head != NULL) {
+        actparamlst->tail->next = create;
+        actparamlst->tail       = create;
+    }
+    else {
+        actparamlst->head = create;
+        actparamlst->tail = create;
+    }
+}
+
+void actual_param_list_destroy(actual_param_list* actparamlst) {
+    actual_param_list_node* temp = NULL;
+    for (;;) {
+        if (actparamlst->head == NULL) {
+            actparamlst->tail =  NULL;
+            return;
+        }
+        temp = actparamlst->head;
+        actparamlst->head = actparamlst->head->next;
+        mem_free(temp);
+    }
+}
+
+/****** methods of deal_case_list ******/
+
+void deal_case_list_init(deal_case_list* dealcslist) {
+    dealcslist->head = NULL;
+    dealcslist->tail = NULL;
+}
+
+void deal_case_list_add(deal_case_list* dealcslist, ast_elem_deal_case* deal_case) {
+    deal_case_list_node* create = (deal_case_list_node*)mem_alloc(sizeof(deal_case_list_node));
+    create->deal_case = deal_case;
+    create->next      = NULL;
+    if (dealcslist->head != NULL) {
+        dealcslist->tail->next = create;
+        dealcslist->tail       = create;
+    }
+    else {
+        dealcslist->head = create;
+        dealcslist->tail = create;
+    }
+}
+
+void deal_case_list_destroy(deal_case_list* dealcslist) {
+    deal_case_list_node* temp = NULL;
+    for (;;) {
+        if (dealcslist->head == NULL) {
+            dealcslist->tail =  NULL;
+            return;
+        }
+        temp = dealcslist->head;
+        dealcslist->head = dealcslist->head->next;
+        mem_free(temp);
+    }
+}
+
+/****** methods of ast_elem_stack ******/
+
 void ast_elem_stack_init(ast_elem_stack* stk) {
     stk->top = NULL;
 }
