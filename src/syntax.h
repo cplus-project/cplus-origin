@@ -11,6 +11,7 @@
 #ifndef CPLUS_SYNTAX_H
 #define CPLUS_SYNTAX_H
 
+#include <string.h>
 #include "common.h"
 #include "dynamicarr.h"
 #include "lex.h"
@@ -22,7 +23,6 @@ typedef struct {
     lex_analyzer   lex;
     lex_token*     cur_token;
     ast            astree;
-    ast_elem_stack analy_stk;
     error_list     err_list;
 }syntax_analyzer;
 

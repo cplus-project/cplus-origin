@@ -16,52 +16,58 @@
 #define AST_ELEM_NULL             -1
 #define AST_ELEM_UNKNOWN        0x00
 #define AST_ELEM                0x01
-#define AST_ELEM_BLOCK          0x02
-#define AST_ELEM_CONST_INTEGER  0x03
-#define AST_ELEM_CONST_FLOAT    0x04
-#define AST_ELEM_CONST_CHAR     0x05
-#define AST_ELEM_CONST_STRING   0x06
-#define AST_ELEM_ID             0x07
-#define AST_ELEM_ARRELEM        0x08
-#define AST_ELEM_DEREFER        0x09
-#define AST_ELEM_DECL           0x0A
-#define AST_ELEM_ASSIGN         0x0B
-#define AST_ELEM_EXPR_UNARY     0x0C
-#define AST_ELEM_EXPR_BINARY    0x0D
-#define AST_ELEM_IF             0x0E
-#define AST_ELEM_EF             0x0F
-#define AST_ELEM_ELSE           0x10
-#define AST_ELEM_BRANCH_IF      0x11
-#define AST_ELEM_SWITCH_CASE    0x12
-#define AST_ELEM_SWITCH_DEFAULT 0x13
-#define AST_ELEM_BRANCH_SWITCH  0x14
-#define AST_ELEM_LOOP_FOR       0x15
-#define AST_ELEM_LOOP_WHILE     0x16
-#define AST_ELEM_LOOP_INFINITE  0x17
-#define AST_ELEM_LOOP_FOREACH   0x18
-#define AST_ELEM_TYPE_DECL      0x19
-#define AST_ELEM_TYPE_BIND      0x1A
-#define AST_ELEM_TYPE_DEF       0x1B
-#define AST_ELEM_NEW            0x1C
-#define AST_ELEM_FUNC_DEF       0X1D
-#define AST_ELEM_FUNC_CALL      0x1E
-#define AST_ELEM_RETURN         0x1F
-#define AST_ELEM_ERROR          0x20
-#define AST_ELEM_DEAL_SINGLE    0x21
-#define AST_ELEM_DEAL_CASE      0x22
-#define AST_ELEM_DEAL_MULTI     0x23
+#define AST_ELEM_IMPORT         0x02
+#define AST_ELEM_BLOCK          0x03
+#define AST_ELEM_CONST_INTEGER  0x04
+#define AST_ELEM_CONST_FLOAT    0x05
+#define AST_ELEM_CONST_CHAR     0x06
+#define AST_ELEM_CONST_STRING   0x07
+#define AST_ELEM_OP             0x08
+#define AST_ELEM_ID             0x09
+#define AST_ELEM_ARRELEM        0x0A
+#define AST_ELEM_DEREFER        0x0B
+#define AST_ELEM_DECL           0x0C
+#define AST_ELEM_ASSIGN         0x0D
+#define AST_ELEM_EXPR           0x0E
+#define AST_ELEM_EXPR_UNARY     0x0F
+#define AST_ELEM_EXPR_BINARY    0x10
+#define AST_ELEM_IF             0x11
+#define AST_ELEM_EF             0x12
+#define AST_ELEM_ELSE           0x13
+#define AST_ELEM_BRANCH_IF      0x14
+#define AST_ELEM_SWITCH_CASE    0x15
+#define AST_ELEM_SWITCH_DEFAULT 0x16
+#define AST_ELEM_BRANCH_SWITCH  0x17
+#define AST_ELEM_LOOP_FOR       0x18
+#define AST_ELEM_LOOP_WHILE     0x19
+#define AST_ELEM_LOOP_INFINITE  0x1A
+#define AST_ELEM_LOOP_FOREACH   0x1B
+#define AST_ELEM_TYPE_DECL      0x1C
+#define AST_ELEM_TYPE_BIND      0x1D
+#define AST_ELEM_TYPE_DEF       0x1E
+#define AST_ELEM_NEW            0x1F
+#define AST_ELEM_FUNC_DEF       0X20
+#define AST_ELEM_FUNC_CALL      0x21
+#define AST_ELEM_RETURN         0x22
+#define AST_ELEM_ERROR          0x23
+#define AST_ELEM_DEAL_SINGLE    0x24
+#define AST_ELEM_DEAL_CASE      0x25
+#define AST_ELEM_DEAL_MULTI     0x26
 
 typedef struct ast_elem                ast_elem;
 typedef struct ast_elem_block          ast_elem_block;
+typedef struct ast_elem_import         ast_elem_import;
 typedef struct ast_elem_const_integer  ast_elem_const_integer;
 typedef struct ast_elem_const_float    ast_elem_const_float;
 typedef struct ast_elem_const_char     ast_elem_const_char;
 typedef struct ast_elem_const_string   ast_elem_const_string;
+typedef struct ast_elem_op             ast_elem_op;
 typedef struct ast_elem_id             ast_elem_id;
 typedef struct ast_elem_arrelem        ast_elem_arrelem;
 typedef struct ast_elem_derefer        ast_elem_derefer;
 typedef struct ast_elem_decl           ast_elem_decl;
 typedef struct ast_elem_assign         ast_elem_assign;
+typedef struct ast_elem_expr           ast_elem_expr;
 typedef struct ast_elem_expr_unary     ast_elem_expr_unary;
 typedef struct ast_elem_expr_binary    ast_elem_expr_binary;
 typedef struct ast_elem_if             ast_elem_if;
@@ -86,6 +92,50 @@ typedef struct ast_elem_error          ast_elem_error;
 typedef struct ast_elem_deal_single    ast_elem_deal_single;
 typedef struct ast_elem_deal_case      ast_elem_decl_case;
 typedef struct ast_elem_deal_multi     ast_elem_deal_multi;
+
+typedef struct ast_elem {
+    // the members ast_elem_type and ast_elem_entity should work cooperatively.
+    // the value of ast_elem_type is one of the micro-defines prefixed with
+    // AST_ELEM_XXXX, and the real content of the ast_elem_entity corresponds
+    // to with the ast_elem_type's value.
+    //
+    // for example:
+    // (1) if the ast_elem_type is AST_ELEM_LOOP_FOR, the valid content of the
+    //     ast_elem_entity is ast_elem_entity.elem_loop_for
+    // (2) if the ast_elem_type is AST_ELEM_TYPE_DEF, the valid content of the
+    //     ast_elem_entity is ast_elem_entity.elem_type_def
+    int8 ast_elem_type;
+    union {
+        ast_elem_block*         elem_block;
+        ast_elem_const_integer* elem_const_integer;
+        ast_elem_const_float*   elem_const_float;
+        ast_elem_const_char*    elem_const_char;
+        ast_elem_const_string*  elem_const_string;
+        ast_elem_op*            elem_op;
+        ast_elem_id*            elem_id;
+        ast_elem_arrelem*       elem_arrelem;
+        ast_elem_derefer*       elem_derefer;
+        ast_elem_decl*          elem_decl;
+        ast_elem_assign*        elem_assign;
+        ast_elem_if*            elem_if;
+        ast_elem_branch_if*     elem_branch_if;
+        ast_elem_branch_switch* elem_branch_switch;
+        ast_elem_loop_for*      elem_loop_for;
+        ast_elem_loop_while*    elem_loop_while;
+        ast_elem_loop_infinite* elem_loop_infinite;
+        ast_elem_loop_foreach*  elem_loop_foreach;
+        ast_elem_type_decl*     elem_type_decl;
+        ast_elem_type_bind*     elem_type_bind;
+        ast_elem_type_def*      elem_type_def;
+        ast_elem_new*           elem_new;
+        ast_elem_func_def*      elem_func_def;
+        ast_elem_func_call*     elem_func_call;
+        ast_elem_return*        elem_return;
+        ast_elem_error*         elem_error;
+        ast_elem_deal_single*   elem_deal_single;
+        ast_elem_deal_multi*    elem_deal_multi;
+    }ast_elem_entity;
+}ast_elem;
 
 typedef struct include_list_node {
     char* file;
@@ -121,51 +171,12 @@ extern void module_list_add    (module_list* modlist, char* module);
 extern bool module_list_exist  (module_list* modlost, char* module);
 extern void module_list_destroy(module_list* modlist);
 
-typedef struct ast_elem {
-    int32 line_count;
-    int16 line_pos;
-
-    // the members ast_elem_type and ast_elem_entity should work cooperatively.
-    // the value of ast_elem_type is one of the micro-defines prefixed with
-    // AST_ELEM_XXXX, and the real content of the ast_elem_entity corresponds
-    // to with the ast_elem_type's value.
-    //
-    // for example:
-    // (1) if the ast_elem_type is AST_ELEM_LOOP_FOR, the valid content of the
-    //     ast_elem_entity is ast_elem_entity.elem_loop_for
-    // (2) if the ast_elem_type is AST_ELEM_TYPE_DEF, the valid content of the
-    //     ast_elem_entity is ast_elem_entity.elem_type_def
-    int8 ast_elem_type;
-    union {
-        ast_elem_block*         elem_block;
-        ast_elem_const_integer* elem_const_integer;
-        ast_elem_const_float*   elem_const_float;
-        ast_elem_const_char*    elem_const_char;
-        ast_elem_const_string*  elem_const_string;
-        ast_elem_id*            elem_id;
-        ast_elem_arrelem*       elem_arrelem;
-        ast_elem_derefer*       elem_derefer;
-        ast_elem_decl*          elem_decl;
-        ast_elem_assign*        elem_assign;
-        ast_elem_if*            elem_if;
-        ast_elem_branch_if*     elem_branch_if;
-        ast_elem_branch_switch* elem_branch_switch;
-        ast_elem_loop_for*      elem_loop_for;
-        ast_elem_loop_while*    elem_loop_while;
-        ast_elem_loop_infinite* elem_loop_infinite;
-        ast_elem_loop_foreach*  elem_loop_foreach;
-        ast_elem_type_decl*     elem_type_decl;
-        ast_elem_type_bind*     elem_type_bind;
-        ast_elem_type_def*      elem_type_def;
-        ast_elem_new*           elem_new;
-        ast_elem_func_def*      elem_func_def;
-        ast_elem_func_call*     elem_func_call;
-        ast_elem_return*        elem_return;
-        ast_elem_error*         elem_error;
-        ast_elem_deal_single*   elem_deal_single;
-        ast_elem_deal_multi*    elem_deal_multi;
-    }ast_elem_entity;
-}ast_elem;
+// a import element represents a set of extern file imported into
+// the current source file.
+typedef struct ast_elem_import {
+    include_list* icldlist;
+    module_list*  modlist;
+}ast_elem_import;
 
 typedef struct ast_elem_block_node {
     ast_elem* elem;
@@ -215,6 +226,13 @@ typedef struct ast_elem_const_string {
     int16 line_pos;
     char* value;
 }ast_elem_const_string;
+
+// represent the operator in C+
+typedef struct ast_elem_op {
+    int32 line_count;
+    int16 line_pos;
+    int16 op_token_code;
+}ast_elem_op;
 
 // the id will trigger searching symbol-table operation.
 // you can make a choice to select which table to do the searching operation
@@ -284,13 +302,8 @@ typedef struct ast_elem_decl {
         ast_elem_derefer* decl_type_derefer;
     }decl_type;
 
-    char* decl_name;
-
-    int8 decl_init_type;
-    union {
-        ast_elem_expr_unary*  decl_init_expr_unary;
-        ast_elem_expr_binary* decl_init_expr_binary;
-    }decl_init;
+    char*          decl_name;
+    ast_elem_expr* decl_init;
 }ast_elem_decl;
 
 // a assign represent a assignment operation.
@@ -303,12 +316,16 @@ typedef struct ast_elem_assign {
         ast_elem_derefer* assign_left_derefer;
     }assign_left;
 
-    int8 assign_right_type;
-    union {
-        ast_elem_expr_unary*  assign_right_unary;
-        ast_elem_expr_binary* assign_right_binary;
-    }assign_right;
+    ast_elem_expr* assign_right;
 }ast_elem_assign;
+
+typedef struct ast_elem_expr {
+    int8 exprtree_root_type;
+    union {
+        ast_elem_expr_unary*  exprtree_root_expr_unary;
+        ast_elem_expr_binary* exprtree_root_expr_binary;
+    }exprtree_root;
+}ast_elem_expr;
 
 typedef struct ast_elem_expr_unary {
     int16 optr_token_code;
@@ -361,22 +378,12 @@ typedef struct ast_elem_expr_binary {
 }ast_elem_expr_binary;
 
 typedef struct ast_elem_if {
-    int8 if_cond_type;
-    union {
-        ast_elem_expr_unary*  if_cond_expr_unary;
-        ast_elem_expr_binary* if_cond_expr_binary;
-    }if_cond;
-
+    ast_elem_expr*  if_cond;
     ast_elem_block* if_block;
 }ast_elem_if;
 
 typedef struct ast_elem_ef {
-    int8 ef_cond_type;
-    union {
-        ast_elem_expr_unary*  ef_cond_expr_unary;
-        ast_elem_expr_binary* ef_cond_expr_binary;
-    }ef_cond;
-
+    ast_elem_expr*  ef_cond;
     ast_elem_block* ef_block;
 }ast_elem_ef;
 
@@ -447,43 +454,27 @@ extern void switch_case_list_destroy(switch_case_list* caselist);
 // default:
 // }
 typedef struct ast_elem_branch_switch {
-    int8 switch_expr_type;
-    union {
-        ast_elem_expr_unary*  switch_expr_unary;
-        ast_elem_expr_binary* switch_expr_binary;
-    }switch_expr;
-
+    ast_elem_expr*           option;
     switch_case_list*        caselist;
     ast_elem_switch_default* defaultcase;
 }ast_elem_branch_switch;
 
 // a loop_for represents a for init; cond; step {...} style loop statment.
 typedef struct ast_elem_loop_for {
-    ast_elem_assign* loop_for_init;
-
-    int8 loop_for_cond_type;
+    int8 loop_for_init_type;
     union {
-        ast_elem_expr_unary*  loop_for_cond_expr_unary;
-        ast_elem_expr_binary* loop_for_cond_expr_binary;
-    }loop_for_cond;
+        ast_elem_decl*   loop_for_init_decl;
+        ast_elem_assign* loop_for_init_assign;
+    }loop_for_init;
 
-    int8 loop_for_step_type;
-    union {
-        ast_elem_expr_unary*  loop_for_step_expr_unary;
-        ast_elem_expr_binary* loop_for_step_expr_binary;
-    }loop_for_step;
-
-    ast_elem_block* loop_for_block;
+    ast_elem_expr*   loop_for_cond;
+    ast_elem_expr*   loop_for_step;
+    ast_elem_block*  loop_for_block;
 }ast_elem_loop_for;
 
 // a loop_while represents a for cond {...} style loop statment;
 typedef struct ast_elem_loop_while {
-    int8 loop_while_cond_type;
-    union {
-        ast_elem_expr_unary*  loop_while_cond_expr_unary;
-        ast_elem_expr_binary* loop_while_cond_expr_binary;
-    }loop_while_cond;
-
+    ast_elem_expr*  loop_while_cond;
     ast_elem_block* loop_while_block;
 }ast_elem_loop_while;
 
@@ -562,7 +553,7 @@ typedef struct ast_elem_type_bind {
         ast_elem_id*      type_bind_left_id;
         ast_elem_derefer* type_bind_left_derefer;
     }type_bind_left;
-    
+
     int8 type_bind_right_type;
     union {
         ast_elem_id*          type_bind_right_id;
@@ -699,10 +690,10 @@ extern error     ast_elem_stack_pop    (ast_elem_stack* stk);
 extern ast_elem* ast_elem_stack_top    (ast_elem_stack* stk);
 extern void      ast_elem_stack_destroy(ast_elem_stack* stk);
 
+// the abstract-syntax-tree of the C+ programming language.
 typedef struct {
-    include_list    include_files; // all file included in one source file
-    module_list     modules;       // all modules imported in one source file
-    ast_elem_block* global_block;
+    ast_elem_import* imports;
+    ast_elem_block*  global_block;
 }ast;
 
 extern void ast_init   (ast* astree);

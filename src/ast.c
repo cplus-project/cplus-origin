@@ -422,11 +422,12 @@ void ast_elem_stack_destroy(ast_elem_stack* stk) {
 /****** methods of ast ******/
 
 void ast_init(ast* astree) {
-    include_list_init(&astree->include_files);
-    module_list_init(&astree->modules);
+    astree->imports      = NULL;
+    astree->global_block = NULL;
 }
 
 void ast_destroy(ast* astree) {
-    include_list_destroy(&astree->include_files);
-    module_list_destroy(&astree->modules);
+    // TODO: need implements more concretelly...
+    astree->imports      = NULL;
+    astree->global_block = NULL;
 }
