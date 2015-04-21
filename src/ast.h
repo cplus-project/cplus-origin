@@ -273,14 +273,10 @@ typedef struct ast_elem_arrelem {
 // a derefer represents a dereference operation.
 // example: person.name, student.getScore(), arr[i].getVal() ...
 typedef struct ast_elem_derefer {
-    int32 line_count;
-    int16 line_pos;
-
     int8 derefer_left_type;
     union {
         ast_elem_id*        derefer_left_id;
         ast_elem_arrelem*   derefer_left_arrelem;
-        ast_elem_derefer*   derefer_left_derefer;
         ast_elem_func_call* derefer_left_func_call;
         ast_elem_new*       derefer_left_new;
     }derefer_left;
@@ -288,6 +284,8 @@ typedef struct ast_elem_derefer {
     int8 derefer_right_type;
     union {
         ast_elem_id*        derefer_right_id;
+        ast_elem_arrelem*   derefer_right_arrelem;
+        ast_elem_derefer*   derefer_right_derefer;
         ast_elem_func_call* derefer_right_func_call;
     }derefer_right;
 }ast_elem_derefer;
@@ -583,6 +581,7 @@ typedef struct {
         ast_elem_id*            param_id;
         ast_elem_arrelem*       param_arrelem;
         ast_elem_derefer*       param_derefer;
+        ast_elem_expr*          param_expr;
         ast_elem_new*           param_new;
         ast_elem_func_call*     param_func_call;
     }param;
@@ -625,7 +624,7 @@ typedef struct ast_elem_func_def {
 // a func_call represents a function invoking operation.
 typedef struct ast_elem_func_call {
     char*              func_call_name;
-    actual_param_list* func_callparameters; // no parameters if set NULL
+    actual_param_list* func_call_parameters; // no parameters if set NULL
 }ast_elem_func_call;
 
 typedef struct ast_elem_return {

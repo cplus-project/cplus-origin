@@ -388,15 +388,14 @@ void ast_elem_stack_push(ast_elem_stack* stk, ast_elem* elem) {
     }
 }
 
-// note:
-//    the pop() method do not release the memory of the stack node.
-//    you should remember to release those memories when there is
-//    nothing reference them.
 error ast_elem_stack_pop(ast_elem_stack* stk) {
     if (stk->top == NULL) {
         return new_error("err: the ast node stack is empty.");
     }
+    ast_elem_stack_node* temp = stk->top;
     stk->top = stk->top->next;
+    mem_free(temp->elem);
+    mem_free(temp);
 }
 
 // return NULL if the stack is empty.
