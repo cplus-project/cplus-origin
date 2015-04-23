@@ -57,16 +57,46 @@ error scope_insert_type(scope* scp, type tp) {
     return type_table_add(&scp->typetab, tp);
 }
 
+// search an type information from the innermost scope to the outermost scope.
+// return:
+//       NULL -> not found the detail of the type
+//   NOT NULL -> get the detail of the specific type
 type* scope_search_type(scope* scp, char* tp_name) {
-    return type_table_search(&scp->typetab, tp_name);
+    scope* ptr = scp;
+    type*  ret = NULL;
+    for (;;) {
+        if (ptr == NULL) {
+            return NULL;
+        }
+        ret = type_table_search(&scp->typetab, tp_name);
+        if (ret != NULL) {
+            return ret;
+        }
+        ptr = ptr->outer;
+    }
 }
 
 error scope_insert_func(scope* scp, func fn) {
     return func_table_add(&scp->functab, fn);
 }
 
+// search an function information from the innermost scope to the outermost scope.
+// return:
+//       NULL -> not found the detail of the function
+//   NOT NULL -> get the detail of the specific function
 func* scope_search_func(scope* scp, char* fn_name) {
-    return func_table_search(&scp->functab, fn_name);
+    scope* ptr = scp;
+    func*  ret = NULL;
+    for (;;) {
+        if (ptr == NULL) {
+            return NULL;
+        }
+        ret = func_table_search(&scp->functab, fn_name);
+        if (ret != NULL) {
+            return ret;
+        }
+        ptr = ptr->outer;
+    }
 }
 
 void scope_destroy(scope* scp) {
