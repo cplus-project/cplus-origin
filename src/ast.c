@@ -199,6 +199,15 @@ void ast_elem_block_destroy(ast_elem_block* block) {
     }
 }
 
+/****** methods of ast_elem_op ******/
+
+void ast_elem_op_get_priority(ast_elem_op* elem_op) {
+         if (elem_op->op_token_code < 403) elem_op->op_priority = OP_PRIORITY_9;
+    else if (elem_op->op_token_code < 406) elem_op->op_priority = OP_PRIORITY_8;
+    else
+        elem_op->op_priority = OP_PRIORITY_NULL;
+}
+
 /****** methods of ef_list ******/
 
 void ef_list_init(ef_list* eflist) {

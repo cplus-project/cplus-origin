@@ -17,8 +17,8 @@
 #include "lex.h"
 #include "ast.h"
 
-// the syntax_analyzer is the parser of the C+. it
-// will check the syntax and generate the ast.
+// the syntax_analyzer is the parser of the C+. it will check
+// the syntax and generate the ast.
 typedef struct {
     lex_analyzer   lex;
     lex_token*     cur_token;

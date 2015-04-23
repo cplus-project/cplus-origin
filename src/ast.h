@@ -54,6 +54,18 @@
 #define AST_ELEM_DEAL_CASE      0x25
 #define AST_ELEM_DEAL_MULTI     0x26
 
+// the priority with the smaller number has the higher priority.
+#define OP_PRIORITY_NULL  -1
+#define OP_PRIORITY_1    0xF
+#define OP_PRIORITY_2    0xE
+#define OP_PRIORITY_3    0xD
+#define OP_PRIORITY_4    0xC
+#define OP_PRIORITY_5    0xB
+#define OP_PRIORITY_6    0xA
+#define OP_PRIORITY_7    0x9
+#define OP_PRIORITY_8    0x8
+#define OP_PRIORITY_9    0x7
+
 typedef struct ast_elem                ast_elem;
 typedef struct ast_elem_block          ast_elem_block;
 typedef struct ast_elem_import         ast_elem_import;
@@ -232,7 +244,10 @@ typedef struct ast_elem_op {
     int32 line_count;
     int16 line_pos;
     int16 op_token_code;
+    int8  op_priority;
 }ast_elem_op;
+
+extern void ast_elem_op_get_priority(ast_elem_op* elem_op);
 
 // the id will trigger searching symbol-table operation.
 // you can make a choice to select which table to do the searching operation

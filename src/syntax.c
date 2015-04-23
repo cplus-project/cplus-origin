@@ -6,10 +6,18 @@
 
 #include "syntax.h"
 
-static error syntax_analyzer_parse_import   (syntax_analyzer* syx, ast_elem_import*    elem_import);
-static error syntax_analyzer_parse_block    (syntax_analyzer* syx, ast_elem_block*     elem_block);
-static error syntax_analyzer_parse_expr     (syntax_analyzer* syx, ast_elem_expr*      elem_expr);
-static error syntax_analyzer_parse_func_call(syntax_analyzer* syx, ast_elem_func_call* elem_func_call, char* func_name);
+static error syntax_analyzer_parse_import       (syntax_analyzer* syx, ast_elem_import*        elem_import);
+static error syntax_analyzer_parse_block        (syntax_analyzer* syx, ast_elem_block*         elem_block);
+static error syntax_analyzer_parse_expr         (syntax_analyzer* syx, ast_elem_expr*          elem_expr);
+static error syntax_analyzer_parse_if           (syntax_analyzer* syx, ast_elem_if*            elem_if);
+static error syntax_analyzer_parse_ef           (syntax_analyzer* syx, ast_elem_ef*            elem_ef);
+static error syntax_analyzer_parse_else         (syntax_analyzer* syx, ast_elem_else*          elem_else);
+static error syntax_analyzer_parse_branch_if    (syntax_analyzer* syx, ast_elem_branch_if*     elem_branch_if);
+static error syntax_analyzer_parse_loop_for     (syntax_analyzer* syx, ast_elem_loop_for*      elem_loop_for);
+static error syntax_analyzer_parse_loop_while   (syntax_analyzer* syx, ast_elem_loop_while*    elem_loop_while);
+static error syntax_analyzer_parse_loop_infinite(syntax_analyzer* syx, ast_elem_loop_infinite* elem_loop_infinite);
+static error syntax_analyzer_parse_loop_foreach (syntax_analyzer* syx, ast_elem_loop_foreach*  elem_loop_foreach);
+static error syntax_analyzer_parse_func_call    (syntax_analyzer* syx, ast_elem_func_call*     elem_func_call, char* func_name);
 
 #define syntax_analyzer_get_token_without_callnext(syx) \
 error err = lex_parse_token(&syx->lex);                     \
@@ -50,7 +58,7 @@ if (err != NULL) {                                          \
 syx->cur_token = lex_read_token(&syx->lex);                 \
 lex_next_token(&syx->lex);
 
-#define check_error(err) \
+#define syntax_analyzer_check_err(err) \
 if (strcmp(err, "EOF") == 0) { \
     return NULL;               \
 }                              \
@@ -264,7 +272,7 @@ static error syntax_analyzer_parse_expr(syntax_analyzer* syx, ast_elem_expr* ele
                 mem_free(top_oprd->ast_elem_entity.elem_id);
                 top_oprd->ast_elem_type = AST_ELEM_FUNC_CALL;
                 err = syntax_analyzer_parse_func_call(syx, top_oprd->ast_elem_entity.elem_func_call, func_name);
-                check_error(err);
+                syntax_analyzer_check_err(err);
                 lex_next_token(&syx->lex);
             }
             else if (top_oprd != NULL && top_oprd->ast_elem_type == AST_ELEM_DEREFER) {
@@ -279,7 +287,7 @@ static error syntax_analyzer_parse_expr(syntax_analyzer* syx, ast_elem_expr* ele
                 mem_free(last_derefer->derefer_right.derefer_right_id);
                 last_derefer->derefer_right_type = AST_ELEM_FUNC_CALL;
                 err = syntax_analyzer_parse_func_call(syx, last_derefer->derefer_right.derefer_right_func_call, func_name);
-                check_error(err);
+                syntax_analyzer_check_err(err);
                 lex_next_token(&syx->lex);
             }
             else {
@@ -339,10 +347,19 @@ static error syntax_analyzer_parse_expr(syntax_analyzer* syx, ast_elem_expr* ele
             elem->ast_elem_entity.elem_op->line_count    = syx->lex.line_count;
             elem->ast_elem_entity.elem_op->line_pos      = 0;
             elem->ast_elem_entity.elem_op->op_token_code = syx->cur_token->token_type;
+            ast_elem_op_get_priority(elem->ast_elem_entity.elem_op);
+            if (elem->ast_elem_entity.elem_op->op_priority == OP_PRIORITY_NULL) {
+                // TODO: report error...
+            }
 
             top_optr = ast_elem_stack_top(&optr_stk);
             if (top_optr != NULL) {
-                // TODO: first to check the priority of the two operators, and then decide to do which operation.
+                if (elem->ast_elem_entity.elem_op->op_priority > top_optr->ast_elem_entity.elem_op->op_priority) {
+                    ast_elem_stack_push(&optr_stk, elem);
+                }
+                else {
+
+                }
             }
             else {
                 ast_elem_stack_push(&optr_stk, elem);
@@ -354,6 +371,63 @@ static error syntax_analyzer_parse_expr(syntax_analyzer* syx, ast_elem_expr* ele
     }
     ast_elem_stack_destroy(&oprd_stk);
     ast_elem_stack_destroy(&optr_stk);
+}
+
+error syntax_analyzer_parse_if(syntax_analyzer* syx, ast_elem_if* elem_if) {
+    elem_if = (ast_elem_if*)mem_alloc(sizeof(ast_elem_if));
+    error err = syntax_analyzer_parse_expr(syx, elem_if->if_cond);
+    syntax_analyzer_check_err(err);
+    err = syntax_analyzer_parse_block(syx, elem_if->if_block);
+    syntax_analyzer_check_err(err);
+    return NULL;
+}
+
+error syntax_analyzer_parse_ef(syntax_analyzer* syx, ast_elem_ef* elem_ef) {
+    elem_ef = (ast_elem_ef*)mem_alloc(sizeof(ast_elem_ef));
+    error err = syntax_analyzer_parse_expr(syx, elem_ef->ef_cond);
+    syntax_analyzer_check_err(err);
+    err = syntax_analyzer_parse_block(syx, elem_ef->ef_block);
+    syntax_analyzer_check_err(err);
+    return NULL;
+}
+
+error syntax_analyzer_parse_else(syntax_analyzer* syx, ast_elem_else* elem_else){
+    elem_else = (ast_elem_else*)mem_alloc(sizeof(ast_elem_else));
+    error err = syntax_analyzer_parse_block(syx, elem_else->else_block);
+    syntax_analyzer_check_err(err);
+    return NULL;
+}
+
+error syntax_analyzer_parse_branch_if(syntax_analyzer* syx, ast_elem_branch_if* elem_branch_if) {
+    elem_branch_if = (ast_elem_branch_if*)mem_alloc(sizeof(ast_elem_branch_if));
+    // TODO: ...
+    return NULL;
+}
+
+error syntax_analyzer_parse_loop_for(syntax_analyzer* syx, ast_elem_loop_for* elem_loop_for) {
+    elem_loop_for = (ast_elem_loop_for*)mem_alloc(sizeof(ast_elem_loop_for));
+    return NULL;
+}
+
+error syntax_analyzer_parse_loop_while(syntax_analyzer* syx, ast_elem_loop_while* elem_loop_while) {
+    elem_loop_while = (ast_elem_loop_while*)mem_alloc(sizeof(ast_elem_loop_while));
+    error err = syntax_analyzer_parse_expr(syx, elem_loop_while->loop_while_cond);
+    syntax_analyzer_check_err(err);
+    err = syntax_analyzer_parse_block(syx, elem_loop_while->loop_while_block);
+    syntax_analyzer_check_err(err);
+    return NULL;
+}
+
+error syntax_analyzer_parse_loop_infinite(syntax_analyzer* syx, ast_elem_loop_infinite* elem_loop_infinite) {
+    elem_loop_infinite = (ast_elem_loop_infinite*)mem_alloc(sizeof(ast_elem_loop_infinite));
+    error err = syntax_analyzer_parse_block(syx, elem_loop_infinite->loop_infinite_block);
+    syntax_analyzer_check_err(err);
+    return NULL;
+}
+
+error syntax_analyzer_parse_loop_foreach(syntax_analyzer* syx, ast_elem_loop_foreach* elem_loop_foreach) {
+    elem_loop_foreach = (ast_elem_loop_foreach*)mem_alloc(sizeof(ast_elem_loop_foreach));
+    return NULL;
 }
 
 static error syntax_analyzer_parse_func_call(syntax_analyzer* syx, ast_elem_func_call* elem_func_call, char* func_name) {
@@ -410,7 +484,7 @@ static error syntax_analyzer_parse_func_call(syntax_analyzer* syx, ast_elem_func
                 last_param->actual_param_type = AST_ELEM_FUNC_CALL;
                 mem_free(last_param->param.param_id);
                 err = syntax_analyzer_parse_func_call(syx, last_param->param.param_func_call, func_name);
-                check_error(err);
+                syntax_analyzer_check_err(err);
                 lex_next_token(&syx->lex);
             }
             else if (last_param->actual_param_type == AST_ELEM_DEREFER) {
@@ -425,7 +499,7 @@ static error syntax_analyzer_parse_func_call(syntax_analyzer* syx, ast_elem_func
                 last_derefer->derefer_right_type = AST_ELEM_FUNC_CALL;
                 mem_free(last_derefer->derefer_right.derefer_right_id);
                 err = syntax_analyzer_parse_func_call(syx, last_derefer->derefer_right.derefer_right_func_call, func_name);
-                check_error(err);
+                syntax_analyzer_check_err(err);
                 lex_next_token(&syx->lex);
             }
             else {
@@ -560,4 +634,4 @@ void syntax_analyzer_destroy(syntax_analyzer* syx) {
 
 #undef syntax_analyzer_get_token_with_callnext
 #undef syntax_analyzer_get_token_without_callnext
-#undef check_error
+#undef syntax_analyzer_check_error
