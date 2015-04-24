@@ -160,26 +160,29 @@ int8 ast_elem_block_get_backtype(ast_elem_block* block) {
 }
 
 // return an error if the block is empty.
+// note:
+//    this method will not release the memory of the node.
 error ast_elem_block_remove_back(ast_elem_block* block) {
     if (block->tail != NULL) {
-        ast_elem_block_node* temp = block->tail;
-        block->tail = block->tail->prev;
-        if (block->tail == NULL) {
-            block->head =  NULL;
+        if (block->tail->prev != NULL) {
+            block->tail = block->tail->prev;
+            block->tail->next->prev = NULL;
+            block->tail->next       = NULL;
         }
         else {
-            block->tail->next = NULL;
+            block->head = NULL;
+            block->tail = NULL;
         }
-        mem_free(temp);
         return NULL;
     }
     return new_error("the block is empty.");
 }
 
 // return an error if the block is empty.
+// note:
+//    this method will not release the memory of the node.
 error ast_elem_block_replace_back(ast_elem_block* block, ast_elem* elem) {
     if (block->tail != NULL) {
-        mem_free(block->tail->elem);
         block->tail->elem = elem;
         return NULL;
     }
@@ -398,9 +401,7 @@ void ast_elem_stack_push(ast_elem_stack* stk, ast_elem* elem) {
 }
 
 // note:
-//    the pop() method will release the memory of the stack node without
-//    the payload of the ast_elem's member ast_elem_entity.
-//    so you should release the ast_elem_entity's space by yourself.
+//    the pop() method will not release the memory of the stack node...
 error ast_elem_stack_pop(ast_elem_stack* stk) {
     if (stk->top == NULL) {
         return new_error("err: the ast node stack is empty.");

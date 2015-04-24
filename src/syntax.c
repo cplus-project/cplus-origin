@@ -159,6 +159,106 @@ static error syntax_analyzer_parse_import(syntax_analyzer* syx, ast_elem_import*
 
 static error syntax_analyzer_parse_block(syntax_analyzer* syx, ast_elem_block* elem_block) {
     elem_block = (ast_elem_block*)mem_alloc(sizeof(ast_elem_block));
+    ast_elem_block_init(elem_block);
+
+    error err = NULL;
+    for (;;) {
+        syntax_analyzer_get_token_with_callnext(syx);
+        switch (syx->cur_token->token_type) {
+        case TOKEN_ID: {
+                ast_elem* elem = (ast_elem*)mem_alloc(sizeof(ast_elem));
+                elem->ast_elem_type = AST_ELEM_ID;
+                elem->ast_elem_entity.elem_id = (ast_elem_id*)mem_alloc(sizeof(ast_elem_id));
+                elem->ast_elem_entity.elem_id->line_count = syx->lex.line_count;
+                elem->ast_elem_entity.elem_id->line_pos   = 0;
+                elem->ast_elem_entity.elem_id->id_name    = lex_token_getstr(syx->cur_token);
+                ast_elem_block_add(elem_block, elem);
+            }
+            break;
+        case TOKEN_OP_SPOT: {
+                lex_next_token(&syx->lex);
+                syntax_analyzer_get_token_without_callnext(syx);
+                if (syx->cur_token->token_type != TOKEN_ID) {
+                    // TODO: report error...
+                }
+                lex_next_token(&syx->lex);
+
+                ast_elem_id* right = (ast_elem_id*)mem_alloc(sizeof(ast_elem_id));
+                right->line_count = syx->lex.line_count;
+                right->line_pos   = 0;
+                right->id_name    = lex_token_getstr(syx->cur_token);
+
+                ast_elem* derefer = (ast_elem*)mem_alloc(sizeof(ast_elem));
+                derefer->ast_elem_type = AST_ELEM_DEREFER;
+                derefer->ast_elem_entity.elem_derefer = (ast_elem_derefer*)mem_alloc(sizeof(ast_elem_derefer));
+                derefer->ast_elem_entity.elem_derefer->derefer_right_type = AST_ELEM_ID;
+                derefer->ast_elem_entity.elem_derefer->derefer_right.derefer_right_id = right;
+
+                ast_elem* last_elem = ast_elem_block_get_back(elem_block);
+                if (last_elem == NULL) {
+                    // TODO: report error...
+                }
+                switch (last_elem->ast_elem_type) {
+                case AST_ELEM_ID:
+                    derefer->ast_elem_entity.elem_derefer->derefer_left_type = AST_ELEM_ID;
+                    derefer->ast_elem_entity.elem_derefer->derefer_left.derefer_left_id = last_elem->ast_elem_entity.elem_id;
+                    err = ast_elem_block_replace_back(elem_block, derefer);
+                    if (err != NULL) {
+                        // TODO: report error...
+                    }
+                    mem_free(last_elem);
+                    lex_next_token(&syx->lex);
+                    break;
+                case AST_ELEM_DEREFER:
+                    break;
+                case AST_ELEM_FUNC_CALL:
+                    break;
+                case AST_ELEM_ARRELEM:
+                    break;
+                default:
+                    // TODO: report error...
+                    break;
+                }
+            }
+            break;
+        }
+    }
+}
+
+static error syntax_analyzer_calcu_once_in_exprstk(ast_elem_stack* oprd_stk, ast_elem* optr) {
+    ast_elem* calcued_oprd = (ast_elem*)mem_alloc(sizeof(ast_elem));
+    // binary operators
+    if (TOKEN_OP_ADD <= optr->ast_elem_entity.elem_op->op_token_code && optr->ast_elem_entity.elem_op->op_token_code <= TOKEN_OP_SHR) {
+        ast_elem* oprd1 = ast_elem_stack_top(oprd_stk);
+        if (oprd1 == NULL) {
+            // TODO: report error...
+        }
+        ast_elem_stack_pop(oprd_stk);
+        ast_elem* oprd2 = ast_elem_stack_top(oprd_stk);
+        if (oprd2 == NULL) {
+            // TODO: report error...
+        }
+        ast_elem_stack_pop(oprd_stk);
+        calcued_oprd->ast_elem_type = AST_ELEM_EXPR_BINARY;
+        calcued_oprd->ast_elem_entity.elem_expr_binary = (ast_elem_expr_binary*)mem_alloc(sizeof(ast_elem_expr_binary));
+        calcued_oprd->ast_elem_entity.elem_expr_binary->optr_token_code = optr->ast_elem_entity.elem_op->op_token_code;
+        calcued_oprd->ast_elem_entity.elem_expr_binary->oprd1           = oprd1;
+        calcued_oprd->ast_elem_entity.elem_expr_binary->oprd2           = oprd2;
+    }
+    // unary operators
+    else {
+        ast_elem* oprd = ast_elem_stack_top(oprd_stk);
+        if (oprd == NULL) {
+            // report error...
+        }
+        ast_elem_stack_pop(oprd_stk);
+        calcued_oprd->ast_elem_type = AST_ELEM_EXPR_UNARY;
+        calcued_oprd->ast_elem_entity.elem_expr_unary = (ast_elem_expr_unary*)mem_alloc(sizeof(ast_elem_expr_unary));
+        calcued_oprd->ast_elem_entity.elem_expr_unary->optr_token_code = optr->ast_elem_entity.elem_op->op_token_code;
+        calcued_oprd->ast_elem_entity.elem_expr_unary->oprd            = oprd;
+    }
+    ast_elem_stack_push(oprd_stk, calcued_oprd);
+    return NULL;
 }
 
 static error syntax_analyzer_parse_expr(syntax_analyzer* syx, ast_elem_expr* elem_expr) {
@@ -208,8 +308,9 @@ static error syntax_analyzer_parse_expr(syntax_analyzer* syx, ast_elem_expr* ele
                 elem->ast_elem_entity.elem_derefer->derefer_left_type = AST_ELEM_ID;
                 elem->ast_elem_entity.elem_derefer->derefer_left.derefer_left_id = top_optr->ast_elem_entity.elem_id;
                 if (ast_elem_stack_pop(&oprd_stk) != NULL) {
-                // TODO: report error...
+                    // TODO: report error...
                 }
+                mem_free(top_optr);
                 ast_elem_stack_push(&oprd_stk, elem);
                 lex_next_token(&syx->lex);
                 break;
@@ -248,6 +349,7 @@ static error syntax_analyzer_parse_expr(syntax_analyzer* syx, ast_elem_expr* ele
                 if (ast_elem_stack_pop(&oprd_stk) != NULL) {
                 // TODO: report error...
                 }
+                mem_free(top_oprd);
                 ast_elem_stack_push(&oprd_stk, elem);
                 lex_next_token(&syx->lex);
                 break;
@@ -257,6 +359,7 @@ static error syntax_analyzer_parse_expr(syntax_analyzer* syx, ast_elem_expr* ele
                 if (ast_elem_stack_pop(&oprd_stk) != NULL) {
                 // TODO: report error...
                 }
+                mem_free(top_oprd);
                 ast_elem_stack_push(&oprd_stk, elem);
                 lex_next_token(&syx->lex);
                 break;
@@ -301,7 +404,21 @@ static error syntax_analyzer_parse_expr(syntax_analyzer* syx, ast_elem_expr* ele
             }
         }
         else if (syx->cur_token->token_type == TOKEN_OP_RPARENTHESE || syx->cur_token->token_type == TOKEN_NEXT_LINE) {
-
+            for (;;) {
+                top_optr = ast_elem_stack_top(&optr_stk);
+                if (top_optr == NULL) {
+                    return NULL; // parsing the expression successfully if get here
+                }
+                ast_elem_stack_pop(&optr_stk);
+                if (top_optr->ast_elem_entity.elem_op->op_token_code == TOKEN_OP_LPARENTHESE) {
+                    break; // parsing a pair of parenthese('(' and ')') successfully if get here
+                }
+                err = syntax_analyzer_calcu_once_in_exprstk(&oprd_stk, top_optr);
+                if (err != NULL) {
+                    // TODO: report error...
+                }
+                mem_free(top_optr);
+            }
         }
         else if (TOKEN_CONST_INTEGER <= syx->cur_token->token_type && syx->cur_token->token_type <= TOKEN_CONST_STRING) {
             ast_elem* elem = (ast_elem*)mem_alloc(sizeof(ast_elem));
@@ -340,7 +457,7 @@ static error syntax_analyzer_parse_expr(syntax_analyzer* syx, ast_elem_expr* ele
             }
             ast_elem_stack_push(&oprd_stk, elem);
         }
-        else if (TOKEN_OP_ADD <= syx->cur_token->token_type && syx->cur_token->token_type <= TOKEN_OP_NEG) {
+        else if (TOKEN_OP_ADD <= syx->cur_token->token_type && syx->cur_token->token_type <= TOKEN_OP_SUB) {
             ast_elem* elem = (ast_elem*)mem_alloc(sizeof(ast_elem));
             elem->ast_elem_type = AST_ELEM_OP;
             elem->ast_elem_entity.elem_op = (ast_elem_op*)mem_alloc(sizeof(ast_elem_op));
@@ -353,16 +470,14 @@ static error syntax_analyzer_parse_expr(syntax_analyzer* syx, ast_elem_expr* ele
             }
 
             top_optr = ast_elem_stack_top(&optr_stk);
-            if (top_optr != NULL) {
-                if (elem->ast_elem_entity.elem_op->op_priority > top_optr->ast_elem_entity.elem_op->op_priority) {
-                    ast_elem_stack_push(&optr_stk, elem);
-                }
-                else {
-
-                }
+            if (top_optr == NULL || (elem->ast_elem_entity.elem_op->op_priority > top_optr->ast_elem_entity.elem_op->op_priority)) {
+                ast_elem_stack_push(&optr_stk, elem);
             }
             else {
-                ast_elem_stack_push(&optr_stk, elem);
+                err = syntax_analyzer_calcu_once_in_exprstk(&oprd_stk, top_optr);
+                if (err != NULL) {
+                    // TODO: report error...
+                }
             }
         }
         else {

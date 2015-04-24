@@ -129,6 +129,9 @@ typedef struct ast_elem {
         ast_elem_derefer*       elem_derefer;
         ast_elem_decl*          elem_decl;
         ast_elem_assign*        elem_assign;
+        ast_elem_expr*          elem_expr;
+        ast_elem_expr_unary*    elem_expr_unary;
+        ast_elem_expr_binary*   elem_expr_binary;
         ast_elem_if*            elem_if;
         ast_elem_branch_if*     elem_branch_if;
         ast_elem_branch_switch* elem_branch_switch;
@@ -341,53 +344,14 @@ typedef struct ast_elem_expr {
 }ast_elem_expr;
 
 typedef struct ast_elem_expr_unary {
-    int16 optr_token_code;
-
-    int8 oprd_type;
-    union {
-        ast_elem_const_integer* oprd_const_integer;
-        ast_elem_const_float*   oprd_const_float;
-        ast_elem_const_char*    oprd_const_char;
-        ast_elem_const_string*  oprd_const_string;
-        ast_elem_id*            oprd_id;
-        ast_elem_arrelem*       oprd_arrelem;
-        ast_elem_derefer*       oprd_derefer;
-        ast_elem_func_call*     oprd_func_call;
-        ast_elem_expr_unary*    oprd_expr_unary;
-        ast_elem_expr_binary*   oprd_expr_binary;
-    }oprd;
+    int16     optr_token_code;
+    ast_elem* oprd;
 }ast_elem_expr_unary;
 
 typedef struct ast_elem_expr_binary {
-    int16 optr_token_code;
-
-    int8 loprd_type;
-    union {
-        ast_elem_const_integer* oprd_const_integer;
-        ast_elem_const_float*   oprd_const_float;
-        ast_elem_const_char*    oprd_const_char;
-        ast_elem_const_string*  oprd_const_string;
-        ast_elem_id*            oprd_id;
-        ast_elem_arrelem*       oprd_arrelem;
-        ast_elem_derefer*       oprd_derefer;
-        ast_elem_func_call*     oprd_func_call;
-        ast_elem_expr_unary*    oprd_expr_unary;
-        ast_elem_expr_binary*   oprd_expr_binary;
-    }loprd;
-
-    int8 roprd_type;
-    union {
-        ast_elem_const_integer* oprd_const_integer;
-        ast_elem_const_float*   oprd_const_float;
-        ast_elem_const_char*    oprd_const_char;
-        ast_elem_const_string*  oprd_const_string;
-        ast_elem_id*            oprd_id;
-        ast_elem_arrelem*       oprd_arrelem;
-        ast_elem_derefer*       oprd_derefer;
-        ast_elem_func_call*     oprd_func_call;
-        ast_elem_expr_unary*    oprd_expr_unary;
-        ast_elem_expr_binary*   oprd_expr_binary;
-    }roprd;
+    int16     optr_token_code;
+    ast_elem* oprd1;
+    ast_elem* oprd2;
 }ast_elem_expr_binary;
 
 typedef struct ast_elem_if {

@@ -952,7 +952,7 @@ error lex_parse_token(lex_analyzer* lex) {
                 return NULL;
             }
         case '~':
-            lex->lextkn.token_type = TOKEN_OP_NEG;
+            lex->lextkn.token_type = TOKEN_OP_SUB;
             lex->parse_lock = true;
             return NULL;
         }
