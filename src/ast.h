@@ -550,24 +550,8 @@ typedef struct ast_elem_type_def {
     decl_list* member_list;
 }ast_elem_type_def;
 
-typedef struct {
-    int8 actual_param_type;
-    union {
-        ast_elem_const_integer* param_const_integer;
-        ast_elem_const_float*   param_const_float;
-        ast_elem_const_char*    param_const_char;
-        ast_elem_const_string*  param_const_string;
-        ast_elem_id*            param_id;
-        ast_elem_arrelem*       param_arrelem;
-        ast_elem_derefer*       param_derefer;
-        ast_elem_expr*          param_expr;
-        ast_elem_new*           param_new;
-        ast_elem_func_call*     param_func_call;
-    }param;
-}actual_param;
-
 typedef struct actual_param_list_node {
-    actual_param* param;
+    ast_elem* param;
     struct actual_param_list_node* next;
 }actual_param_list_node;
 
@@ -580,7 +564,7 @@ typedef struct {
 }actual_param_list;
 
 extern void actual_param_list_init   (actual_param_list* actparamlst);
-extern void actual_param_list_add    (actual_param_list* actparamlst, actual_param* param);
+extern void actual_param_list_add    (actual_param_list* actparamlst, ast_elem* param);
 extern void actual_param_list_destroy(actual_param_list* actparamlst);
 
 // a new represents a instantiation operation.

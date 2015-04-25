@@ -8,6 +8,7 @@
 
 static error syntax_analyzer_parse_import       (syntax_analyzer* syx, ast_elem_import*        elem_import);
 static error syntax_analyzer_parse_block        (syntax_analyzer* syx, ast_elem_block*         elem_block);
+static error syntax_analyzer_parse_derefer      (syntax_analyzer* syx, ast_elem_derefer*       elem_derefer, ast_elem* left, ast_elem_id* right);
 static error syntax_analyzer_parse_expr         (syntax_analyzer* syx, ast_elem_expr*          elem_expr);
 static error syntax_analyzer_parse_if           (syntax_analyzer* syx, ast_elem_if*            elem_if);
 static error syntax_analyzer_parse_ef           (syntax_analyzer* syx, ast_elem_ef*            elem_ef);
@@ -17,7 +18,7 @@ static error syntax_analyzer_parse_loop_for     (syntax_analyzer* syx, ast_elem_
 static error syntax_analyzer_parse_loop_while   (syntax_analyzer* syx, ast_elem_loop_while*    elem_loop_while);
 static error syntax_analyzer_parse_loop_infinite(syntax_analyzer* syx, ast_elem_loop_infinite* elem_loop_infinite);
 static error syntax_analyzer_parse_loop_foreach (syntax_analyzer* syx, ast_elem_loop_foreach*  elem_loop_foreach);
-static error syntax_analyzer_parse_func_call    (syntax_analyzer* syx, ast_elem_func_call*     elem_func_call, char* func_name);
+static error syntax_analyzer_parse_func_call    (syntax_analyzer* syx, ast_elem_func_call*     elem_func_call, ast_elem* func_name);
 
 #define syntax_analyzer_get_token_without_callnext(syx) \
 error err = lex_parse_token(&syx->lex);                     \
@@ -176,9 +177,8 @@ static error syntax_analyzer_parse_block(syntax_analyzer* syx, ast_elem_block* e
             }
             break;
         case TOKEN_OP_SPOT: {
-                lex_next_token(&syx->lex);
                 syntax_analyzer_get_token_without_callnext(syx);
-                if (syx->cur_token->token_type != TOKEN_ID) {
+                if (syx->cur_token->token_type != AST_ELEM_ID) {
                     // TODO: report error...
                 }
                 lex_next_token(&syx->lex);
@@ -188,41 +188,93 @@ static error syntax_analyzer_parse_block(syntax_analyzer* syx, ast_elem_block* e
                 right->line_pos   = 0;
                 right->id_name    = lex_token_getstr(syx->cur_token);
 
-                ast_elem* derefer = (ast_elem*)mem_alloc(sizeof(ast_elem));
-                derefer->ast_elem_type = AST_ELEM_DEREFER;
-                derefer->ast_elem_entity.elem_derefer = (ast_elem_derefer*)mem_alloc(sizeof(ast_elem_derefer));
-                derefer->ast_elem_entity.elem_derefer->derefer_right_type = AST_ELEM_ID;
-                derefer->ast_elem_entity.elem_derefer->derefer_right.derefer_right_id = right;
+                ast_elem* left = ast_elem_block_get_back(elem_block);
+                if (left == NULL) {
+                    // TODO: report error...
+                }
 
-                ast_elem* last_elem = ast_elem_block_get_back(elem_block);
-                if (last_elem == NULL) {
-                    // TODO: report error...
-                }
-                switch (last_elem->ast_elem_type) {
-                case AST_ELEM_ID:
-                    derefer->ast_elem_entity.elem_derefer->derefer_left_type = AST_ELEM_ID;
-                    derefer->ast_elem_entity.elem_derefer->derefer_left.derefer_left_id = last_elem->ast_elem_entity.elem_id;
-                    err = ast_elem_block_replace_back(elem_block, derefer);
-                    if (err != NULL) {
-                        // TODO: report error...
-                    }
-                    mem_free(last_elem);
-                    lex_next_token(&syx->lex);
-                    break;
-                case AST_ELEM_DEREFER:
-                    break;
-                case AST_ELEM_FUNC_CALL:
-                    break;
-                case AST_ELEM_ARRELEM:
-                    break;
-                default:
-                    // TODO: report error...
-                    break;
-                }
+                ast_elem* elem = (ast_elem*)mem_alloc(sizeof(ast_elem));
+                elem->ast_elem_type = AST_ELEM_DEREFER;
+                err = syntax_analyzer_parse_derefer(syx, elem->ast_elem_entity.elem_derefer, left, right);
+                syntax_analyzer_check_err(err);
+
+                ast_elem_block_replace_back(elem_block, elem);
             }
+            break;
+        case TOKEN_OP_LPARENTHESE: {
+                ast_elem* func_name = ast_elem_block_get_back(elem_block);
+                if (func_name == NULL) {
+                    // TODO: report error...
+                }
+                ast_elem* elem = (ast_elem*)mem_alloc(sizeof(ast_elem));
+                elem->ast_elem_type = AST_ELEM_FUNC_CALL;
+                err = syntax_analyzer_parse_func_call(syx, elem->ast_elem_entity.elem_func_call, func_name);
+                syntax_analyzer_check_err(err);
+                ast_elem_block_replace_back(elem_block, elem);
+            }
+            break;
+        default:
+            // TODO: report error...
             break;
         }
     }
+}
+
+// note:
+//    this function will not release the memory of the left and right.
+static error syntax_analyzer_parse_derefer(syntax_analyzer* syx, ast_elem_derefer* elem_derefer, ast_elem* left, ast_elem_id* right) {
+    ast_elem_derefer* new_derefer = (ast_elem_derefer*)mem_alloc(sizeof(ast_elem_derefer));
+    new_derefer->derefer_right_type = AST_ELEM_ID;
+    new_derefer->derefer_right.derefer_right_id = right;
+
+    switch (left->ast_elem_type) {
+    case AST_ELEM_ID:
+        new_derefer->derefer_left_type = AST_ELEM_ID;
+        new_derefer->derefer_left.derefer_left_id = left->ast_elem_entity.elem_id;
+        elem_derefer = new_derefer;
+        break;
+    case AST_ELEM_DEREFER: {
+            ast_elem_derefer* last_derefer = left->ast_elem_entity.elem_derefer;
+            while (last_derefer->derefer_right_type == AST_ELEM_DEREFER) {
+                last_derefer = last_derefer->derefer_right.derefer_right_derefer;
+            }
+            switch (last_derefer->derefer_right_type) {
+            case AST_ELEM_ID:
+                new_derefer->derefer_left_type = AST_ELEM_ID;
+                new_derefer->derefer_left.derefer_left_id = last_derefer->derefer_right.derefer_right_id;
+                break;
+            case AST_ELEM_FUNC_CALL:
+                new_derefer->derefer_left_type = AST_ELEM_FUNC_CALL;
+                new_derefer->derefer_left.derefer_left_func_call = last_derefer->derefer_right.derefer_right_func_call;
+                break;
+            case AST_ELEM_ARRELEM:
+                new_derefer->derefer_left_type = AST_ELEM_ARRELEM;
+                new_derefer->derefer_left.derefer_left_arrelem = last_derefer->derefer_right.derefer_right_arrelem;
+                break;
+            default:
+                // TODO: report error...
+                break;
+            }
+            last_derefer->derefer_right_type = AST_ELEM_DEREFER;
+            last_derefer->derefer_right.derefer_right_derefer = new_derefer;
+            elem_derefer = left->ast_elem_entity.elem_derefer;
+        }
+        break;
+    case AST_ELEM_FUNC_CALL:
+        new_derefer->derefer_left_type = AST_ELEM_FUNC_CALL;
+        new_derefer->derefer_left.derefer_left_func_call = left->ast_elem_entity.elem_func_call;
+        elem_derefer = new_derefer;
+        break;
+    case AST_ELEM_ARRELEM:
+        new_derefer->derefer_left_type = AST_ELEM_ARRELEM;
+        new_derefer->derefer_left.derefer_left_arrelem = left->ast_elem_entity.elem_arrelem;
+        elem_derefer = new_derefer;
+        break;
+    default:
+        // TODO: report error...
+        break;
+    }
+    return NULL;
 }
 
 static error syntax_analyzer_calcu_once_in_exprstk(ast_elem_stack* oprd_stk, ast_elem* optr) {
@@ -291,110 +343,38 @@ static error syntax_analyzer_parse_expr(syntax_analyzer* syx, ast_elem_expr* ele
             if (syx->cur_token->token_type != TOKEN_ID) {
                 // TODO: report error...
             }
+            lex_next_token(&syx->lex);
+
+            ast_elem_id* right = (ast_elem_id*)mem_alloc(sizeof(ast_elem_id));
+            right->line_count = syx->lex.line_count;
+            right->line_pos   = 0;
+            right->id_name    = lex_token_getstr(syx->cur_token);
+
             top_oprd = ast_elem_stack_top(&oprd_stk);
             if (top_oprd == NULL) {
                 // TODO: report error...
             }
+            ast_elem_stack_pop(&oprd_stk);
+
             ast_elem* elem = (ast_elem*)mem_alloc(sizeof(ast_elem));
             elem->ast_elem_type = AST_ELEM_DEREFER;
-            elem->ast_elem_entity.elem_derefer = (ast_elem_derefer*)mem_alloc(sizeof(ast_elem_derefer));
-            elem->ast_elem_entity.elem_derefer->derefer_right.derefer_right_id = (ast_elem_id*)mem_alloc(sizeof(ast_elem_id));
-            elem->ast_elem_entity.elem_derefer->derefer_right_type = AST_ELEM_ID;
-            elem->ast_elem_entity.elem_derefer->derefer_right.derefer_right_id->line_count = syx->lex.line_count;
-            elem->ast_elem_entity.elem_derefer->derefer_right.derefer_right_id->line_pos   = 0;
-            elem->ast_elem_entity.elem_derefer->derefer_right.derefer_right_id->id_name    = lex_token_getstr(syx->cur_token);
-            switch (top_oprd->ast_elem_type) {
-            case AST_ELEM_ID:
-                elem->ast_elem_entity.elem_derefer->derefer_left_type = AST_ELEM_ID;
-                elem->ast_elem_entity.elem_derefer->derefer_left.derefer_left_id = top_optr->ast_elem_entity.elem_id;
-                if (ast_elem_stack_pop(&oprd_stk) != NULL) {
-                    // TODO: report error...
-                }
-                mem_free(top_optr);
-                ast_elem_stack_push(&oprd_stk, elem);
-                lex_next_token(&syx->lex);
-                break;
-            case AST_ELEM_DEREFER:
-                last_derefer = top_oprd->ast_elem_entity.elem_derefer;
-                while (last_derefer->derefer_right_type == AST_ELEM_DEREFER) {
-                    last_derefer = last_derefer->derefer_right.derefer_right_derefer;
-                }
-                switch (last_derefer->derefer_right_type) {
-                case AST_ELEM_ID:
-                    elem->ast_elem_entity.elem_derefer->derefer_left_type = AST_ELEM_ID;
-                    elem->ast_elem_entity.elem_derefer->derefer_left.derefer_left_id
-                    = last_derefer->derefer_right.derefer_right_id;
-                    break;
-                case AST_ELEM_FUNC_CALL:
-                    elem->ast_elem_entity.elem_derefer->derefer_left_type = AST_ELEM_FUNC_CALL;
-                    elem->ast_elem_entity.elem_derefer->derefer_left.derefer_left_func_call
-                    = last_derefer->derefer_right.derefer_right_func_call;
-                    break;
-                case AST_ELEM_ARRELEM:
-                    elem->ast_elem_entity.elem_derefer->derefer_left_type = AST_ELEM_ARRELEM;
-                    elem->ast_elem_entity.elem_derefer->derefer_left.derefer_left_arrelem
-                    = last_derefer->derefer_right.derefer_right_arrelem;
-                    break;
-                default:
-                    // TODO: report error...
-                    break;
-                }
-                last_derefer->derefer_right_type = AST_ELEM_DEREFER;
-                last_derefer->derefer_right.derefer_right_derefer = elem->ast_elem_entity.elem_derefer;
-                lex_next_token(&syx->lex);
-                break;
-            case AST_ELEM_FUNC_CALL:
-                elem->ast_elem_entity.elem_derefer->derefer_left_type = AST_ELEM_FUNC_CALL;
-                elem->ast_elem_entity.elem_derefer->derefer_left.derefer_left_func_call = top_optr->ast_elem_entity.elem_func_call;
-                if (ast_elem_stack_pop(&oprd_stk) != NULL) {
-                // TODO: report error...
-                }
-                mem_free(top_oprd);
-                ast_elem_stack_push(&oprd_stk, elem);
-                lex_next_token(&syx->lex);
-                break;
-            case AST_ELEM_ARRELEM:
-                elem->ast_elem_entity.elem_derefer->derefer_left_type = AST_ELEM_ARRELEM;
-                elem->ast_elem_entity.elem_derefer->derefer_left.derefer_left_arrelem = top_oprd->ast_elem_entity.elem_arrelem;
-                if (ast_elem_stack_pop(&oprd_stk) != NULL) {
-                // TODO: report error...
-                }
-                mem_free(top_oprd);
-                ast_elem_stack_push(&oprd_stk, elem);
-                lex_next_token(&syx->lex);
-                break;
-            default:
-                // TODO: report error...
-                break;
-            }
+            err = syntax_analyzer_parse_derefer(syx, elem->ast_elem_entity.elem_derefer, top_oprd, right);
+
+            ast_elem_stack_push(&oprd_stk, elem);
         }
         else if (syx->cur_token->token_type == TOKEN_OP_LPARENTHESE) {
+            ast_elem* elem = (ast_elem*)mem_alloc(sizeof(ast_elem));
             top_oprd = ast_elem_stack_top(&oprd_stk);
-            if (top_oprd != NULL && top_oprd->ast_elem_type == AST_ELEM_ID) {
-                char* func_name = top_oprd->ast_elem_entity.elem_id->id_name;
-                mem_free(top_oprd->ast_elem_entity.elem_id);
-                top_oprd->ast_elem_type = AST_ELEM_FUNC_CALL;
-                err = syntax_analyzer_parse_func_call(syx, top_oprd->ast_elem_entity.elem_func_call, func_name);
+            if (top_oprd != NULL) {
+                ast_elem_stack_pop(&oprd_stk);
+                elem->ast_elem_type = AST_ELEM_FUNC_CALL;
+                err = syntax_analyzer_parse_func_call(syx, elem->ast_elem_entity.elem_func_call, top_oprd);
                 syntax_analyzer_check_err(err);
+                mem_free(top_oprd);
                 lex_next_token(&syx->lex);
-            }
-            else if (top_oprd != NULL && top_oprd->ast_elem_type == AST_ELEM_DEREFER) {
-                last_derefer = top_oprd->ast_elem_entity.elem_derefer;
-                while (last_derefer->derefer_right_type == AST_ELEM_DEREFER) {
-                    last_derefer = last_derefer->derefer_right.derefer_right_derefer;
-                }
-                if (last_derefer->derefer_right_type != AST_ELEM_ID) {
-                    // TODO: report error...
-                }
-                char* func_name = last_derefer->derefer_right.derefer_right_id->id_name;
-                mem_free(last_derefer->derefer_right.derefer_right_id);
-                last_derefer->derefer_right_type = AST_ELEM_FUNC_CALL;
-                err = syntax_analyzer_parse_func_call(syx, last_derefer->derefer_right.derefer_right_func_call, func_name);
-                syntax_analyzer_check_err(err);
-                lex_next_token(&syx->lex);
+                ast_elem_stack_push(&oprd_stk, elem);
             }
             else {
-                ast_elem* elem = (ast_elem*)mem_alloc(sizeof(ast_elem));
                 elem->ast_elem_type = AST_ELEM_OP;
                 elem->ast_elem_entity.elem_op = (ast_elem_op*)mem_alloc(sizeof(ast_elem_op));
                 elem->ast_elem_entity.elem_op->line_count    = syx->lex.line_count;
@@ -545,81 +525,80 @@ error syntax_analyzer_parse_loop_foreach(syntax_analyzer* syx, ast_elem_loop_for
     return NULL;
 }
 
-static error syntax_analyzer_parse_func_call(syntax_analyzer* syx, ast_elem_func_call* elem_func_call, char* func_name) {
+static error syntax_analyzer_parse_func_call(syntax_analyzer* syx, ast_elem_func_call* elem_func_call, ast_elem* func_name) {
     elem_func_call = (ast_elem_func_call*)mem_alloc(sizeof(ast_elem_func_call));
-    elem_func_call->func_call_name       = func_name;
     elem_func_call->func_call_parameters = (actual_param_list*)mem_alloc(sizeof(actual_param_list));
 
-    error             err          = NULL;
-    actual_param*     last_param   = NULL;
-    ast_elem_derefer* last_derefer = NULL;
+    error     err        = NULL;
+    ast_elem* last_param = NULL;
+
+    // parsing the function name
+    switch (func_name->ast_elem_type) {
+    case AST_ELEM_ID:
+        elem_func_call->func_call_name = func_name->ast_elem_entity.elem_id->id_name;
+        break;
+    case AST_ELEM_DEREFER: {
+            ast_elem_derefer* last_derefer = func_name->ast_elem_entity.elem_derefer;
+            while (last_derefer->derefer_right_type == AST_ELEM_DEREFER) {
+                last_derefer = last_derefer->derefer_right.derefer_right_derefer;
+            }
+            if (last_derefer->derefer_right_type != AST_ELEM_ID) {
+                // TODO: report error...
+            }
+            elem_func_call->func_call_name = last_derefer->derefer_right.derefer_right_id->id_name;
+        }
+        break;
+    default:
+        // TODO: report error...
+        break;
+    }
+
+    // parsing the function's parameters
     for (;;) {
         syntax_analyzer_get_token_without_callnext(syx);
         switch (syx->cur_token->token_type) {
         case TOKEN_CONST_INTEGER: {
-                actual_param* param = (actual_param*)mem_alloc(sizeof(actual_param));
-                param->actual_param_type = AST_ELEM_CONST_INTEGER;
-                param->param.param_const_integer = (ast_elem_const_integer*)mem_alloc(sizeof(ast_elem_const_integer));
-                param->param.param_const_integer->line_count = syx->lex.line_count;
-                param->param.param_const_integer->line_pos   = 0;
-                param->param.param_const_integer->value      = lex_token_getstr(syx->cur_token);
+                ast_elem* param = (ast_elem*)mem_alloc(sizeof(ast_elem));
+                param->ast_elem_type = AST_ELEM_CONST_INTEGER;
+                param->ast_elem_entity.elem_const_integer = (ast_elem_const_integer*)mem_alloc(sizeof(ast_elem_const_integer));
+                param->ast_elem_entity.elem_const_integer->line_count = syx->lex.line_count;
+                param->ast_elem_entity.elem_const_integer->line_pos   = 0;
+                param->ast_elem_entity.elem_const_integer->value      = lex_token_getstr(syx->cur_token);
                 actual_param_list_add(elem_func_call->func_call_parameters, param);
                 lex_next_token(&syx->lex);
             }
             break;
         case TOKEN_ID: {
-                actual_param* param = (actual_param*)mem_alloc(sizeof(actual_param));
-                param->actual_param_type = AST_ELEM_ID;
-                param->param.param_id = (ast_elem_id*)mem_alloc(sizeof(ast_elem_id));
-                param->param.param_id->line_count = syx->lex.line_count;
-                param->param.param_id->line_pos   = 0;
-                param->param.param_id->id_name    = lex_token_getstr(syx->cur_token);
+                ast_elem* param = (ast_elem*)mem_alloc(sizeof(ast_elem));
+                param->ast_elem_type = AST_ELEM_ID;
+                param->ast_elem_entity.elem_id = (ast_elem_id*)mem_alloc(sizeof(ast_elem_id));
+                param->ast_elem_entity.elem_id->line_count = syx->lex.line_count;
+                param->ast_elem_entity.elem_id->line_pos   = 0;
+                param->ast_elem_entity.elem_id->id_name    = lex_token_getstr(syx->cur_token);
                 actual_param_list_add(elem_func_call->func_call_parameters, param);
                 lex_next_token(&syx->lex);
             }
             break;
         case TOKEN_CONST_STRING: {
-                actual_param* param = (actual_param*)mem_alloc(sizeof(actual_param));
-                param->actual_param_type = AST_ELEM_CONST_STRING;
-                param->param.param_const_string = (ast_elem_const_string*)mem_alloc(sizeof(ast_elem_const_string));
-                param->param.param_const_string->line_count = syx->lex.line_count;
-                param->param.param_const_string->line_pos   = 0;
-                param->param.param_const_string->value      = lex_token_getstr(syx->cur_token);
+                ast_elem* param = (ast_elem*)mem_alloc(sizeof(ast_elem));
+                param->ast_elem_type = AST_ELEM_CONST_STRING;
+                param->ast_elem_entity.elem_const_string = (ast_elem_const_string*)mem_alloc(sizeof(ast_elem_const_string));
+                param->ast_elem_entity.elem_const_string->line_count = syx->lex.line_count;
+                param->ast_elem_entity.elem_const_string->line_pos   = 0;
+                param->ast_elem_entity.elem_const_string->value      = lex_token_getstr(syx->cur_token);
                 actual_param_list_add(elem_func_call->func_call_parameters, param);
                 lex_next_token(&syx->lex);
             }
             break;
+        case TOKEN_OP_COMMA:
+            break;
         case TOKEN_OP_LPARENTHESE:
+            lex_next_token(&syx->lex);
             if (elem_func_call->func_call_parameters->tail == NULL) {
                 // TODO: report error...
             }
             last_param = elem_func_call->func_call_parameters->tail->param;
-            if (last_param->actual_param_type == AST_ELEM_ID) {
-                char* func_name = last_param->param.param_id->id_name;
-                last_param->actual_param_type = AST_ELEM_FUNC_CALL;
-                mem_free(last_param->param.param_id);
-                err = syntax_analyzer_parse_func_call(syx, last_param->param.param_func_call, func_name);
-                syntax_analyzer_check_err(err);
-                lex_next_token(&syx->lex);
-            }
-            else if (last_param->actual_param_type == AST_ELEM_DEREFER) {
-                last_derefer = elem_func_call->func_call_parameters->tail->param->param.param_derefer;
-                while (last_derefer->derefer_right_type == AST_ELEM_DEREFER) {
-                    last_derefer = last_derefer->derefer_right.derefer_right_derefer;
-                }
-                if (last_derefer->derefer_right_type != AST_ELEM_ID) {
-                    // TODO: report error...
-                }
-                char* func_name = last_derefer->derefer_right.derefer_right_id->id_name;
-                last_derefer->derefer_right_type = AST_ELEM_FUNC_CALL;
-                mem_free(last_derefer->derefer_right.derefer_right_id);
-                err = syntax_analyzer_parse_func_call(syx, last_derefer->derefer_right.derefer_right_func_call, func_name);
-                syntax_analyzer_check_err(err);
-                lex_next_token(&syx->lex);
-            }
-            else {
-                // TODO: report error...
-            }
+            ast_elem*
             break;
         case TOKEN_OP_SPOT:
             lex_next_token(&syx->lex);
@@ -627,100 +606,51 @@ static error syntax_analyzer_parse_func_call(syntax_analyzer* syx, ast_elem_func
             if (syx->cur_token->token_type != TOKEN_ID) {
                 // TODO: report error...
             }
-            if (elem_func_call->func_call_parameters->tail == NULL) {
-                // TODO: report error...
-            }
+            lex_next_token(&syx->lex);
 
             ast_elem_id* right = (ast_elem_id*)mem_alloc(sizeof(ast_elem_id));
             right->line_count = syx->lex.line_count;
             right->line_pos   = 0;
             right->id_name    = lex_token_getstr(syx->cur_token);
 
-            ast_elem_derefer* derefer = (ast_elem_derefer*)mem_alloc(sizeof(ast_elem_derefer));
-            derefer->derefer_right_type             = AST_ELEM_ID;
-            derefer->derefer_right.derefer_right_id = right;
-
-            last_param = elem_func_call->func_call_parameters->tail->param;
-            switch (last_param->actual_param_type) {
-            case AST_ELEM_ID: {
-                    derefer->derefer_left_type = AST_ELEM_ID;
-                    derefer->derefer_left.derefer_left_id = last_param->param.param_id;
-                    mem_free(last_param);
-                    elem_func_call->func_call_parameters->tail->param->actual_param_type   = AST_ELEM_DEREFER;
-                    elem_func_call->func_call_parameters->tail->param->param.param_derefer = derefer;
-                    lex_next_token(&syx->lex);
-                }
-                break;
-            case AST_ELEM_DEREFER:
-                last_derefer = last_param->param.param_derefer;
-                while (last_derefer->derefer_right_type == AST_ELEM_DEREFER) {
-                    last_derefer = last_derefer->derefer_right.derefer_right_derefer;
-                }
-                switch (last_derefer->derefer_right_type) {
-                case AST_ELEM_ID:
-                    derefer->derefer_left_type = AST_ELEM_ID;
-                    derefer->derefer_left.derefer_left_id = last_derefer->derefer_right.derefer_right_id;
-                    break;
-                case AST_ELEM_FUNC_CALL:
-                    derefer->derefer_left_type = AST_ELEM_FUNC_CALL;
-                    derefer->derefer_left.derefer_left_func_call = last_derefer->derefer_right.derefer_right_func_call;
-                    break;
-                case AST_ELEM_ARRELEM:
-                    derefer->derefer_left_type = AST_ELEM_ARRELEM;
-                    derefer->derefer_left.derefer_left_arrelem = last_derefer->derefer_right.derefer_right_arrelem;
-                    break;
-                default:
-                    // TODO: report error...
-                    break;
-                }
-                last_derefer->derefer_right_type                  = AST_ELEM_DEREFER;
-                last_derefer->derefer_right.derefer_right_derefer = derefer;
-                lex_next_token(&syx->lex);
-                break;
-            case AST_ELEM_FUNC_CALL: {
-                    derefer->derefer_left_type = AST_ELEM_FUNC_CALL;
-                    derefer->derefer_left.derefer_left_func_call = last_param->param.param_func_call;
-                    mem_free(last_param);
-                    elem_func_call->func_call_parameters->tail->param->actual_param_type   = AST_ELEM_DEREFER;
-                    elem_func_call->func_call_parameters->tail->param->param.param_derefer = derefer;
-                    lex_next_token(&syx->lex);
-                }
-                break;
-            case AST_ELEM_ARRELEM: {
-                    derefer->derefer_left_type = AST_ELEM_ARRELEM;
-                    derefer->derefer_left.derefer_left_arrelem = last_param->param.param_arrelem;
-                    mem_free(last_param);
-                    elem_func_call->func_call_parameters->tail->param->actual_param_type   = AST_ELEM_DEREFER;
-                    elem_func_call->func_call_parameters->tail->param->param.param_derefer = derefer;
-                    lex_next_token(&syx->lex);
-                }
-                break;
-            default:
+            if (elem_func_call->func_call_parameters->tail == NULL) {
                 // TODO: report error...
-                break;
             }
+            last_param = func_call_parameters->tail->param;
+
+            ast_elem* derefer = (ast_elem*)mem_alloc(sizeof(ast_elem));
+            derefer->ast_elem_type = AST_ELEM_DEREFER;
+            err = syntax_analyzer_parse_derefer(syx, derefer, last_param, right);
+            syntax_analyzer_check_err(err);
+
+            elem_func_call->func_call_parameters->tail->param = derefer;
             break;
         case TOKEN_CONST_FLOAT: {
-                actual_param* param = (actual_param*)mem_alloc(sizeof(actual_param));
-                param->actual_param_type = AST_ELEM_CONST_FLOAT;
-                param->param.param_const_float = (ast_elem_const_float*)mem_alloc(sizeof(ast_elem_const_float));
-                param->param.param_const_float->line_count = syx->lex.line_count;
-                param->param.param_const_float->line_pos   = 0;
-                param->param.param_const_float->value      = lex_token_getstr(syx->cur_token);
+                ast_elem* param = (ast_elem*)mem_alloc(sizeof(ast_elem));
+                param->ast_elem_type = AST_ELEM_CONST_FLOAT;
+                param->ast_elem_entity.elem_const_float = (ast_elem_const_float*)mem_alloc(sizeof(ast_elem_const_float));
+                param->ast_elem_entity.elem_const_float->line_count = syx->lex.line_count;
+                param->ast_elem_entity.elem_const_float->line_pos   = 0;
+                param->ast_elem_entity.elem_const_float->value      = lex_token_getstr(syx->cur_token);
                 actual_param_list_add(elem_func_call->func_call_parameters, param);
                 lex_next_token(&syx->lex);
             }
             break;
         case TOKEN_CONST_CHAR: {
-                actual_param* param = (actual_param*)mem_alloc(sizeof(actual_param));
-                param->actual_param_type = AST_ELEM_CONST_CHAR;
-                param->param.param_const_char = (ast_elem_const_char*)mem_alloc(sizeof(ast_elem_const_char));
-                param->param.param_const_char->line_count = syx->lex.line_count;
-                param->param.param_const_char->line_pos   = 0;
-                param->param.param_const_char->value      = lex_token_getstr(syx->cur_token)[0];
+                ast_elem* param = (ast_elem*)mem_alloc(sizeof(ast_elem));
+                param->ast_elem_type = AST_ELEM_CONST_CHAR;
+                param->ast_elem_entity.elem_const_char = (ast_elem_const_char*)mem_alloc(sizeof(ast_elem_const_char));
+                param->ast_elem_entity.elem_const_char->line_count = syx->lex.line_count;
+                param->ast_elem_entity.elem_const_char->line_pos   = 0;
+                param->ast_elem_entity.elem_const_char->value      = lex_token_getstr(syx->cur_token)[0];
                 actual_param_list_add(elem_func_call->func_call_parameters, param);
                 lex_next_token(&syx->lex);
             }
+            break;
+        case TOKEN_OP_RPARENTHESE:
+            break;
+        default:
+            //TODO: report error...
             break;
         }
     }

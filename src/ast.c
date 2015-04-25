@@ -313,14 +313,14 @@ void decl_list_destroy(decl_list* decllist) {
     }
 }
 
-/****** methods of ast_elem_stack ******/
+/****** methods of actual_param_list ******/
 
 void actual_param_list_init(actual_param_list* actparamlst) {
     actparamlst->head = NULL;
     actparamlst->tail = NULL;
 }
 
-void actual_param_list_add(actual_param_list* actparamlst, actual_param* param) {
+void actual_param_list_add(actual_param_list* actparamlst, ast_elem* param) {
     actual_param_list_node* create = (actual_param_list_node*)mem_alloc(sizeof(actual_param_list_node));
     create->param = param;
     create->next  = NULL;
