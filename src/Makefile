@@ -2,9 +2,9 @@ obj := cplus
 compiler := gcc
 
 cplus: common.o utf.o lex.o dynamicarr.o convert.o id.o scope.o \
-       close_counter.o func.o type.o errors.o ast.o syntax.o
+       close_counter.o func.o type.o errors.o ast.o parser.o
 	${compiler} ${obj}.c common.o utf.o lex.o dynamicarr.o convert.o id.o \
-    scope.o close_counter.o func.o type.o errors.o ast.o syntax.o -o ${obj}
+    scope.o close_counter.o func.o type.o errors.o ast.o parser.o -o ${obj}
 
 common.o: common.h common.c
 	${compiler} -c common.h common.c
@@ -42,8 +42,8 @@ errors.o: errors.h errors.c
 ast.o: ast.h ast.c
 	${compiler} -c ast.h ast.c
 
-syntax.o: syntax.h syntax.c
-	${compiler} -c syntax.h syntax.c
+parser.o: parser.h parser.c
+	${compiler} -c parser.h parser.c
 
 clean:
 	rm *.o *.gch

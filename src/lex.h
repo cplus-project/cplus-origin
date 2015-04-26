@@ -117,7 +117,8 @@ typedef struct{
                           // always filled with the capacity of LEX_BUFF_SIZE so
                           // the buff_end_index will flag this situation
 
-    int32     line_count; // record the current analyzing line count
+    int32     line;       // record the current analyzing line count
+    int16     col;        // record the position in the current line
     lex_token lextkn;     // to storage the information of the token which is parsing now
     bool      parse_lock; // if the parse_lock == true, the lexical analyzer can not
                           // continue to parse the next token
