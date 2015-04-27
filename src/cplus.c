@@ -10,7 +10,6 @@
 #include <string.h>
 #include "common.h"
 #include "lex.h"
-#include "ast.h"
 
 int main(int argc, char* argv[]) {
     error err = NULL;
