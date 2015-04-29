@@ -238,9 +238,9 @@ error ident_table_add(ident_table* itab, ident* id) {
                 ptr = ptr->rchild;
                 break;
             case NODE_CMP_EQ:
-                return new_error("err: type redefined.");
+                return new_error("err: identifier redefined.");
             default:
-                return new_error("err: can not compare the two type names.");
+                return new_error("err: can not compare the two id names.");
             }
         }
     }
