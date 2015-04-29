@@ -5,3 +5,34 @@
  **/
 
 #include "scope.h"
+
+void scope_init(scope* scp, scope* outer) {
+    ident_table_init(&scp->itab);
+    scp->outer = outer;
+}
+
+error scope_add_id(scope* scp, ident* id) {
+    return ident_table_add(&scp->itab, id);
+}
+
+// search an identifier from the outermost scope to the innermost
+// scope.
+ident* scope_search_id(scope* scp, char* id_name) {
+    ident* id;
+    scope* ptr = scp;
+    for (;;) {
+        id = ident_table_search(&ptr->itab, id_name);
+        if (id != NULL) {
+            return id;
+        }
+        ptr = ptr->outer;
+        if (ptr == NULL) {
+            return NULL;
+        }
+    }
+}
+
+void scope_destroy(scope* scp) {
+    ident_table_destroy(&scp->itab);
+    scp->outer = NULL;
+}
