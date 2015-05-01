@@ -120,7 +120,7 @@ extern void  lex_token_stack_push     (lex_token_stack* lexstk, char* token, int
 extern bool  lex_token_stack_isempty  (lex_token_stack* lexstk);
 extern char* lex_token_stack_top_token(lex_token_stack* lexstk);
 extern int16 lex_token_stack_top_type (lex_token_stack* lexstk);
-extern error lex_token_stack_pop      (lex_token_stack* lexstk);
+extern void  lex_token_stack_pop      (lex_token_stack* lexstk);
 extern void  lex_token_stack_destroy  (lex_token_stack* lexstk);
 
 // if want to change the lexical analyzer's buffer size and file

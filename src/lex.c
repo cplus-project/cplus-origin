@@ -181,7 +181,7 @@ int16 lex_token_stack_top_type(lex_token_stack* lexstk) {
     return lexstk->top->token_type;
 }
 
-error lex_token_stack_pop(lex_token_stack* lexstk) {
+void lex_token_stack_pop(lex_token_stack* lexstk) {
     lex_token_stack_node* temp = lexstk->top;
     lexstk->top = lexstk->top->next;
     mem_free(temp);

@@ -13,4 +13,20 @@
 
 #include "common.h"
 
+typedef struct operator_stack_node {
+    int16 op_token_code;
+    struct operator_stack_node* next;
+}operator_stack_node;
+
+typedef struct {
+    operator_stack_node* top;
+}operator_stack;
+
+static void  operator_stack_init   (operator_stack* optrstk);
+static void  operator_stack_push   (operator_stack* optrstk, int16 op_token_code);
+static bool  operator_stack_isempty(operator_stack* optrstk);
+static int16 operator_stack_top    (operator_stack* optrstk);
+static void  operator_stack_pop    (operator_stack* optrstk);
+static void  operator_stack_destroy(operator_stack* optrstk);
+
 #endif
