@@ -4,4 +4,4 @@
  * license that can be found in the LICENSE file.
  **/
 
-#include "ast.h"
+#include "syntax.h"
