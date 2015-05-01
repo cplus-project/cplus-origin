@@ -103,6 +103,26 @@ extern void  lex_token_clear  (lex_token* lextkn);
 extern void  lex_token_debug  (lex_token* lextkn);
 extern void  lex_token_destroy(lex_token* lextkn);
 
+typedef struct lex_token_stack_node {
+    char* token;
+    int16 token_type;
+    struct lex_token_stack_node* next;
+}lex_token_stack_node;
+
+// the lex_token_stack is a type of stack used to save a set of
+// lexical tokens.
+typedef struct {
+    lex_token_stack_node* top;
+}lex_token_stack;
+
+extern void  lex_token_stack_init     (lex_token_stack* lexstk);
+extern void  lex_token_stack_push     (lex_token_stack* lexstk, char* token, int16 token_type);
+extern bool  lex_token_stack_isempty  (lex_token_stack* lexstk);
+extern char* lex_token_stack_top_token(lex_token_stack* lexstk);
+extern int16 lex_token_stack_top_type (lex_token_stack* lexstk);
+extern error lex_token_stack_pop      (lex_token_stack* lexstk);
+extern void  lex_token_stack_destroy  (lex_token_stack* lexstk);
+
 // if want to change the lexical analyzer's buffer size and file
 // read rate, just modify the under micro definition.
 // node:

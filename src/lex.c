@@ -145,6 +145,60 @@ void lex_token_destroy(lex_token* lextkn) {
     dynamicarr_char_destroy(&lextkn->token);
 }
 
+/****** methods of lex_token_stack ******/
+
+void lex_token_stack_init(lex_token_stack* lexstk) {
+    lexstk->top = NULL;
+}
+
+void lex_token_stack_push(lex_token_stack* lexstk, char* token, int16 token_type) {
+    lex_token_stack_node* create = (lex_token_stack_node*)mem_alloc(sizeof(lex_token_stack_node));
+    create->token      = token;
+    create->token_type = token_type;
+    create->next       = NULL;
+    if (lexstk->top != NULL) {
+        create->next = lexstk->top;
+        lexstk->top  = create;
+    }
+    else {
+        lexstk->top = create;
+    }
+}
+
+// return true if the stack is empty.
+bool lex_token_stack_isempty(lex_token_stack* lexstk) {
+    if (lexstk->top == NULL) {
+        return true;
+    }
+    return false;
+}
+
+char* lex_token_stack_top_token(lex_token_stack* lexstk) {
+    return lexstk->top->token;
+}
+
+int16 lex_token_stack_top_type(lex_token_stack* lexstk) {
+    return lexstk->top->token_type;
+}
+
+error lex_token_stack_pop(lex_token_stack* lexstk) {
+    lex_token_stack_node* temp = lexstk->top;
+    lexstk->top = lexstk->top->next;
+    mem_free(temp);
+}
+
+void lex_token_stack_destroy(lex_token_stack* lexstk) {
+    lex_token_stack_node* temp;
+    for (;;) {
+        if (lexstk->top == NULL) {
+            return;
+        }
+        temp = lexstk->top;
+        lexstk->top = lexstk->top->next;
+        mem_free(temp);
+    }
+}
+
 /****** methods of lex_analyzer ******/
 
 error lex_init(lex_analyzer* lex) {
