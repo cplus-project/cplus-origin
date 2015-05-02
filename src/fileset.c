@@ -77,6 +77,55 @@ void file_queue_destroy(file_queue* fqueue) {
     }
 }
 
+/****** methods of file_stack ******/
+
+void file_stack_init(file_stack* fstk) {
+    fstk->top = NULL;
+}
+
+void file_stack_push(file_stack* fstk, char* file_name) {
+    file_stack_node* create = (file_stack_node*)mem_alloc(sizeof(file_stack_node));
+    create->file_name = file_name;
+    create->next      = NULL;
+    if (fstk->top != NULL) {
+        create->next = fstk->top;
+        fstk->top = create;
+    }
+    else {
+        fstk->top = create;
+    }
+}
+
+// return true if the stack is empty.
+bool file_stack_isempty(file_stack* fstk) {
+    if (fstk->top != NULL) {
+        return false;
+    }
+    return true;
+}
+
+char* file_stack_top(file_stack* fstk) {
+    return fstk->top->file_name;
+}
+
+void file_stack_pop(file_stack* fstk) {
+    file_stack_node* temp = fstk->top;
+    fstk->top = fstk->top->next;
+    mem_free(temp);
+}
+
+void file_stack_destroy(file_stack* fstk) {
+    file_stack_node* temp;
+    for (;;) {
+        if (fstk->top == NULL) {
+            return;
+        }
+        temp = fstk->top;
+        fstk->top = fstk->top->next;
+        mem_free(temp);
+    }
+}
+
 /****** methods of file_tree ******/
 
 void file_tree_init(file_tree* ftree) {
