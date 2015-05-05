@@ -1,9 +1,9 @@
 obj := cplus
 compiler := gcc
 
-cplus: common.o utf.o lex.o dynamicarr.o convert.o ident.o scope.o \
+cplus: common.o utf.o lexical.o dynamicarr.o convert.o ident.o scope.o \
        close_counter.o fileset.o syntax.o semantic.o errsys.o
-	${compiler} ${obj}.c common.o utf.o lex.o dynamicarr.o convert.o ident.o \
+	${compiler} ${obj}.c common.o utf.o lexical.o dynamicarr.o convert.o ident.o \
 	scope.o close_counter.o fileset.o syntax.o semantic.o errsys.o -o ${obj}
 
 common.o: common.h common.c
@@ -12,8 +12,8 @@ common.o: common.h common.c
 utf.o: utf.h utf.c
 	${compiler} -c utf.h utf.c
 
-lex.o: lex.h lex.c
-	${compiler} -c lex.h lex.c
+lexical.o: lexical.h lexical.c
+	${compiler} -c lexical.h lexical.c
 
 dynamicarr.o: dynamicarr.h dynamicarr.c
 	${compiler} -c dynamicarr.h dynamicarr.c

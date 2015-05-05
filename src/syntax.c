@@ -54,3 +54,27 @@ void operator_stack_destroy(operator_stack* optrstk) {
         mem_free(temp);
     }
 }
+
+/****** methods of syntax_analyzer ******/
+
+void syntax_analyzer_init(syntax_analyzer* syx, char* file_name) {
+    syx->lex = NULL;
+    file_stack_init(&syx->file_wait_compiled);
+    file_stack_push(&syx->file_wait_compiled, file_name);
+    file_tree_init(&syx->file_have_compiled);
+}
+
+error syntax_analyzer_work(syntax_analyzer* syx) {
+    for (;;) {
+        
+    }
+    return NULL;
+}
+
+void syntax_analyzer_destroy(syntax_analyzer* syx) {
+    if (syx->lex != NULL) {
+        lex_destroy(syx->lex);
+    }
+    file_stack_destroy(&syx->file_wait_compiled);
+    file_tree_destroy(&syx->file_have_compiled);
+}

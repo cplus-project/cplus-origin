@@ -123,6 +123,7 @@ typedef struct smt_expr {
         smt_func_call*      expr_func_call;
         smt_expr_unary*     expr_unary;
         smt_expr_binary*    expr_binary;
+        smt_type_def*       expr_type_def;
     }expr;
 }smt_expr;
 
@@ -148,6 +149,7 @@ typedef struct smt_index {
 typedef struct smt_decl {
     smt_identified_obj decl_type;
     smt_ident          decl_name;
+    smt_expr           decl_init;
 }smt_decl;
 
 // represent the assignment statement.
@@ -209,13 +211,86 @@ typedef struct smt_loop_infinite {
 }smt_loop_infinite;
 
 // represent the loop statement with foreach-style:
-// (1) for data : container {  | (2) for data, index : container {
-//         ...                 |         ...
-//     }                       |     }
+// for data, index : container {
+//     ...
+// }
 typedef struct smt_loop_foreach {
     smt_identified_obj loop_foreach_data;
     smt_identified_obj loop_foreach_index;
     smt_identified_obj loop_foreach_container;
 }smt_loop_foreach;
+
+typedef struct formal_param {
+    smt_identified_obj param_type;
+    smt_ident          param_ident;
+    struct formal_param* next;
+}formal_param;
+
+// represent the function definition:
+// func func_name(params_passed) (params_return) {
+//     ...
+// }
+typedef struct smt_func_def {
+    smt_identified_obj func_name;
+    formal_param*      param_passin;
+    formal_param*      param_retout;
+}smt_func_def;
+
+typedef struct actual_param {
+    smt_expr param_expr;
+    struct actual_param* next;
+}actual_param;
+
+// represent the function call:
+// def  -> func foo(int x, string str) (bool ret) {}
+// call -> bool ret = foo(1, "John")
+typedef struct smt_func_call {
+    smt_identified_obj func_name;
+    actual_param*      param_passin;
+}smt_func_call;
+
+// represent the return statement.
+typedef struct smt_return {
+    smt_expr return_val;
+}smt_return;
+
+// represent the type declaration statement.
+typedef struct smt_type_decl {
+    smt_ident type_name;
+}smt_type_decl;
+
+// represent the type assignment statement;
+typedef struct smt_type_assign {
+    smt_identified_obj type_assign_left;
+    smt_expr           type_assign_right;
+}smt_type_assign;
+
+typedef struct member_decl {
+    int8               access;
+    smt_identified_obj member_type;
+    smt_ident          member_name;
+    struct member_decl* next;
+}member_decl;
+
+// represent the type definition:
+// type {
+//     in string  name
+//     in int32   age
+//     ot float32 score
+//     ...
+// }
+typedef struct smt_type_def {
+    smt_ident    type_name;
+    member_decl* members;
+}smt_type_def;
+
+// represent the new statement:
+// new int [100]
+// new Person("Peter", 15, "2015-05-05") [1]
+typedef struct smt_new {
+    smt_identified_obj new_type_name;
+    actual_param*      new_init_params;
+    int64              new_amount;
+}smt_new;
 
 #endif
