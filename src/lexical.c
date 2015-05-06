@@ -222,7 +222,13 @@ error lex_init(lex_analyzer* lex) {
 error lex_open_srcfile(lex_analyzer* lex, char* file) {
     lex->srcfile = fopen(file, "r");
     if (lex == NULL) {
-        return new_error("not found the source file.");
+        dynamicarr_char darr;
+        dynamicarr_char_init(&darr, 255);
+        dynamicarr_char_append(&darr, "not found the source file: ", 27);
+        dynamicarr_char_append(&darr, file, strlen(file));
+        char* errmsg = dynamicarr_char_getstr(&darr);
+        dynamicarr_char_destroy(&darr);
+        return new_error(errmsg);
     }
     return NULL;
 }

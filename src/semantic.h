@@ -14,40 +14,41 @@
 
 #include "common.h"
 
-#define SMT_ELEM_NULL          0x00
-#define SMT_ELEM               0x00
-#define SMT_ELEM_CONST_INTEGER 0x01
-#define SMT_ELEM_CONST_FLOAT   0x02
-#define SMT_ELEM_CONST_CHAR    0x03
-#define SMT_ELEM_CONST_STRING  0x04
-#define SMT_IDENT              0x05
-#define SMT_IDENTIFIED_OBJ     0x06
-#define SMT_EXPR               0x11
-#define SMT_EXPR_UNARY         0x12
-#define SMT_EXPR_BINARY        0x13
-#define SMT_INDEX              0x08
-#define SMT_DECL               0x09
-#define SMT_ASSIGN             0x10
-#define SMT_IF                 0x13
-#define SMT_EF                 0x00
-#define SMT_ELSE               0x00
-#define SMT_SWITCH             0x00
-#define SMT_SWITCH_CASE        0x00
-#define SMT_SWITCH_DEFAULT     0x00
-#define SMT_LOOP_FOR           0x00
-#define SMT_LOOP_WHILE         0x00
-#define SMT_LOOP_INFINITE      0x00
-#define SMT_LOOP_FOREACE       0x00
-#define SMT_FUNC_DEF           0x14
-#define SMT_FUNC_CALL          0x15
-#define SMT_RETURN             0x16
-#define SMT_TYPE_DECL          0x17
-#define SMT_TYPE_ASSIGN        0x18
-#define SMT_TYPE_DEF           0x19
-#define SMT_NEW                0x20
-#define SMT_ERROR              0x21
-#define SMT_DEAL_SINGLE        0x22
-#define SMT_DEAL_MULTI         0x23
+#define SMT_NULL            0x00
+#define SMT_INCLUDE         0x00
+#define SMT_MODULE          0x00
+#define SMT_CONST_INTEGER   0x01
+#define SMT_CONST_FLOAT     0x02
+#define SMT_CONST_CHAR      0x03
+#define SMT_CONST_STRING    0x04
+#define SMT_IDENT           0x05
+#define SMT_IDENTIFIED_OBJ  0x06
+#define SMT_EXPR            0x11
+#define SMT_EXPR_UNARY      0x12
+#define SMT_EXPR_BINARY     0x13
+#define SMT_INDEX           0x08
+#define SMT_DECL            0x09
+#define SMT_ASSIGN          0x10
+#define SMT_IF              0x13
+#define SMT_EF              0x00
+#define SMT_ELSE            0x00
+#define SMT_SWITCH          0x00
+#define SMT_SWITCH_CASE     0x00
+#define SMT_SWITCH_DEFAULT  0x00
+#define SMT_LOOP_FOR        0x00
+#define SMT_LOOP_WHILE      0x00
+#define SMT_LOOP_INFINITE   0x00
+#define SMT_LOOP_FOREACE    0x00
+#define SMT_FUNC_DEF        0x14
+#define SMT_FUNC_CALL       0x15
+#define SMT_RETURN          0x16
+#define SMT_TYPE_DECL       0x17
+#define SMT_TYPE_ASSIGN     0x18
+#define SMT_TYPE_DEF        0x19
+#define SMT_NEW             0x20
+#define SMT_ERROR           0x21
+#define SMT_DEAL_SINGLE     0x22
+#define SMT_DEAL_MULTI      0x23
 
 typedef char* smt_const_integer;
 typedef char* smt_const_float;
@@ -55,6 +56,8 @@ typedef char  smt_const_char;
 typedef char* smt_const_string;
 typedef char* smt_ident;
 
+typedef struct smt_include        smt_include;
+typedef struct smt_module         smt_module;
 typedef struct smt_identified_obj smt_identified_obj;
 typedef struct smt_expr           smt_expr;
 typedef struct smt_expr_unary     smt_expr_unary;
@@ -82,6 +85,24 @@ typedef struct smt_new            smt_new;
 typedef struct smt_error          smt_error;
 typedef struct smt_deal_single    smt_deal_single;
 typedef struct smt_deal_multi     smt_deal_multi;
+
+// represent the include statement:
+// include <stdio.h>
+// include "string.h"
+// include <myfile.cplus>
+typedef struct smt_include {
+    char* file_name;
+    struct smt_include* next;
+}smt_include;
+
+// represent the module statement:
+// module fmt
+// module os/user
+// module net/http
+typedef struct smt_module {
+    char* mod_name;
+    struct smt_module* next;
+}smt_module;
 
 // represent one or a set of identified objects(e.g. identifier,
 // index, function).

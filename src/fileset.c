@@ -306,8 +306,8 @@ error file_tree_add(file_tree* ftree, char* file_name) {
 }
 
 // return:
-//    true  -> the file is found.
-//    false -> the file is not in the table.
+//    true  -> the file exists.
+//    false -> the file not exists.
 bool file_tree_exist(file_tree* ftree, char* file_name) {
     if (ftree->root == NULL) {
         return false;

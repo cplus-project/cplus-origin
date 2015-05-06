@@ -37,7 +37,8 @@ static void  operator_stack_destroy(operator_stack* optrstk);
 typedef struct syntax_analyzer {
     file_stack    file_wait_compiled; // files wait to be compiled
     file_tree     file_have_compiled; // files have been compiled
-    lex_analyzer* lex;                // the lexer using now
+    lex_analyzer* lex;                // the lexer now using
+    lex_token*    cur_token;          // the current token parsed
 }syntax_analyzer;
 
 extern void  syntax_analyzer_init   (syntax_analyzer* syx, char* file_name);
