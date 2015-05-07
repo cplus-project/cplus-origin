@@ -37,15 +37,21 @@ typedef unsigned char          uchar;
 //
 // when you define a function witch may generate some error,
 // you should write the definition like below:
-//     error foo(bool flag) {...}
+//    error foo(bool flag) {...}
 //
 // when you call the function and want to check the error,
 // you can judge like this:
 // return value ->     NULL means none error occurs
 //                 not NULL means some error occurs
+//
+// if the error's address value is a negative number, it will
+// be used to represent an error code.
+// example:
+//    #define ERR_INPUT_EOF  -1
+//    #define ERR_INPUT_FAIL -2
+//    error err = (error)ERR_INPUT_EOF;
 typedef char* error;
 extern error new_error(char* errmsg);
-
 
 #define ERROR_TYPE_GENERAL   0x00
 #define ERROR_TYPE_LEXICAL   0x01

@@ -60,6 +60,9 @@ void operator_stack_destroy(operator_stack* optrstk) {
 #define syntax_analyzer_get_token(syx) \
 err = lex_parse_token(syx->lex);           \
 if (err != NULL) {                         \
+    if ((int64)err == LEX_ERROR_EOF) {     \
+        return NULL;                       \
+    }                                      \
     return err;                            \
 }                                          \
 syx->cur_token = lex_read_token(syx->lex);
@@ -92,14 +95,77 @@ void syntax_analyzer_init(syntax_analyzer* syx, char* file_name) {
     syx->lex       = NULL;
 }
 
+// parsing include statement set of the source file.
 static error syntax_analyzer_parse_include(syntax_analyzer* syx) {
-    return NULL;
+    error err = NULL;
+    for (;;) {
+        syntax_analyzer_get_token(syx);
+        if (syx->cur_token->token_type != TOKEN_KEYWORD_INCLUDE) {
+            return NULL;
+        }
+        lex_next_token(syx->lex);
+        for (;;) {
+            syntax_analyzer_get_token(syx);
+            switch (syx->cur_token->token_type) {
+            case TOKEN_CONST_STRING:
+                break;
+            case TOKEN_OP_LT:
+                break;
+            default:
+                // TODO: report error...
+                break;
+            }
+        }
+    }
 }
 
+// parsing module statement set of the source file.
 static error syntax_analyzer_parse_module(syntax_analyzer* syx) {
-    return NULL;
+    error           err       = NULL;
+    int16           last_type = TOKEN_UNKNOWN;
+    dynamicarr_char darr;
+    dynamicarr_char_init(&darr, 255);
+    
+    for (;;) {
+        syntax_analyzer_get_token(syx);
+        if (syx->cur_token->token_type != TOKEN_KEYWORD_MODULE) {
+            return NULL;
+        }
+        lex_next_token(syx->lex);
+        for (;;) {
+            syntax_analyzer_get_token(syx);
+            switch (syx->cur_token->token_type) {
+            case TOKEN_ID:
+                if (last_type == TOKEN_UNKNOWN || last_type == TOKEN_OP_DIV) {
+                    dynamicarr_char_append(&darr, lex_token_getstr(syx->cur_token), syx->cur_token->token_len);
+                    lex_next_token(syx->lex);
+                    last_type = TOKEN_ID;
+                }
+                else {
+                    // TODO: report error...
+                }
+                break;
+            case TOKEN_OP_DIV:
+                if (last_type == TOKEN_ID) {
+                    dynamicarr_char_append(&darr, lex_token_getstr(syx->cur_token), syx->cur_token->token_len);
+                    lex_next_token(syx->lex);
+                    last_type = TOKEN_OP_DIV;
+                }
+                else {
+                    // TODO: report error...
+                }
+                break;
+            case TOKEN_NEXT_LINE:
+                // TODO: parse the module
+                last_type = TOKEN_UNKNOWN;
+                break;
+            default:
+                // TODO: report error...
+                break;
+            }
+        }
+    }
 }
-
 
 error syntax_analyzer_work(syntax_analyzer* syx) {
     error err = NULL;
@@ -128,25 +194,20 @@ error syntax_analyzer_work(syntax_analyzer* syx) {
             // if all include files or modules have been compiled already, the syntax
             // analyzer will continue to parse the file. if there are some dependences
             // have not been solved, the analyzer will parse the dependences firstly.
-            bool no_depend = true;
-            for (;;) {
-                syntax_analyzer_get_token(syx);
-                if (syx->cur_token->token_type == TOKEN_KEYWORD_INCLUDE) {
-                    lex_next_token(syx->lex);
-                    err = syntax_analyzer_parse_include(syx);
-                    if (err != NULL) {
-                        printf("line:%d col:%d --- %s\r\n", (int)syx->lex->line, (int)syx->lex->col, err);
-                    }
-                }
-                else if (syx->cur_token->token_type == TOKEN_KEYWORD_MODULE) {
-                    lex_next_token(syx->lex);
-                    err = syntax_analyzer_parse_module(syx);
-                    if (err != NULL) {
-                        printf("line:%d col:%d --- %s\r\n", (int)syx->lex->line, (int)syx->lex->col, err);
-                    }
+            if ((err = syntax_analyzer_parse_include(syx)) != NULL) {
+                if ((int64)err == SYNTAX_ERROR_DEPENDENCE_NEEDED) {
+                    // TODO: means some dependence files have not been compiled yet...
                 }
                 else {
-                    break;
+                    // TODO: report error...
+                }
+            }
+            if ((err = syntax_analyzer_parse_module(syx)) != NULL) {
+                if ((int64)err == SYNTAX_ERROR_DEPENDENCE_NEEDED) {
+                    // TODO: means some dependence files have not been compiled yet...
+                }
+                else {
+                    // TODO: report error...
                 }
             }
             
@@ -170,3 +231,5 @@ void syntax_analyzer_destroy(syntax_analyzer* syx) {
         syx->lex = NULL;
     }
 }
+
+#undef syntax_analyzer_get_token

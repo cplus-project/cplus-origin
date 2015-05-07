@@ -32,6 +32,8 @@ static int16 operator_stack_top    (operator_stack* optrstk);
 static void  operator_stack_pop    (operator_stack* optrstk);
 static void  operator_stack_destroy(operator_stack* optrstk);
 
+#define SYNTAX_ERROR_DEPENDENCE_NEEDED -1
+
 // the syntax_analyzer is used to parse the source code based on
 // the rules of C+ programming language syntax.
 typedef struct syntax_analyzer {

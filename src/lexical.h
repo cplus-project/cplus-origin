@@ -87,7 +87,9 @@
 #define TOKEN_OP_LOGIC_OR      442  // ||
 #define TOKEN_OP_SINGLE_CMT    443  // //
 #define TOKEN_OP_MULTIL_CMT    444  // /**/
-#define TOKEN_NEXT_LINE        500  // \r or \n
+#define TOKEN_NEXT_LINE        500  // change-line symbol
+
+#define LEX_ERROR_EOF -1
 
 typedef struct {
     dynamicarr_char token;      // one dynamic char array to store the token's content
