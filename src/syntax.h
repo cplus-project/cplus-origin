@@ -80,29 +80,30 @@ typedef struct syntax_analyzer {
     lex_token*    cur_token;          // the current token parsed
 }syntax_analyzer;
 
-extern void  syntax_analyzer_init               (syntax_analyzer* syx, char* file_name);
-extern error syntax_analyzer_work               (syntax_analyzer* syx);
-extern void  syntax_analyzer_destroy            (syntax_analyzer* syx);
+extern void  syntax_analyzer_init                  (syntax_analyzer* syx, char* file_name);
+extern error syntax_analyzer_work                  (syntax_analyzer* syx);
+extern void  syntax_analyzer_destroy               (syntax_analyzer* syx);
 
-static error syntax_analyzer_parse_include      (syntax_analyzer* syx);
-static error syntax_analyzer_parse_module       (syntax_analyzer* syx);
-static error syntax_analyzer_parse_block        (syntax_analyzer* syx);
-static error syntax_analyzer_parse_ident_related(syntax_analyzer* syx);
-static error syntax_analyzer_parse_idex         (syntax_analyzer* syx);
-static error syntax_analyzer_parse_decl         (syntax_analyzer* syx);
-static error syntax_analyzer_parse_assign       (syntax_analyzer* syx);
-static error syntax_analyzer_parse_branch_if    (syntax_analyzer* syx);
-static error syntax_analyzer_parse_branch_switch(syntax_analyzer* syx);
-static error syntax_analyzer_parse_loop_for     (syntax_analyzer* syx);
-static error syntax_analyzer_parse_loop_while   (syntax_analyzer* syx);
-static error syntax_analyzer_parse_loop_infinite(syntax_analyzer* syx);
-static error syntax_analyzer_parse_loop_foreach (syntax_analyzer* syx);
-static error syntax_analyzer_parse_func_def     (syntax_analyzer* syx);
-static error syntax_analyzer_parse_func_call    (syntax_analyzer* syx);
-static error syntax_analyzer_parse_return       (syntax_analyzer* syx);
-static error syntax_analyzer_parse_type_decl    (syntax_analyzer* syx);
-static error syntax_analyzer_parse_type_assign  (syntax_analyzer* syx);
-static error syntax_analyzer_parse_type_def     (syntax_analyzer* syx);
-static error syntax_analyzer_parse_new          (syntax_analyzer* syx);
+static error syntax_analyzer_parse_include         (syntax_analyzer* syx);
+static error syntax_analyzer_parse_module          (syntax_analyzer* syx);
+static error syntax_analyzer_parse_block           (syntax_analyzer* syx);
+static error syntax_analyzer_parse_identobj_related(syntax_analyzer* syx);
+static error syntax_analyzer_parse_expr            (syntax_analyzer* syx, smt_expr* expr);
+static error syntax_analyzer_parse_idex            (syntax_analyzer* syx);
+static error syntax_analyzer_parse_decl            (syntax_analyzer* syx);
+static error syntax_analyzer_parse_assign          (syntax_analyzer* syx);
+static error syntax_analyzer_parse_branch_if       (syntax_analyzer* syx);
+static error syntax_analyzer_parse_branch_switch   (syntax_analyzer* syx);
+static error syntax_analyzer_parse_loop_for        (syntax_analyzer* syx);
+static error syntax_analyzer_parse_loop_while      (syntax_analyzer* syx);
+static error syntax_analyzer_parse_loop_infinite   (syntax_analyzer* syx);
+static error syntax_analyzer_parse_loop_foreach    (syntax_analyzer* syx);
+static error syntax_analyzer_parse_func_def        (syntax_analyzer* syx);
+static error syntax_analyzer_parse_func_call       (syntax_analyzer* syx);
+static error syntax_analyzer_parse_return          (syntax_analyzer* syx);
+static error syntax_analyzer_parse_type_decl       (syntax_analyzer* syx);
+static error syntax_analyzer_parse_type_assign     (syntax_analyzer* syx);
+static error syntax_analyzer_parse_type_def        (syntax_analyzer* syx);
+static error syntax_analyzer_parse_new             (syntax_analyzer* syx);
 
 #endif

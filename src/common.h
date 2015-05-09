@@ -49,9 +49,14 @@ typedef unsigned char          uchar;
 // example:
 //    #define ERR_INPUT_EOF  -1
 //    #define ERR_INPUT_FAIL -2
-//    error err = (error)ERR_INPUT_EOF;
+//    error err = NEW_ERROR_CODE(ERR_INPUT_EOF);
+//    if (ERROR_CODE(err) == ERR_INPUT_EOF) {
+//        // handle the error...
+//    }
 typedef char* error;
 extern error new_error(char* errmsg);
+#define NEW_ERROR_CODE(code) (error)code
+#define ERROR_CODE(err)      (int64)err
 
 #define ERROR_TYPE_GENERAL   0x00
 #define ERROR_TYPE_LEXICAL   0x01

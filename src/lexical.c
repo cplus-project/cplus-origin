@@ -251,7 +251,7 @@ static error lex_read_file(lex_analyzer* lex) {
     int64 read_len = fread(lex->buffer, 1, LEX_BUFF_SIZE, lex->srcfile);
     // process the end-of-file.
     if (feof(lex->srcfile) != 0 && read_len == 0) {
-        return (error)LEX_ERROR_EOF;
+        return NEW_ERROR_CODE(LEX_ERROR_EOF);
     }
     // process the read errors.
     if (ferror(lex->srcfile) != 0 || read_len < 0) {

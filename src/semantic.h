@@ -221,7 +221,7 @@ typedef struct smt_loop_for {
 //     ...
 // } 
 typedef struct smt_loop_while {
-    smt_expr loop_while_cond;
+    smt_expr* loop_while_cond;
 }smt_loop_while;
 
 // represent the loop statement with infinite-style:

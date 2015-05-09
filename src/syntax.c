@@ -156,14 +156,22 @@ static void optr_stack_destroy(optr_stack* optrstk) {
 /****** methods of syntax_analyzer ******/
 
 #define syntax_analyzer_get_token(syx) \
-err = lex_parse_token(syx->lex);           \
-if (err != NULL) {                         \
-    if ((int64)err == LEX_ERROR_EOF) {     \
-        return NULL;                       \
-    }                                      \
-    return err;                            \
-}                                          \
+err = lex_parse_token(syx->lex);            \
+if (err != NULL) {                          \
+    if (ERROR_CODE(err) == LEX_ERROR_EOF) { \
+        return NULL;                        \
+    }                                       \
+    return err;                             \
+}                                           \
 syx->cur_token = lex_read_token(syx->lex);
+
+static lex_token* syntax_analyzer_peek_token(syntax_analyzer* syx) {
+    error err = lex_parse_token(syx->lex);
+    if (err != NULL) {
+        return NULL;
+    }
+    return lex_read_token(syx->lex);
+}
 
 void syntax_analyzer_init(syntax_analyzer* syx, char* file_name) {
     file_stack_init(&syx->file_wait_compiled);
@@ -245,23 +253,81 @@ static error syntax_analyzer_parse_module(syntax_analyzer* syx) {
     }
 }
 
-error syntax_analyzer_parse_ident_related(syntax_analyzer* syx) {
+// parse the expression of the C+. the output will be assigned to the parameter 'expr'.
+static error syntax_analyzer_parse_expr(syntax_analyzer* syx, smt_expr* expr) {
+    return NULL;
+}
+
+static error syntax_analyzer_parse_identobj_related(syntax_analyzer* syx, smt_identified_obj* identobj) {
+    error err = NULL;
+    // (1) identobj id --> declaration statement
+    // (2) identobj =  --> assignment statement
+    // (3) identobj (  --> function calling statement
+    // (4) identobj [  --> indexing statement
+    switch (syntax_analyzer_peek_token(syx)->token_type) {
+    case TOKEN_ID:
+        break;
+    case TOKEN_OP_ASSIGN:
+        break;
+    case TOKEN_OP_LPARENTHESE:
+        break;
+    case TOKEN_OP_LBRACKET:
+        break;
+    default:
+        // TODO: report error...
+        break;
+    }
+    
+    if (syntax_analyzer_peek_token(syx)->token_type == TOKEN_OP_SPOT) {
+        
+    }
+    return NULL;
+}
+
+static error syntax_analyzer_parse_branch_if(syntax_analyzer* syx) {
+    error  err = NULL;
+    smt_if _if;
+    if ((err = syntax_analyzer_parse_expr(syx, &_if.cond)) != NULL) {
+        // TODO: report error...
+    }
+    if ((err = syntax_analyzer_parse_block(syx)) != NULL) {
+        // TODO: report error...
+    }
+    // TODO: start to compile the if branch statment...
     
     return NULL;
 }
 
 static error syntax_analyzer_parse_block(syntax_analyzer* syx) {
     error err = NULL;
+    // TODO: write a '{' to the target file
     for (;;) {
         syntax_analyzer_get_token(syx);
         switch (syx->cur_token->token_type) {
         case TOKEN_ID:
-            if ((err = syntax_analyzer_parse_ident_related(syx)) != NULL) {
+            lex_next_token(syx->lex);
+            smt_identified_obj identobj;
+            identobj.obj_type      = SMT_IDENT;
+            identobj.obj.obj_ident = lex_token_getstr(syx->cur_token);
+            identobj.denoted       = NULL;
+            if ((err = syntax_analyzer_parse_identobj_related(syx, &identobj)) != NULL) {
                 // TODO: report error...
             }
             break;
+            
+        case TOKEN_KEYWORD_IF:
+            lex_next_token(syx->lex);
+            if ((err = syntax_analyzer_parse_branch_if(syx)) != NULL) {
+                // TODO: report error...
+            }
+            break;
+            
+        default:
+            // TODO: report error...
+            break;
         }
     }
+    // TODO: write a '}' to the target file
     return NULL;
 }
 
@@ -293,7 +359,7 @@ error syntax_analyzer_work(syntax_analyzer* syx) {
             // analyzer will continue to parse the file. if there are some dependences
             // have not been solved, the analyzer will parse the dependences firstly.
             if ((err = syntax_analyzer_parse_include(syx)) != NULL) {
-                if ((int64)err == SYNTAX_ERROR_DEPENDENCE_NEEDED) {
+                if (ERROR_CODE(err) == SYNTAX_ERROR_DEPENDENCE_NEEDED) {
                     // TODO: means some dependence files have not been compiled yet...
                 }
                 else {
@@ -301,7 +367,7 @@ error syntax_analyzer_work(syntax_analyzer* syx) {
                 }
             }
             if ((err = syntax_analyzer_parse_module(syx)) != NULL) {
-                if ((int64)err == SYNTAX_ERROR_DEPENDENCE_NEEDED) {
+                if (ERROR_CODE(err) == SYNTAX_ERROR_DEPENDENCE_NEEDED) {
                     // TODO: means some dependence files have not been compiled yet...
                 }
                 else {
