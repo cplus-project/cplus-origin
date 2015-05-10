@@ -6,6 +6,24 @@
 
 #include "syntax.h"
 
+int8 get_op_priority(int16 op_token_code) {
+    if (op_token_code > 408) {
+        if (op_token_code < 431) {
+            if (op_token_code < 414) return OP_PRIORITY_0;
+            if (op_token_code < 421) return OP_PRIORITY_1;
+            if (op_token_code < 424) return OP_PRIORITY_2;
+            if (op_token_code < 426) return OP_PRIORITY_3;
+            if (op_token_code < 428) return OP_PRIORITY_4;
+            return OP_PRIORITY_5;
+        }
+        if (op_token_code < 432) return OP_PRIORITY_6;
+        if (op_token_code < 438) return OP_PRIORITY_7;
+        if (op_token_code < 439) return OP_PRIORITY_8;
+        if (op_token_code < 440) return OP_PRIORITY_9;
+    }
+    return OP_PRIORITY_NULL;
+}
+
 /****** methods of identobj_stack ******/
 
 static void identobj_stack_init(identobj_stack* idstk) {
@@ -165,15 +183,8 @@ if (err != NULL) {                          \
 }                                           \
 syx->cur_token = lex_read_token(syx->lex);
 
-static lex_token* syntax_analyzer_peek_token(syntax_analyzer* syx) {
-    error err = lex_parse_token(syx->lex);
-    if (err != NULL) {
-        return NULL;
-    }
-    return lex_read_token(syx->lex);
-}
-
 void syntax_analyzer_init(syntax_analyzer* syx, char* file_name) {
+    close_counter_init(&syx->clsctr);
     file_stack_init(&syx->file_wait_compiled);
     file_stack_push(&syx->file_wait_compiled, file_name);
     file_tree_init(&syx->file_have_compiled);
@@ -255,39 +266,83 @@ static error syntax_analyzer_parse_module(syntax_analyzer* syx) {
 
 // parse the expression of the C+. the output will be assigned to the parameter 'expr'.
 static error syntax_analyzer_parse_expr(syntax_analyzer* syx, smt_expr* expr) {
+    error      err     = NULL;
+    int16      tkntype = TOKEN_UNKNOWN;
+    oprd_stack oprdstk;
+    optr_stack optrstk;
+    oprd_stack_init(&oprdstk);
+    optr_stack_init(&optrstk);
+    for (;;) {
+        syntax_analyzer_get_token(syx);
+        tkntype = syx->cur_token->token_type;
+        if (tkntype == TOKEN_ID) {
+            smt_expr* oprd = (smt_expr*)mem_alloc(sizeof(smt_expr));
+            oprd->expr_type = SMT_IDENT;
+            oprd->expr.expr_ident = lex_token_getstr(syx->cur_token);
+            oprd_stack_push(&oprdstk, oprd);
+        }
+        else if (TOKEN_CONST_INTEGER <= tkntype && tkntype <= TOKEN_CONST_STRING) {
+            smt_expr* oprd = (smt_expr*)mem_alloc(sizeof(smt_expr));
+            switch (tkntype) {
+            case TOKEN_CONST_INTEGER:
+                oprd->expr_type = SMT_CONST_INTEGER;
+                oprd->expr.expr_const_integer = lex_token_getstr(syx->cur_token);
+                break;
+            case TOKEN_CONST_STRING:
+                oprd->expr_type = SMT_CONST_STRING;
+                oprd->expr.expr_const_string = lex_token_getstr(syx->cur_token);
+                break;
+            case TOKEN_CONST_FLOAT:
+                oprd->expr_type = SMT_CONST_FLOAT;
+                oprd->expr.expr_const_float = lex_token_getstr(syx->cur_token);
+                break;
+            case TOKEN_CONST_CHAR:
+                oprd->expr_type = SMT_CONST_CHAR;
+                oprd->expr.expr_const_char = lex_token_getstr(syx->cur_token)[0];
+                break;
+            default:
+                // TODO: report error...
+                break;
+            }
+            oprd_stack_push(&oprdstk, oprd);
+        }
+    }
+    oprd_stack_destroy(&oprdstk);
+    optr_stack_destroy(&optrstk);
     return NULL;
 }
 
-static error syntax_analyzer_parse_identobj_related(syntax_analyzer* syx, smt_identified_obj* identobj) {
-    error err = NULL;
-    // (1) identobj id --> declaration statement
-    // (2) identobj =  --> assignment statement
-    // (3) identobj (  --> function calling statement
-    // (4) identobj [  --> indexing statement
-    switch (syntax_analyzer_peek_token(syx)->token_type) {
-    case TOKEN_ID:
-        break;
-    case TOKEN_OP_ASSIGN:
-        break;
-    case TOKEN_OP_LPARENTHESE:
-        break;
-    case TOKEN_OP_LBRACKET:
-        break;
-    default:
+static error syntax_analyzer_parse_decl(syntax_analyzer* syx, smt_identified_obj* decl_type, smt_ident decl_name) {
+    error    err = NULL;
+    smt_decl decl;
+    decl.decl_type = decl_type;
+    decl.decl_name = decl_name;
+    syntax_analyzer_get_token(syx);
+    if (syx->cur_token->token_type == TOKEN_OP_ASSIGN) {
+        lex_next_token(syx->lex);
+        if ((err = syntax_analyzer_parse_expr(syx, &decl.decl_init)) != NULL) {
+            // TODO: report error...
+        }
+    }
+    // TODO: pass the smt_decl to the semantic analyzer...
+    return NULL;
+}
+
+static error syntax_analyzer_parse_assign(syntax_analyzer* syx, smt_identified_obj* assign_obj) {
+    error      err = NULL;
+    smt_assign assign;
+    assign.assign_obj = assign_obj;
+    if ((err = syntax_analyzer_parse_expr(syx, &assign.assign_expr)) != NULL) {
         // TODO: report error...
-        break;
     }
-    
-    if (syntax_analyzer_peek_token(syx)->token_type == TOKEN_OP_SPOT) {
-        
-    }
+    // TODO: pass the smt_assign to the semantic analyzer...
     return NULL;
 }
 
 static error syntax_analyzer_parse_branch_if(syntax_analyzer* syx) {
     error  err = NULL;
     smt_if _if;
-    if ((err = syntax_analyzer_parse_expr(syx, &_if.cond)) != NULL) {
+    if ((err = syntax_analyzer_parse_expr(syx, &_if.if_cond)) != NULL) {
         // TODO: report error...
     }
     if ((err = syntax_analyzer_parse_block(syx)) != NULL) {
@@ -304,17 +359,6 @@ static error syntax_analyzer_parse_block(syntax_analyzer* syx) {
     for (;;) {
         syntax_analyzer_get_token(syx);
         switch (syx->cur_token->token_type) {
-        case TOKEN_ID:
-            lex_next_token(syx->lex);
-            smt_identified_obj identobj;
-            identobj.obj_type      = SMT_IDENT;
-            identobj.obj.obj_ident = lex_token_getstr(syx->cur_token);
-            identobj.denoted       = NULL;
-            if ((err = syntax_analyzer_parse_identobj_related(syx, &identobj)) != NULL) {
-                // TODO: report error...
-            }
-            break;
-            
         case TOKEN_KEYWORD_IF:
             lex_next_token(syx->lex);
             if ((err = syntax_analyzer_parse_branch_if(syx)) != NULL) {
@@ -390,6 +434,7 @@ error syntax_analyzer_work(syntax_analyzer* syx) {
 }
 
 void syntax_analyzer_destroy(syntax_analyzer* syx) {
+    close_counter_destroy(&syx->clsctr);
     file_stack_destroy(&syx->file_wait_compiled);
     file_tree_destroy(&syx->file_have_compiled);
     syx->cur_token = NULL;

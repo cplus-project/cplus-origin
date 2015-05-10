@@ -162,21 +162,21 @@ typedef struct smt_expr_binary {
 // represent the operation about extracting data from the container
 // (e.g. array, slice).
 typedef struct smt_index {
-    smt_identified_obj index_obj;
-    smt_expr           index_idx;
+    smt_ident index_container;
+    smt_expr  index_idx;
 }smt_index;
 
 // represent the declaration statement.
 typedef struct smt_decl {
-    smt_identified_obj decl_type;
-    smt_ident          decl_name;
-    smt_expr           decl_init;
+    smt_identified_obj* decl_type;
+    smt_ident           decl_name;
+    smt_expr            decl_init;
 }smt_decl;
 
 // represent the assignment statement.
 typedef struct smt_assign {
-    smt_identified_obj assign_obj;
-    smt_expr           assign_expr;
+    smt_identified_obj* assign_obj;
+    smt_expr            assign_expr;
 }smt_assign;
 
 typedef struct smt_if {
@@ -266,8 +266,8 @@ typedef struct actual_param {
 // def  -> func foo(int x, string str) (bool ret) {}
 // call -> bool ret = foo(1, "John")
 typedef struct smt_func_call {
-    smt_identified_obj func_name;
-    actual_param*      param_passin;
+    smt_ident     func_name;
+    actual_param* param_passin;
 }smt_func_call;
 
 // represent the return statement.

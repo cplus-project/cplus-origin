@@ -12,6 +12,7 @@
 #define CPLUS_SYNTAX_H
 
 #include "common.h"
+#include "close_counter.h"
 #include "lexical.h"
 #include "fileset.h"
 #include "semantic.h"
@@ -54,6 +55,7 @@ static void      oprd_stack_destroy (oprd_stack* oprdstk);
 
 typedef struct optr_stack_node {
     int16 op_token_code;
+    int8  op_priority;
     struct optr_stack_node* next;
 }optr_stack_node;
 
@@ -69,6 +71,20 @@ static int16 optr_stack_top    (optr_stack* optrstk);
 static void  optr_stack_pop    (optr_stack* optrstk);
 static void  optr_stack_destroy(optr_stack* optrstk);
 
+// the priority with a smaller number has the higher precedence.
+#define OP_PRIORITY_NULL -1
+#define OP_PRIORITY_0     9
+#define OP_PRIORITY_1     8
+#define OP_PRIORITY_2     7
+#define OP_PRIORITY_3     6
+#define OP_PRIORITY_4     5
+#define OP_PRIORITY_5     4
+#define OP_PRIORITY_6     3
+#define OP_PRIORITY_7     2
+#define OP_PRIORITY_8     1
+#define OP_PRIORITY_9     0
+extern int8 get_op_priority(int16 op_token_code);
+
 #define SYNTAX_ERROR_DEPENDENCE_NEEDED -1
 
 // the syntax_analyzer is used to parse the source code based on
@@ -78,32 +94,32 @@ typedef struct syntax_analyzer {
     file_tree     file_have_compiled; // files have been compiled
     lex_analyzer* lex;                // the lexer now using
     lex_token*    cur_token;          // the current token parsed
+    close_counter clsctr;             // guarantee that all brackets are closed correctly
 }syntax_analyzer;
 
-extern void  syntax_analyzer_init                  (syntax_analyzer* syx, char* file_name);
-extern error syntax_analyzer_work                  (syntax_analyzer* syx);
-extern void  syntax_analyzer_destroy               (syntax_analyzer* syx);
+extern void  syntax_analyzer_init               (syntax_analyzer* syx, char* file_name);
+extern error syntax_analyzer_work               (syntax_analyzer* syx);
+extern void  syntax_analyzer_destroy            (syntax_analyzer* syx);
 
-static error syntax_analyzer_parse_include         (syntax_analyzer* syx);
-static error syntax_analyzer_parse_module          (syntax_analyzer* syx);
-static error syntax_analyzer_parse_block           (syntax_analyzer* syx);
-static error syntax_analyzer_parse_identobj_related(syntax_analyzer* syx);
-static error syntax_analyzer_parse_expr            (syntax_analyzer* syx, smt_expr* expr);
-static error syntax_analyzer_parse_idex            (syntax_analyzer* syx);
-static error syntax_analyzer_parse_decl            (syntax_analyzer* syx);
-static error syntax_analyzer_parse_assign          (syntax_analyzer* syx);
-static error syntax_analyzer_parse_branch_if       (syntax_analyzer* syx);
-static error syntax_analyzer_parse_branch_switch   (syntax_analyzer* syx);
-static error syntax_analyzer_parse_loop_for        (syntax_analyzer* syx);
-static error syntax_analyzer_parse_loop_while      (syntax_analyzer* syx);
-static error syntax_analyzer_parse_loop_infinite   (syntax_analyzer* syx);
-static error syntax_analyzer_parse_loop_foreach    (syntax_analyzer* syx);
-static error syntax_analyzer_parse_func_def        (syntax_analyzer* syx);
-static error syntax_analyzer_parse_func_call       (syntax_analyzer* syx);
-static error syntax_analyzer_parse_return          (syntax_analyzer* syx);
-static error syntax_analyzer_parse_type_decl       (syntax_analyzer* syx);
-static error syntax_analyzer_parse_type_assign     (syntax_analyzer* syx);
-static error syntax_analyzer_parse_type_def        (syntax_analyzer* syx);
-static error syntax_analyzer_parse_new             (syntax_analyzer* syx);
+static error syntax_analyzer_parse_include      (syntax_analyzer* syx);
+static error syntax_analyzer_parse_module       (syntax_analyzer* syx);
+static error syntax_analyzer_parse_block        (syntax_analyzer* syx);
+static error syntax_analyzer_parse_expr         (syntax_analyzer* syx, smt_expr* expr);
+static error syntax_analyzer_parse_idex         (syntax_analyzer* syx);
+static error syntax_analyzer_parse_decl         (syntax_analyzer* syx, smt_identified_obj* decl_type, smt_ident decl_name);
+static error syntax_analyzer_parse_assign       (syntax_analyzer* syx, smt_identified_obj* assign_obj);
+static error syntax_analyzer_parse_branch_if    (syntax_analyzer* syx);
+static error syntax_analyzer_parse_branch_switch(syntax_analyzer* syx);
+static error syntax_analyzer_parse_loop_for     (syntax_analyzer* syx);
+static error syntax_analyzer_parse_loop_while   (syntax_analyzer* syx);
+static error syntax_analyzer_parse_loop_infinite(syntax_analyzer* syx);
+static error syntax_analyzer_parse_loop_foreach (syntax_analyzer* syx);
+static error syntax_analyzer_parse_func_def     (syntax_analyzer* syx);
+static error syntax_analyzer_parse_func_call    (syntax_analyzer* syx);
+static error syntax_analyzer_parse_return       (syntax_analyzer* syx);
+static error syntax_analyzer_parse_type_decl    (syntax_analyzer* syx);
+static error syntax_analyzer_parse_type_assign  (syntax_analyzer* syx);
+static error syntax_analyzer_parse_type_def     (syntax_analyzer* syx);
+static error syntax_analyzer_parse_new          (syntax_analyzer* syx);
 
 #endif
