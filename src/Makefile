@@ -2,9 +2,9 @@ obj := cplus
 compiler := gcc
 
 cplus: common.o utf.o lexical.o dynamicarr.o convert.o ident.o scope.o \
-       close_counter.o fileset.o syntax.o semantic.o errsys.o
+       close_counter.o fileset.o syntax.o semantic.o expression.o errsys.o
 	${compiler} ${obj}.c common.o utf.o lexical.o dynamicarr.o convert.o ident.o \
-	scope.o close_counter.o fileset.o syntax.o semantic.o errsys.o -o ${obj}
+	scope.o close_counter.o fileset.o syntax.o semantic.o expression.o errsys.o -o ${obj}
 
 common.o: common.h common.c
 	${compiler} -c common.h common.c
@@ -41,6 +41,9 @@ syntax.o: syntax.h syntax.c
 
 semantic.o: semantic.h semantic.c
 	${compiler} -c semantic.h semantic.c
+
+expression.o: expression.h expression.c
+	${compiler} -c expression.h expression.c
 
 errsys.o: errsys.h errsys.c
 	${compiler} -c errsys.h errsys.c

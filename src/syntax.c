@@ -6,173 +6,6 @@
 
 #include "syntax.h"
 
-int8 get_op_priority(int16 op_token_code) {
-    if (op_token_code > 408) {
-        if (op_token_code < 431) {
-            if (op_token_code < 414) return OP_PRIORITY_0;
-            if (op_token_code < 421) return OP_PRIORITY_1;
-            if (op_token_code < 424) return OP_PRIORITY_2;
-            if (op_token_code < 426) return OP_PRIORITY_3;
-            if (op_token_code < 428) return OP_PRIORITY_4;
-            return OP_PRIORITY_5;
-        }
-        if (op_token_code < 432) return OP_PRIORITY_6;
-        if (op_token_code < 438) return OP_PRIORITY_7;
-        if (op_token_code < 439) return OP_PRIORITY_8;
-        if (op_token_code < 440) return OP_PRIORITY_9;
-    }
-    return OP_PRIORITY_NULL;
-}
-
-/****** methods of identobj_stack ******/
-
-static void identobj_stack_init(identobj_stack* idstk) {
-    idstk->top = NULL;
-}
-
-static void identobj_stack_push(identobj_stack* idstk, smt_identified_obj* obj) {
-    identobj_stack_node* create = (identobj_stack_node*)mem_alloc(sizeof(identobj_stack_node));
-    create->obj  = obj;
-    create->next = NULL;
-    if (idstk->top != NULL) {
-        create->next = idstk->top;
-        idstk->top = create;
-    }
-    else {
-        idstk->top = create;
-    }
-}
-
-// return true if the stack is empty.
-static bool identobj_stack_isempty(identobj_stack* idstk) {
-    if (idstk->top == NULL) {
-        return true;
-    }
-    return false;
-}
-
-static smt_identified_obj* identobj_stack_top(identobj_stack* idstk) {
-    return idstk->top->obj;
-}
-
-static void identobj_stack_pop(identobj_stack* idstk) {
-    identobj_stack_node* temp = idstk->top;
-    idstk->top = idstk->top->next;
-    mem_free(temp);
-}
-
-static void identobj_stack_destroy(identobj_stack* idstk) {
-    identobj_stack_node* temp;
-    for (;;) {
-        if (idstk->top == NULL) {
-            return;
-        }
-        temp = idstk->top;
-        idstk->top = idstk->top->next;
-        mem_free(temp);
-    }
-}
-
-/****** methods of oprd_stack ******/
-
-static void oprd_stack_init(oprd_stack* oprdstk) {
-    oprdstk->top = NULL;
-}
-
-static void oprd_stack_push(oprd_stack* oprdstk, smt_expr* oprdexpr) {
-    oprd_stack_node* create = (oprd_stack_node*)mem_alloc(sizeof(oprd_stack_node));
-    create->oprd = oprdexpr;
-    create->next = NULL;
-    if (oprdstk->top != NULL) {
-        create->next = oprdstk->top;
-        oprdstk->top = create;
-    }
-    else {
-        oprdstk->top = create;
-    }
-}
-
-// return true if the stack is empty.
-static bool oprd_stack_isempty(oprd_stack* oprdstk) {
-    if (oprdstk->top == NULL) {
-        return true;
-    }
-    return false;
-}
-
-static smt_expr* oprd_stack_top(oprd_stack* oprdstk) {
-    return oprdstk->top->oprd;
-}
-
-static void oprd_stack_pop(oprd_stack* oprdstk) {
-    oprd_stack_node* temp = oprdstk->top;
-    oprdstk->top = oprdstk->top->next;
-    mem_free(temp);
-}
-
-static void oprd_stack_destroy(oprd_stack* oprdstk) {
-    oprd_stack_node* temp;
-    for (;;) {
-        if (oprdstk->top == NULL) {
-            return;
-        }
-        temp = oprdstk->top;
-        oprdstk->top = oprdstk->top->next;
-        mem_free(temp);
-    }
-}
-
-/****** methods of optr_stack ******/
-
-static void optr_stack_init(optr_stack* optrstk) {
-    optrstk->top = NULL;
-}
-
-static void optr_stack_push(optr_stack* optrstk, int16 op_token_code) {
-    optr_stack_node* create = (optr_stack_node*)mem_alloc(sizeof(optr_stack_node));
-    create->op_token_code = op_token_code;
-    create->next          = NULL;
-    if (optrstk->top != NULL) {
-        create->next = optrstk->top;
-        optrstk->top = create;
-    }
-    else {
-        optrstk->top = create;
-    }
-}
-
-// return true if the stack is empty.
-static bool optr_stack_isempty(optr_stack* optrstk) {
-    if (optrstk->top == NULL) {
-        return true;
-    }
-    return false;
-}
-
-static int16 optr_stack_top(optr_stack* optrstk) {
-    return optrstk->top->op_token_code;
-}
-
-static void optr_stack_pop(optr_stack* optrstk) {
-    optr_stack_node* temp = optrstk->top;
-    optrstk->top = optrstk->top->next;
-    mem_free(temp);
-}
-
-static void optr_stack_destroy(optr_stack* optrstk) {
-    optr_stack_node* temp;
-    for (;;) {
-        if (optrstk->top == NULL) {
-            return;
-        }
-        temp = optrstk->top;
-        optrstk->top = optrstk->top->next;
-        mem_free(temp);
-    }
-}
-
-/****** methods of syntax_analyzer ******/
-
 #define syntax_analyzer_get_token(syx) \
 err = lex_parse_token(syx->lex);            \
 if (err != NULL) {                          \
@@ -182,6 +15,15 @@ if (err != NULL) {                          \
     return err;                             \
 }                                           \
 syx->cur_token = lex_read_token(syx->lex);
+
+// return NULL if peeking the next token failed.
+static lex_token* syntax_analyzer_peek_token(syntax_analyzer* syx) {
+    error err = lex_parse_token(syx->lex);
+    if (err != NULL) {
+        return NULL;
+    }
+    return lex_read_token(syx->lex);
+}
 
 void syntax_analyzer_init(syntax_analyzer* syx, char* file_name) {
     close_counter_init(&syx->clsctr);
@@ -265,7 +107,7 @@ static error syntax_analyzer_parse_module(syntax_analyzer* syx) {
 }
 
 // parse the expression of the C+. the output will be assigned to the parameter 'expr'.
-static error syntax_analyzer_parse_expr(syntax_analyzer* syx, smt_expr* expr) {
+static error syntax_analyzer_parse_expr(syntax_analyzer* syx, smt_expr* expr, bool lhs) {
     error      err     = NULL;
     int16      tkntype = TOKEN_UNKNOWN;
     oprd_stack oprdstk;
@@ -275,36 +117,81 @@ static error syntax_analyzer_parse_expr(syntax_analyzer* syx, smt_expr* expr) {
     for (;;) {
         syntax_analyzer_get_token(syx);
         tkntype = syx->cur_token->token_type;
+        
+        // operands are pushed into the stack.
         if (tkntype == TOKEN_ID) {
             smt_expr* oprd = (smt_expr*)mem_alloc(sizeof(smt_expr));
-            oprd->expr_type = SMT_IDENT;
-            oprd->expr.expr_ident = lex_token_getstr(syx->cur_token);
+            switch (syntax_analyzer_peek_token(syx)->token_type) {
+            // id( => function call
+            case TOKEN_OP_LPARENTHESE:
+                if ((err = syntax_analyzer_parse_func_call(syx)) != NULL) {
+                    // syx->cur_token is the function's name
+                    // and you can call lex_next_token() to start
+                    // parsing function call.
+                    // TODO: report error...
+                }
+                break;
+                
+            // id[ => indexing
+            case TOKEN_OP_LBRACKET:
+                
+                break;
+                
+            // just identifier
+            default:
+                oprd->expr_type = SMT_IDENT;
+                oprd->expr.expr_ident = lex_token_getstr(syx->cur_token);
+                break;
+            }
             oprd_stack_push(&oprdstk, oprd);
         }
         else if (TOKEN_CONST_INTEGER <= tkntype && tkntype <= TOKEN_CONST_STRING) {
             smt_expr* oprd = (smt_expr*)mem_alloc(sizeof(smt_expr));
-            switch (tkntype) {
-            case TOKEN_CONST_INTEGER:
-                oprd->expr_type = SMT_CONST_INTEGER;
-                oprd->expr.expr_const_integer = lex_token_getstr(syx->cur_token);
-                break;
-            case TOKEN_CONST_STRING:
-                oprd->expr_type = SMT_CONST_STRING;
-                oprd->expr.expr_const_string = lex_token_getstr(syx->cur_token);
-                break;
-            case TOKEN_CONST_FLOAT:
-                oprd->expr_type = SMT_CONST_FLOAT;
-                oprd->expr.expr_const_float = lex_token_getstr(syx->cur_token);
-                break;
-            case TOKEN_CONST_CHAR:
-                oprd->expr_type = SMT_CONST_CHAR;
-                oprd->expr.expr_const_char = lex_token_getstr(syx->cur_token)[0];
-                break;
-            default:
-                // TODO: report error...
-                break;
-            }
+            oprd->expr_type = SMT_CONST_LITERAL;
+            oprd->expr.expr_const_literal = (smt_const_literal*)mem_alloc(sizeof(smt_const_literal));
+            oprd->expr.expr_const_literal->const_lit_type  = tkntype;
+            oprd->expr.expr_const_literal->const_lit_value = lex_token_getstr(syx->cur_token);
             oprd_stack_push(&oprdstk, oprd);
+        }
+        
+        // operator will be compared with the top operator of the operator stack.
+        // if the operator's priority is higher than  the top operator, it will
+        // be pushed into the stack. otherwise, the top operator will be used to
+        // calculate the result with the top operands in the operand stack.
+        else if (TOKEN_OP_SPOT <= tkntype && tkntype <= TOKEN_OP_LOGIC_OR) {
+            optr cur_optr;
+            cur_optr.op_token_code = tkntype;
+            cur_optr.op_priority   = get_op_priority(tkntype);
+            cur_optr.op_type       = syx->cur_token->extra_info;
+            
+            // the '(' will be directly pushed into the operator stack.
+            // the unary operator like $(dereference) and @(get address) will be pushed into stack
+            // as well, because the operand needed by them will be parsed later.
+            if (cur_optr.op_token_code == TOKEN_OP_LPARENTHESE || cur_optr.op_type == OP_TYPE_LUNARY) {
+                optr_stack_push(&optrstk, cur_optr);
+                continue;
+            }
+            
+            optr* top_optr;
+            for (;;) {
+                top_optr = optr_stack_isempty(&optrstk) == false ? optr_stack_top(&optrstk) : NULL;
+                if ((top_optr == NULL) || (cur_optr.op_priority > top_optr->op_priority)) {
+                    optr_stack_push(&optrstk, cur_optr);
+                }
+                else if (top_optr->op_type == OP_TYPE_LUNARY) {
+                    if ((err = oprd_stack_calcu_once(&oprdstk, *top_optr)) != NULL) {
+                        // TODO: report error...
+                    }
+                }
+                else if (top_optr->op_token_code == TOKEN_OP_RPARENTHESE || top_optr->op_token_code == TOKEN_NEXT_LINE) {
+                    // TODO: start parsing the expression...
+                }
+                else {
+                    if ((err = oprd_stack_calcu_once(&oprdstk, *top_optr)) != NULL) {
+                        // TODO: report error...
+                    }
+                }
+            }
         }
     }
     oprd_stack_destroy(&oprdstk);
@@ -320,7 +207,7 @@ static error syntax_analyzer_parse_decl(syntax_analyzer* syx, smt_identified_obj
     syntax_analyzer_get_token(syx);
     if (syx->cur_token->token_type == TOKEN_OP_ASSIGN) {
         lex_next_token(syx->lex);
-        if ((err = syntax_analyzer_parse_expr(syx, &decl.decl_init)) != NULL) {
+        if ((err = syntax_analyzer_parse_expr(syx, &decl.decl_init, false)) != NULL) {
             // TODO: report error...
         }
     }
@@ -330,11 +217,6 @@ static error syntax_analyzer_parse_decl(syntax_analyzer* syx, smt_identified_obj
 
 static error syntax_analyzer_parse_assign(syntax_analyzer* syx, smt_identified_obj* assign_obj) {
     error      err = NULL;
-    smt_assign assign;
-    assign.assign_obj = assign_obj;
-    if ((err = syntax_analyzer_parse_expr(syx, &assign.assign_expr)) != NULL) {
-        // TODO: report error...
-    }
     // TODO: pass the smt_assign to the semantic analyzer...
     return NULL;
 }
@@ -342,7 +224,7 @@ static error syntax_analyzer_parse_assign(syntax_analyzer* syx, smt_identified_o
 static error syntax_analyzer_parse_branch_if(syntax_analyzer* syx) {
     error  err = NULL;
     smt_if _if;
-    if ((err = syntax_analyzer_parse_expr(syx, &_if.if_cond)) != NULL) {
+    if ((err = syntax_analyzer_parse_expr(syx, &_if.if_cond, false)) != NULL) {
         // TODO: report error...
     }
     if ((err = syntax_analyzer_parse_block(syx)) != NULL) {
@@ -350,6 +232,10 @@ static error syntax_analyzer_parse_branch_if(syntax_analyzer* syx) {
     }
     // TODO: start to compile the if branch statment...
     
+    return NULL;
+}
+
+error syntax_analyzer_parse_func_call(syntax_analyzer* syx) {
     return NULL;
 }
 

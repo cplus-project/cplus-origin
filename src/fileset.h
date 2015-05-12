@@ -7,6 +7,9 @@
  * to storage and organize a set of files.
  **/
 
+#ifndef CPLUS_FILESET_H
+#define CPLUS_FILESET_H
+
 #include "common.h"
 
 typedef struct file_queue_node {
@@ -68,3 +71,5 @@ extern void  file_tree_init   (file_tree* ftree);
 extern error file_tree_add    (file_tree* ftree, char* file_name);
 extern bool  file_tree_exist  (file_tree* ftree, char* file_name);
 extern void  file_tree_destroy(file_tree* ftree);
+
+#endif

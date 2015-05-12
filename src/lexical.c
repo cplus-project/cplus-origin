@@ -721,6 +721,7 @@ error lex_parse_token(lex_analyzer* lex) {
                 lex_token_appendc(&lex->lextkn, '&');
                 lex_next(lex);
                 lex->lextkn.token_type = TOKEN_OP_LOGIC_AND;
+                lex->lextkn.extra_info = EXTRA_INFO_OP_BINARY;
                 lex->parse_lock = true;
                 return NULL;
             }
@@ -733,19 +734,27 @@ error lex_parse_token(lex_analyzer* lex) {
             }
             else {
                 lex->lextkn.token_type = TOKEN_OP_AND;
+                lex->lextkn.extra_info = EXTRA_INFO_OP_BINARY;
                 lex->parse_lock = true;
                 return NULL;
             }
+        case '$':
+            lex->lextkn.token_type = TOKEN_OP_DEREFER;
+            lex->lextkn.extra_info = EXTRA_INFO_OP_LUNARY;
+            lex->parse_lock = true;
+            return NULL;
         case '!':
             if (lex_readc(lex) == '=') {
                 lex_token_appendc(&lex->lextkn, '=');
                 lex_next(lex);
                 lex->lextkn.token_type = TOKEN_OP_NOTEQ;
+                lex->lextkn.extra_info = EXTRA_INFO_OP_BINARY;
                 lex->parse_lock = true;
                 return NULL;
             }
             else {
                 lex->lextkn.token_type = TOKEN_OP_NOT;
+                lex->lextkn.extra_info = EXTRA_INFO_OP_LUNARY;
                 lex->parse_lock = true;
                 return NULL;
             }
@@ -759,6 +768,7 @@ error lex_parse_token(lex_analyzer* lex) {
             }
             else {
                 lex->lextkn.token_type = TOKEN_OP_MOD;
+                lex->lextkn.extra_info = EXTRA_INFO_OP_BINARY;
                 lex->parse_lock = true;
                 return NULL;
             }
@@ -768,6 +778,7 @@ error lex_parse_token(lex_analyzer* lex) {
         switch (ch) {
         case '.':
             lex->lextkn.token_type = TOKEN_OP_SPOT;
+            lex->lextkn.extra_info = EXTRA_INFO_OP_BINARY;
             lex->parse_lock = true;
             return NULL;
         case ',':
@@ -780,6 +791,7 @@ error lex_parse_token(lex_analyzer* lex) {
                 lex_token_appendc(&lex->lextkn, '+');
                 lex_next(lex);
                 lex->lextkn.token_type = TOKEN_OP_INC;
+                lex->lextkn.extra_info = EXTRA_INFO_OP_RUNARY;
                 lex->parse_lock = true;
                 return NULL;
             }
@@ -792,6 +804,7 @@ error lex_parse_token(lex_analyzer* lex) {
             }
             else {
                 lex->lextkn.token_type = TOKEN_OP_ADD;
+                lex->lextkn.extra_info = EXTRA_INFO_OP_BINARY;
                 lex->parse_lock = true;
                 return NULL;
             }
@@ -801,6 +814,7 @@ error lex_parse_token(lex_analyzer* lex) {
                 lex_token_appendc(&lex->lextkn, '-');
                 lex_next(lex);
                 lex->lextkn.token_type = TOKEN_OP_DEC;
+                lex->lextkn.extra_info = EXTRA_INFO_OP_RUNARY;
                 lex->parse_lock = true;
                 return NULL;
             }
@@ -813,6 +827,7 @@ error lex_parse_token(lex_analyzer* lex) {
             }
             else {
                 lex->lextkn.token_type = TOKEN_OP_SUB;
+                lex->lextkn.extra_info = EXTRA_INFO_OP_BINARY;
                 lex->parse_lock = true;
                 return NULL;
             }
@@ -826,6 +841,7 @@ error lex_parse_token(lex_analyzer* lex) {
             }
             else {
                 lex->lextkn.token_type = TOKEN_OP_MUL;
+                lex->lextkn.extra_info = EXTRA_INFO_OP_BINARY;
                 lex->parse_lock = true;
                 return NULL;
             }
@@ -838,6 +854,7 @@ error lex_parse_token(lex_analyzer* lex) {
                 lex_token_appendc(&lex->lextkn, '=');
                 lex_next(lex);
                 lex->lextkn.token_type = TOKEN_OP_EQ;
+                lex->lextkn.extra_info = EXTRA_INFO_OP_BINARY;
                 lex->parse_lock = true;
                 return NULL;
             }
@@ -852,6 +869,7 @@ error lex_parse_token(lex_analyzer* lex) {
                 lex_token_appendc(&lex->lextkn, '=');
                 lex_next(lex);
                 lex->lextkn.token_type = TOKEN_OP_LE;
+                lex->lextkn.extra_info = EXTRA_INFO_OP_BINARY;
                 lex->parse_lock = true;
                 return NULL;
             }
@@ -859,11 +877,13 @@ error lex_parse_token(lex_analyzer* lex) {
                 lex_token_appendc(&lex->lextkn, '<');
                 lex_next(lex);
                 lex->lextkn.token_type = TOKEN_OP_SHL;
+                lex->lextkn.extra_info = EXTRA_INFO_OP_BINARY;
                 lex->parse_lock = true;
                 return NULL;
             }
             else {
                 lex->lextkn.token_type = TOKEN_OP_LT;
+                lex->lextkn.extra_info = EXTRA_INFO_OP_BINARY;
                 lex->parse_lock = true;
                 return NULL;
             }
@@ -873,6 +893,7 @@ error lex_parse_token(lex_analyzer* lex) {
                 lex_token_appendc(&lex->lextkn, '=');
                 lex_next(lex);
                 lex->lextkn.token_type = TOKEN_OP_GE;
+                lex->lextkn.extra_info = EXTRA_INFO_OP_BINARY;
                 lex->parse_lock = true;
                 return NULL;
             }
@@ -880,11 +901,13 @@ error lex_parse_token(lex_analyzer* lex) {
                 lex_token_appendc(&lex->lextkn, '>');
                 lex_next(lex);
                 lex->lextkn.token_type = TOKEN_OP_SHR;
+                lex->lextkn.extra_info = EXTRA_INFO_OP_BINARY;
                 lex->parse_lock = true;
                 return NULL;
             }
             else {
                 lex->lextkn.token_type = TOKEN_OP_GT;
+                lex->lextkn.extra_info = EXTRA_INFO_OP_BINARY;
                 lex->parse_lock = true;
                 return NULL;
             }
@@ -949,6 +972,7 @@ error lex_parse_token(lex_analyzer* lex) {
             }
             else {
                 lex->lextkn.token_type = TOKEN_OP_DIV;
+                lex->lextkn.extra_info = EXTRA_INFO_OP_BINARY;
                 lex->parse_lock = true;
                 return NULL;
             }
@@ -968,6 +992,11 @@ error lex_parse_token(lex_analyzer* lex) {
             lex->lextkn.token_type = TOKEN_OP_RBRACKET;
             lex->parse_lock = true;
             return NULL;
+        case '@':
+            lex->lextkn.token_type = TOKEN_OP_GETADDR;
+            lex->lextkn.extra_info = EXTRA_INFO_OP_LUNARY;
+            lex->parse_lock = true;
+            return NULL;
         case '?':
             lex->lextkn.token_type = TOKEN_OP_QUES;
             lex->parse_lock = true;
@@ -982,6 +1011,7 @@ error lex_parse_token(lex_analyzer* lex) {
             }
             else {
                 lex->lextkn.token_type = TOKEN_OP_XOR;
+                lex->lextkn.extra_info = EXTRA_INFO_OP_BINARY;
                 lex->parse_lock = true;
                 return NULL;
             }
@@ -999,6 +1029,7 @@ error lex_parse_token(lex_analyzer* lex) {
                 lex_token_appendc(&lex->lextkn, '|');
                 lex_next(lex);
                 lex->lextkn.token_type = TOKEN_OP_LOGIC_OR;
+                lex->lextkn.extra_info = EXTRA_INFO_OP_BINARY;
                 lex->parse_lock = true;
                 return NULL;
             }
@@ -1011,11 +1042,13 @@ error lex_parse_token(lex_analyzer* lex) {
             }
             else {
                 lex->lextkn.token_type = TOKEN_OP_OR;
+                lex->lextkn.extra_info = EXTRA_INFO_OP_BINARY;
                 lex->parse_lock = true;
                 return NULL;
             }
         case '~':
             lex->lextkn.token_type = TOKEN_OP_SUB;
+            lex->lextkn.extra_info = EXTRA_INFO_OP_BINARY;
             lex->parse_lock = true;
             return NULL;
         }

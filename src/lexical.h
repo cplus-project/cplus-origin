@@ -58,19 +58,19 @@
 #define TOKEN_OP_RBRACE        413  // }
 #define TOKEN_OP_INC           414  // ++
 #define TOKEN_OP_DEC           415  // --
-#define TOKEN_OP_NEG           416  // -(negative)
-#define TOKEN_OP_DEREFER       417  // *(dereference)
-#define TPKEN_OP_ADDR          418  // &(address)
+#define TOKEN_OP_NEG           416  // -
+#define TOKEN_OP_DEREFER       417  // $
+#define TOKEN_OP_GETADDR       418  // @
 #define TOKEN_OP_LBRACKET      419  // [
 #define TOKEN_OP_RBRACKET      420  // ]
-#define TOKEN_OP_MUL           421  // *(multiplication)
+#define TOKEN_OP_MUL           421  // *
 #define TOKEN_OP_DIV           422  // /
 #define TOKEN_OP_MOD           423  // %
 #define TOKEN_OP_ADD           424  // +
-#define TOKEN_OP_SUB           425  // -(substract)
+#define TOKEN_OP_SUB           425  // -
 #define TOKEN_OP_SHL           426  // <<
 #define TOKEN_OP_SHR           427  // >>
-#define TOKEN_OP_AND           428  // &(and)
+#define TOKEN_OP_AND           428  // &
 #define TOKEN_OP_OR            429  // |
 #define TOKEN_OP_XOR           430  // ^
 #define TOKEN_OP_NOT           431  // !
@@ -92,12 +92,16 @@
 #define TOKEN_OP_MULTIL_CMT    447  // /**/
 #define TOKEN_NEXT_LINE        502  // change-line symbol
 
-#define LEX_ERROR_EOF -1
+#define LEX_ERROR_EOF          -1
 
+#define EXTRA_INFO_OP_LUNARY   1
+#define EXTRA_INFO_OP_RUNARY   2
+#define EXTRA_INFO_OP_BINARY   3
 typedef struct {
     dynamicarr_char token;      // one dynamic char array to store the token's content
     int64           token_len;  // token's length
     int16           token_type; // will be assigned with one of micro definitions prefixed with 'TOKEN_...'
+    int8            extra_info; // extra information of the token
 }lex_token;
 
 extern error lex_token_init   (lex_token* lextkn, int64 capacity);

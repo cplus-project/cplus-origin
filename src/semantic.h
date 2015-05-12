@@ -17,10 +17,7 @@
 #define SMT_NULL            0x00
 #define SMT_INCLUDE         0x00
 #define SMT_MODULE          0x00
-#define SMT_CONST_INTEGER   0x01
-#define SMT_CONST_FLOAT     0x02
-#define SMT_CONST_CHAR      0x03
-#define SMT_CONST_STRING    0x04
+#define SMT_CONST_LITERAL   0x00
 #define SMT_IDENT           0x05
 #define SMT_IDENTIFIED_OBJ  0x06
 #define SMT_EXPR            0x11
@@ -50,12 +47,8 @@
 #define SMT_DEAL_SINGLE     0x22
 #define SMT_DEAL_MULTI      0x23
 
-typedef char* smt_const_integer;
-typedef char* smt_const_float;
-typedef char  smt_const_char;
-typedef char* smt_const_string;
-typedef char* smt_ident;
-
+typedef char*                     smt_ident;
+typedef struct smt_const_literal  smt_const_literal;
 typedef struct smt_include        smt_include;
 typedef struct smt_module         smt_module;
 typedef struct smt_identified_obj smt_identified_obj;
@@ -104,6 +97,19 @@ typedef struct smt_module {
     struct smt_module* next;
 }smt_module;
 
+// represent the constant literal.
+typedef struct smt_const_literal {
+    // lit_type:
+    //    TOKEN_CONST_INTEGER or
+    //    TOKEN_CONST_FLOAT   or
+    //    TOKEN_CONST_CHAR    or
+    //    TOKEN_CONST_STRING
+    int16 const_lit_type;
+    // lit_value:
+    //    12, 5.21, "hello world", 'a'...
+    char* const_lit_value;
+}smt_const_literal;
+
 // represent one or a set of identified objects(e.g. identifier,
 // index, function).
 typedef struct smt_identified_obj {
@@ -134,11 +140,8 @@ typedef struct smt_identified_obj {
 typedef struct smt_expr {
     int8 expr_type;
     union {
-        smt_const_integer   expr_const_integer;
-        smt_const_float     expr_const_float;
-        smt_const_char      expr_const_char;
-        smt_const_string    expr_const_string;
         smt_ident           expr_ident;
+        smt_const_literal*  expr_const_literal;
         smt_identified_obj* expr_identified_obj;
         smt_index*          expr_index;
         smt_func_call*      expr_func_call;
@@ -149,21 +152,21 @@ typedef struct smt_expr {
 }smt_expr;
 
 typedef struct smt_expr_unary {
-    int16    op_token_code;
-    smt_expr oprd;
+    int16     op_token_code;
+    smt_expr* oprd;
 }smt_expr_unary;
 
 typedef struct smt_expr_binary {
-    int16    op_token_code;
-    smt_expr oprd1;
-    smt_expr oprd2;
+    int16     op_token_code;
+    smt_expr* oprd1;
+    smt_expr* oprd2;
 }smt_expr_binary;
 
 // represent the operation about extracting data from the container
 // (e.g. array, slice).
 typedef struct smt_index {
-    smt_ident index_container;
-    smt_expr  index_idx;
+    smt_expr index_container;
+    smt_expr index_idx;
 }smt_index;
 
 // represent the declaration statement.
