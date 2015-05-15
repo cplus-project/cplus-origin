@@ -21,6 +21,7 @@
 #define SMT_IDENT           0x05
 #define SMT_IDENTIFIED_OBJ  0x06
 #define SMT_EXPR            0x11
+#define SMT_EXPR_LIST       0x12
 #define SMT_EXPR_UNARY      0x12
 #define SMT_EXPR_BINARY     0x13
 #define SMT_INDEX           0x08
@@ -53,6 +54,7 @@ typedef struct smt_include        smt_include;
 typedef struct smt_module         smt_module;
 typedef struct smt_identified_obj smt_identified_obj;
 typedef struct smt_expr           smt_expr;
+typedef struct smt_expr_list      smt_expr_list;
 typedef struct smt_expr_unary     smt_expr_unary;
 typedef struct smt_expr_binary    smt_expr_binary;
 typedef struct smt_index          smt_index;
@@ -150,6 +152,16 @@ typedef struct smt_expr {
         smt_type_def*       expr_type_def;
     }expr;
 }smt_expr;
+
+typedef struct smt_expr_list_node {
+    smt_expr* expr;
+    struct smt_expr_list_node* next;
+}smt_expr_list_node;
+
+// the smt_expr_list is used to save a set of expressions.
+typedef struct smt_expr_list {
+    smt_expr_list_node* first;
+}smt_expr_list;
 
 typedef struct smt_expr_unary {
     int16     op_token_code;
@@ -260,17 +272,12 @@ typedef struct smt_func_def {
     formal_param*      param_retout;
 }smt_func_def;
 
-typedef struct actual_param {
-    smt_expr param_expr;
-    struct actual_param* next;
-}actual_param;
-
 // represent the function call:
 // def  -> func foo(int x, string str) (bool ret) {}
 // call -> bool ret = foo(1, "John")
 typedef struct smt_func_call {
     smt_ident     func_name;
-    actual_param* param_passin;
+    smt_expr_list param_passin;
 }smt_func_call;
 
 // represent the return statement.
@@ -313,8 +320,8 @@ typedef struct smt_type_def {
 // new Person("Peter", 15, "2015-05-05") [1]
 typedef struct smt_new {
     smt_identified_obj new_type_name;
-    actual_param*      new_init_params;
-    int64              new_amount;
+    smt_expr_list      new_init_params;
+    smt_expr           new_capacity;
 }smt_new;
 
 #endif

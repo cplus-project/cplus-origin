@@ -117,17 +117,16 @@ static error syntax_analyzer_parse_expr(syntax_analyzer* syx, smt_expr* expr, bo
     for (;;) {
         syntax_analyzer_get_token(syx);
         tkntype = syx->cur_token->token_type;
-        
+
         // operands are pushed into the stack.
         if (tkntype == TOKEN_ID) {
             smt_expr* oprd = (smt_expr*)mem_alloc(sizeof(smt_expr));
             switch (syntax_analyzer_peek_token(syx)->token_type) {
             // id( => function call
             case TOKEN_OP_LPARENTHESE:
-                if ((err = syntax_analyzer_parse_func_call(syx)) != NULL) {
-                    // syx->cur_token is the function's name
-                    // and you can call lex_next_token() to start
-                    // parsing function call.
+                oprd->expr_type = SMT_FUNC_CALL;
+                oprd->expr.expr_func_call = (smt_func_call*)mem_alloc(sizeof(smt_func_call));
+                if ((err = syntax_analyzer_parse_func_call(syx, oprd->expr.expr_func_call)) != NULL) {
                     // TODO: report error...
                 }
                 break;
@@ -153,7 +152,7 @@ static error syntax_analyzer_parse_expr(syntax_analyzer* syx, smt_expr* expr, bo
             oprd->expr.expr_const_literal->const_lit_value = lex_token_getstr(syx->cur_token);
             oprd_stack_push(&oprdstk, oprd);
         }
-        
+
         // operator will be compared with the top operator of the operator stack.
         // if the operator's priority is higher than  the top operator, it will
         // be pushed into the stack. otherwise, the top operator will be used to
@@ -171,7 +170,7 @@ static error syntax_analyzer_parse_expr(syntax_analyzer* syx, smt_expr* expr, bo
                 optr_stack_push(&optrstk, cur_optr);
                 continue;
             }
-            
+
             optr* top_optr;
             for (;;) {
                 top_optr = optr_stack_isempty(&optrstk) == false ? optr_stack_top(&optrstk) : NULL;
@@ -183,7 +182,9 @@ static error syntax_analyzer_parse_expr(syntax_analyzer* syx, smt_expr* expr, bo
                         // TODO: report error...
                     }
                 }
-                else if (top_optr->op_token_code == TOKEN_OP_RPARENTHESE || top_optr->op_token_code == TOKEN_NEXT_LINE) {
+                else if (top_optr->op_token_code == TOKEN_OP_RPARENTHESE || 
+                         top_optr->op_token_code == TOKEN_OP_COMMA       ||
+                         top_optr->op_token_code == TOKEN_NEXT_LINE) {
                     // TODO: start parsing the expression...
                 }
                 else {
@@ -196,6 +197,41 @@ static error syntax_analyzer_parse_expr(syntax_analyzer* syx, smt_expr* expr, bo
     }
     oprd_stack_destroy(&oprdstk);
     optr_stack_destroy(&optrstk);
+    return NULL;
+}
+
+error syntax_analyzer_parse_expr_list(syntax_analyzer* syx, smt_expr_list* exprlst) {
+    error err   = NULL;
+    bool  begin = true;
+    smt_expr_list_node* cur;
+    for (;;) {
+        syntax_analyzer_get_token(syx);
+             if ((begin == false) && (syx->cur_token->token_type == TOKEN_OP_COMMA)) {
+            lex_next_token(syx->lex);
+        }
+        else if ((begin == false) && (syx->cur_token->token_type != TOKEN_OP_COMMA)){
+            return NULL;
+        }
+        else if ((begin == true)  && (syx->cur_token->token_type == TOKEN_OP_COMMA)){
+            // TODO: report error...
+            // the fist position in the function params list can not be ','
+        }
+
+        smt_expr_list_node* create = (smt_expr_list_node*)mem_alloc(sizeof(smt_expr_list_node));
+        if ((err = syntax_analyzer_parse_expr(syx, create->expr, false)) != NULL) {
+            // TODO: report error...
+        }
+
+        create->next = NULL;
+        if (exprlst->first != NULL) {
+            cur->next = create;
+            cur = create;
+        }
+        else {
+            exprlst->first = create;
+            cur = create;
+        }
+    }
     return NULL;
 }
 
@@ -235,7 +271,17 @@ static error syntax_analyzer_parse_branch_if(syntax_analyzer* syx) {
     return NULL;
 }
 
-error syntax_analyzer_parse_func_call(syntax_analyzer* syx) {
+error syntax_analyzer_parse_func_call(syntax_analyzer* syx, smt_func_call* call) {
+    error err = NULL;
+    call->func_name = lex_token_getstr(syx->cur_token);
+    lex_next_token(syx->lex); // pass the '('
+    if ((err = syntax_analyzer_parse_expr_list(syx, &call->param_passin)) != NULL) {
+        // TODO: report error...
+    }
+    if (syntax_analyzer_peek_token(syx)->token_type != TOKEN_OP_RPARENTHESE) {
+        // TODO: report error...
+    }
+    lex_next_token(syx->lex); // pass the ')'
     return NULL;
 }
 
