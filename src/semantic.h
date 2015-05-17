@@ -177,8 +177,8 @@ typedef struct smt_expr_binary {
 // represent the operation about extracting data from the container
 // (e.g. array, slice).
 typedef struct smt_index {
-    smt_expr index_container;
-    smt_expr index_idx;
+    smt_ident index_container;
+    smt_expr  index_idxexpr;
 }smt_index;
 
 // represent the declaration statement.

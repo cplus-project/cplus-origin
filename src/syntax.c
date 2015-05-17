@@ -133,7 +133,11 @@ static error syntax_analyzer_parse_expr(syntax_analyzer* syx, smt_expr* expr, bo
                 
             // id[ => indexing
             case TOKEN_OP_LBRACKET:
-                
+                oprd->expr_type = SMT_INDEX;
+                oprd->expr.expr_index = (smt_index*)mem_alloc(sizeof(smt_index));
+                if ((err = syntax_analyzer_parse_index(syx, oprd->expr.expr_index)) != NULL) {
+                    // TODO: report error...
+                }
                 break;
                 
             // just identifier
@@ -200,6 +204,7 @@ static error syntax_analyzer_parse_expr(syntax_analyzer* syx, smt_expr* expr, bo
     return NULL;
 }
 
+// parse a set of expressions which separated by ','(TOKEN_OP_COMMA) operator.
 error syntax_analyzer_parse_expr_list(syntax_analyzer* syx, smt_expr_list* exprlst) {
     error err   = NULL;
     bool  begin = true;
@@ -209,10 +214,10 @@ error syntax_analyzer_parse_expr_list(syntax_analyzer* syx, smt_expr_list* exprl
              if ((begin == false) && (syx->cur_token->token_type == TOKEN_OP_COMMA)) {
             lex_next_token(syx->lex);
         }
-        else if ((begin == false) && (syx->cur_token->token_type != TOKEN_OP_COMMA)){
+        else if ((begin == false) && (syx->cur_token->token_type != TOKEN_OP_COMMA)) {
             return NULL;
         }
-        else if ((begin == true)  && (syx->cur_token->token_type == TOKEN_OP_COMMA)){
+        else {
             // TODO: report error...
             // the fist position in the function params list can not be ','
         }
@@ -232,6 +237,18 @@ error syntax_analyzer_parse_expr_list(syntax_analyzer* syx, smt_expr_list* exprl
             cur = create;
         }
     }
+    return NULL;
+}
+
+// parse the indexing operation.
+static error syntax_analyzer_parse_index(syntax_analyzer* syx, smt_index* idx) {
+    error err = NULL;
+    idx->index_container = lex_token_getstr(syx->cur_token);
+    lex_next_token(syx->lex); // pass the '['
+    if ((err = syntax_analyzer_parse_expr(syx, &idx->index_idxexpr, true)) != NULL) {
+        // TODO: report error...
+    }
+    lex_next_token(syx->lex); // pass the ']'
     return NULL;
 }
 
@@ -271,7 +288,19 @@ static error syntax_analyzer_parse_branch_if(syntax_analyzer* syx) {
     return NULL;
 }
 
-error syntax_analyzer_parse_func_call(syntax_analyzer* syx, smt_func_call* call) {
+static error syntax_analyzer_parse_branch_switch(syntax_analyzer* syx) {
+    return NULL;
+}
+
+static error syntax_analyzer_parse_loop(syntax_analyzer* syx) {
+    return NULL;
+}
+
+static error syntax_analyzer_parse_func_def(syntax_analyzer* syx) {
+    return NULL;
+}
+
+static error syntax_analyzer_parse_func_call(syntax_analyzer* syx, smt_func_call* call) {
     error err = NULL;
     call->func_name = lex_token_getstr(syx->cur_token);
     lex_next_token(syx->lex); // pass the '('
@@ -285,23 +314,92 @@ error syntax_analyzer_parse_func_call(syntax_analyzer* syx, smt_func_call* call)
     return NULL;
 }
 
+static error syntax_analyzer_parse_type(syntax_analyzer* syx) {
+    return NULL;
+}
+
+static error syntax_analyzer_parse_new(syntax_analyzer* syx) {
+    return NULL;
+}
+
+static error syntax_analyzer_parse_error(syntax_analyzer* syx) {
+    return NULL;
+}
+
+static error syntax_analyzer_parse_deal(syntax_analyzer* syx) {
+    return NULL;
+}
+
 static error syntax_analyzer_parse_block(syntax_analyzer* syx) {
     error err = NULL;
     // TODO: write a '{' to the target file
     for (;;) {
         syntax_analyzer_get_token(syx);
-        switch (syx->cur_token->token_type) {
-        case TOKEN_KEYWORD_IF:
-            lex_next_token(syx->lex);
-            if ((err = syntax_analyzer_parse_branch_if(syx)) != NULL) {
-                // TODO: report error...
-            }
-            break;
+        if (token_iskeyword(syx->cur_token->token_type)) {
+            switch (syx->cur_token->token_type) {
+            case TOKEN_KEYWORD_IF:
+                lex_next_token(syx->lex);
+                if ((err = syntax_analyzer_parse_branch_if(syx)) != NULL) {
+                    // TODO: report error...
+                }
+                break;
+
+            case TOKEN_KEYWORD_SWITCH:
+                lex_next_token(syx->lex);
+                if ((err = syntax_analyzer_parse_branch_switch(syx)) != NULL) {
+                    // TODO: report error...
+                }
+                break;
+
+            case TOKEN_KEYWORD_FOR:
+                lex_next_token(syx->lex);
+                if ((err = syntax_analyzer_parse_loop(syx)) != NULL) {
+                    // TODO: report error...
+                }
+                break;
+
+            case TOKEN_KEYWORD_FUNC:
+                lex_next_token(syx->lex);
+                if ((err = syntax_analyzer_parse_func_def(syx)) != NULL) {
+                    // TODO: report error...
+                }
+                break;
+
+            case TOKEN_KEYWORD_TYPE:
+                lex_next_token(syx->lex);
+                if ((err = syntax_analyzer_parse_type(syx)) != NULL) {
+                    // TODO: report error...
+                }
+                break;
             
-        default:
-            // TODO: report error...
-            break;
+            case TOKEN_KEYWORD_NEW:
+                lex_next_token(syx->lex);
+                if ((err = syntax_analyzer_parse_new(syx)) != NULL) {
+                    // TODO: report error...
+                }
+                break;
+
+            case TOKEN_KEYWORD_ERROR:
+                lex_next_token(syx->lex);
+                if ((err = syntax_analyzer_parse_error(syx)) != NULL) {
+                    // TODO: report error...
+                }
+                break;
+
+            case TOKEN_KEYWORD_DEAL:
+                lex_next_token(syx->lex);
+                if ((err = syntax_analyzer_parse_deal(syx)) != NULL) {
+                    // TODO: report error...
+                }
+                break;
+
+            default:
+                // TODO: report error...
+                break;
+            }
         }
+        // TODO: else if -> try to parse expression if the token is not a keyword
+        // TODO: else -> report error...
     }
     // TODO: write a '}' to the target file
     return NULL;

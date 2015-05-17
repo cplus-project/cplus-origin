@@ -34,10 +34,11 @@
 #define TOKEN_KEYWORD_CASE     211  // case
 #define TOKEN_KEYWORD_DEFAULT  212  // default
 #define TOKEN_KEYWORD_TYPE     213  // type
-#define TOKEN_KEYWORD_IN       214  // in
-#define TOKEN_KEYWORD_OT       215  // ot
-#define TOKEN_KEYWORD_INCLUDE  216  // include
-#define TOKEN_KEYWORD_MODULE   217  // module
+#define TOKEN_KEYWORD_NEW      214  // new
+#define TOKEN_KEYWORD_IN       215  // in
+#define TOKEN_KEYWORD_OT       216  // ot
+#define TOKEN_KEYWORD_INCLUDE  217  // include
+#define TOKEN_KEYWORD_MODULE   218  // module
 #define TOKEN_CONST_INTEGER    300  // const-integer
 #define TOKEN_CONST_FLOAT      301  // const-float
 #define TOKEN_CONST_CHAR       302  // const-char
@@ -91,6 +92,19 @@
 #define TOKEN_OP_SINGLE_CMT    446  // //
 #define TOKEN_OP_MULTIL_CMT    447  // /**/
 #define TOKEN_NEXT_LINE        502  // change-line symbol
+
+// the micro definitions listd below can be used to confirm one lex_token's
+// type, you can use them as the example:
+//    lex_token lextkn;
+//    ...
+//    if (token_isid(lextkn.token_type) || token_iskeyword(lextkn.token_type)) {
+//        // process the token here
+//    }
+//    ...
+#define token_isid(token_code)       (token_code == 100)
+#define token_iskeyword(token_code)  (200 <= token_code && token_code < 300)
+#define token_isconstlit(token_code) (300 <= token_code && token_code < 400)
+#define token_isoperator(token_code) (400 <= token_code && token_code < 500)
 
 #define LEX_ERROR_EOF          -1
 

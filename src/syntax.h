@@ -39,11 +39,12 @@ static error syntax_analyzer_parse_module       (syntax_analyzer* syx);
 static error syntax_analyzer_parse_block        (syntax_analyzer* syx);
 static error syntax_analyzer_parse_expr         (syntax_analyzer* syx, smt_expr* expr, bool lhs);
 static error syntax_analyzer_parse_expr_list    (syntax_analyzer* syx, smt_expr_list* exprlst);
-static error syntax_analyzer_parse_idex         (syntax_analyzer* syx);
+static error syntax_analyzer_parse_index        (syntax_analyzer* syx, smt_index* idx);
 static error syntax_analyzer_parse_decl         (syntax_analyzer* syx, smt_identified_obj* decl_type, smt_ident decl_name);
 static error syntax_analyzer_parse_assign       (syntax_analyzer* syx, smt_identified_obj* assign_obj);
 static error syntax_analyzer_parse_branch_if    (syntax_analyzer* syx);
 static error syntax_analyzer_parse_branch_switch(syntax_analyzer* syx);
+static error syntax_analyzer_parse_loop         (syntax_analyzer* syx);
 static error syntax_analyzer_parse_loop_for     (syntax_analyzer* syx);
 static error syntax_analyzer_parse_loop_while   (syntax_analyzer* syx);
 static error syntax_analyzer_parse_loop_infinite(syntax_analyzer* syx);
@@ -51,9 +52,12 @@ static error syntax_analyzer_parse_loop_foreach (syntax_analyzer* syx);
 static error syntax_analyzer_parse_func_def     (syntax_analyzer* syx);
 static error syntax_analyzer_parse_func_call    (syntax_analyzer* syx, smt_func_call* call);
 static error syntax_analyzer_parse_return       (syntax_analyzer* syx);
+static error syntax_analyzer_parse_type         (syntax_analyzer* syx);
 static error syntax_analyzer_parse_type_decl    (syntax_analyzer* syx);
 static error syntax_analyzer_parse_type_assign  (syntax_analyzer* syx);
 static error syntax_analyzer_parse_type_def     (syntax_analyzer* syx);
 static error syntax_analyzer_parse_new          (syntax_analyzer* syx);
+static error syntax_analyzer_parse_error        (syntax_analyzer* syx);
+static error syntax_analyzer_parse_deal         (syntax_analyzer* syx);
 
 #endif
