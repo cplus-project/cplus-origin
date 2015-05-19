@@ -42,6 +42,9 @@ static error syntax_analyzer_parse_expr_list    (syntax_analyzer* syx, smt_expr_
 static error syntax_analyzer_parse_index        (syntax_analyzer* syx, smt_index* idx);
 static error syntax_analyzer_parse_decl         (syntax_analyzer* syx, smt_identified_obj* decl_type, smt_ident decl_name);
 static error syntax_analyzer_parse_assign       (syntax_analyzer* syx, smt_identified_obj* assign_obj);
+static error syntax_analyzer_parse_if           (syntax_analyzer* syx, smt_if* _if);
+static error syntax_analyzer_parse_ef           (syntax_analyzer* syx, smt_ef* _ef);
+static error syntax_analyzer_parse_else         (syntax_analyzer* syx, smt_else* _else);
 static error syntax_analyzer_parse_branch_if    (syntax_analyzer* syx);
 static error syntax_analyzer_parse_branch_switch(syntax_analyzer* syx);
 static error syntax_analyzer_parse_loop         (syntax_analyzer* syx);

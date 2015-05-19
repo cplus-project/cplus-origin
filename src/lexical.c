@@ -6,6 +6,8 @@
 
 #include "lexical.h"
 
+static error err = NULL;
+
 /****** methods of lex_token ******/
 
 // you should always use the lex_idx_inc(lex->i) to
@@ -15,15 +17,14 @@
 lex->i++;                            \
 lex->col++;                          \
 if (lex->i >= lex->buff_end_index) { \
-    error err = lex_read_file(lex);  \
+    err = lex_read_file(lex);        \
     if (err != NULL) {               \
         return err;                  \
     }                                \
 }
 
 error lex_token_init(lex_token* lextkn, int64 capacity) {
-    error err = dynamicarr_char_init(&lextkn->token, capacity);
-    if (err != NULL) {
+    if ((err = dynamicarr_char_init(&lextkn->token, capacity)) != NULL) {
         return err;
     }
     lextkn->token_len  = 0;
@@ -208,8 +209,7 @@ error lex_init(lex_analyzer* lex) {
     lex->buff_end_index = 0;
     lex->i              = 0;
     lex->parse_lock     = false;
-    error err = lex_token_init(&lex->lextkn, 255);
-    if (err != NULL) {
+    if ((err = lex_token_init(&lex->lextkn, 255)) != NULL) {
         return err;
     }
     int16 j;
@@ -311,8 +311,7 @@ error lex_parse_token(lex_analyzer* lex) {
     char ch = '0';
     lex_token_clear(&lex->lextkn);
     if (lex->i >= lex->buff_end_index) {
-        error err = lex_read_file(lex);
-        if (err != NULL) {
+        if ((err = lex_read_file(lex)) != NULL) {
             return err;
         }
     }
@@ -494,8 +493,7 @@ error lex_parse_token(lex_analyzer* lex) {
                         }
                         else if (ch == 'e' || ch == 'E') { // scientific notation part
                             lex_next(lex);
-                            error err = lex_parse_scientific_notation(lex, &lex->lextkn);
-                            if (err != NULL) {
+                            if ((err = lex_parse_scientific_notation(lex, &lex->lextkn)) != NULL) {
                                 return err;
                             }
                             else {
@@ -513,8 +511,7 @@ error lex_parse_token(lex_analyzer* lex) {
                 }
                 else if (ch == 'e' || ch == 'E') { // scientific notation part
                     lex_next(lex);
-                    error err = lex_parse_scientific_notation(lex, &lex->lextkn);
-                    if (err != NULL) {
+                    if ((err = lex_parse_scientific_notation(lex, &lex->lextkn)) != NULL) {
                         return err;
                     }
                     else {

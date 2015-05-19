@@ -15,38 +15,39 @@
 #include "common.h"
 
 #define SMT_NULL            0x00
-#define SMT_INCLUDE         0x00
-#define SMT_MODULE          0x00
-#define SMT_CONST_LITERAL   0x00
-#define SMT_IDENT           0x05
-#define SMT_IDENTIFIED_OBJ  0x06
-#define SMT_EXPR            0x11
-#define SMT_EXPR_LIST       0x12
-#define SMT_EXPR_UNARY      0x12
-#define SMT_EXPR_BINARY     0x13
-#define SMT_INDEX           0x08
-#define SMT_DECL            0x09
-#define SMT_ASSIGN          0x10
+#define SMT_INCLUDE         0x01
+#define SMT_MODULE          0x02
+#define SMT_CONST_LITERAL   0x03
+#define SMT_IDENT           0x04
+#define SMT_IDENTIFIED_OBJ  0x05
+#define SMT_EXPR            0x06
+#define SMT_EXPR_LIST       0x07
+#define SMT_EXPR_UNARY      0x08
+#define SMT_EXPR_BINARY     0x09
+#define SMT_INDEX           0x10
+#define SMT_DECL            0x11
+#define SMT_ASSIGN          0x12
 #define SMT_IF              0x13
-#define SMT_EF              0x00
-#define SMT_ELSE            0x00
-#define SMT_SWITCH          0x00
-#define SMT_SWITCH_CASE     0x00
-#define SMT_SWITCH_DEFAULT  0x00
-#define SMT_LOOP_FOR        0x00
-#define SMT_LOOP_WHILE      0x00
-#define SMT_LOOP_INFINITE   0x00
-#define SMT_LOOP_FOREACE    0x00
-#define SMT_FUNC_DEF        0x14
-#define SMT_FUNC_CALL       0x15
-#define SMT_RETURN          0x16
-#define SMT_TYPE_DECL       0x17
-#define SMT_TYPE_ASSIGN     0x18
-#define SMT_TYPE_DEF        0x19
-#define SMT_NEW             0x20
-#define SMT_ERROR           0x21
-#define SMT_DEAL_SINGLE     0x22
-#define SMT_DEAL_MULTI      0x23
+#define SMT_EF              0x14
+#define SMT_EF_LIST         0x15
+#define SMT_ELSE            0x16
+#define SMT_SWITCH          0x17
+#define SMT_SWITCH_CASE     0x18
+#define SMT_SWITCH_DEFAULT  0x19
+#define SMT_LOOP_FOR        0x20
+#define SMT_LOOP_WHILE      0x21
+#define SMT_LOOP_INFINITE   0x22
+#define SMT_LOOP_FOREACE    0x23
+#define SMT_FUNC_DEF        0x24
+#define SMT_FUNC_CALL       0x25
+#define SMT_RETURN          0x26
+#define SMT_TYPE_DECL       0x27
+#define SMT_TYPE_ASSIGN     0x28
+#define SMT_TYPE_DEF        0x29
+#define SMT_NEW             0x30
+#define SMT_ERROR           0x31
+#define SMT_DEAL_SINGLE     0x32
+#define SMT_DEAL_MULTI      0x33
 
 typedef char*                     smt_ident;
 typedef struct smt_const_literal  smt_const_literal;
@@ -62,6 +63,7 @@ typedef struct smt_decl           smt_decl;
 typedef struct smt_assign         smt_assign;
 typedef struct smt_if             smt_if;
 typedef struct smt_ef             smt_ef;
+typedef struct smt_ef_list        smt_ef_list;
 typedef struct smt_else           smt_else;
 typedef struct smt_switch         smt_switch;
 typedef struct smt_switch_case    smt_switch_case;
@@ -158,7 +160,7 @@ typedef struct smt_expr_list_node {
     struct smt_expr_list_node* next;
 }smt_expr_list_node;
 
-// the smt_expr_list is used to save a set of expressions.
+// represent a set of expressions separated by ','
 typedef struct smt_expr_list {
     smt_expr_list_node* first;
 }smt_expr_list;
@@ -201,6 +203,16 @@ typedef struct smt_if {
 typedef struct smt_ef {
     smt_expr ef_cond;
 }smt_ef;
+
+typedef struct smt_ef_list_node {
+    smt_ef _ef;
+    struct smt_ef_list_node* next;
+}smt_ef_list_node;
+
+// represent a set of ef semantic elements
+typedef struct smt_ef_list {
+    smt_ef_list_node* first;
+}smt_ef_list;
 
 typedef struct smt_else {
 }smt_else;

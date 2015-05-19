@@ -6,6 +6,8 @@
 
 #include "syntax.h"
 
+static error err = NULL;
+
 #define syntax_analyzer_get_token(syx) \
 err = lex_parse_token(syx->lex);            \
 if (err != NULL) {                          \
@@ -36,7 +38,6 @@ void syntax_analyzer_init(syntax_analyzer* syx, char* file_name) {
 
 // parsing include statement set of the source file.
 static error syntax_analyzer_parse_include(syntax_analyzer* syx) {
-    error err = NULL;
     for (;;) {
         syntax_analyzer_get_token(syx);
         if (syx->cur_token->token_type != TOKEN_KEYWORD_INCLUDE) {
@@ -60,7 +61,6 @@ static error syntax_analyzer_parse_include(syntax_analyzer* syx) {
 
 // parsing module statement set of the source file.
 static error syntax_analyzer_parse_module(syntax_analyzer* syx) {
-    error           err       = NULL;
     int16           last_type = TOKEN_UNKNOWN;
     dynamicarr_char darr;
     dynamicarr_char_init(&darr, 255);
@@ -108,7 +108,6 @@ static error syntax_analyzer_parse_module(syntax_analyzer* syx) {
 
 // parse the expression of the C+. the output will be assigned to the parameter 'expr'.
 static error syntax_analyzer_parse_expr(syntax_analyzer* syx, smt_expr* expr, bool lhs) {
-    error      err     = NULL;
     int16      tkntype = TOKEN_UNKNOWN;
     oprd_stack oprdstk;
     optr_stack optrstk;
@@ -206,7 +205,6 @@ static error syntax_analyzer_parse_expr(syntax_analyzer* syx, smt_expr* expr, bo
 
 // parse a set of expressions which separated by ','(TOKEN_OP_COMMA) operator.
 error syntax_analyzer_parse_expr_list(syntax_analyzer* syx, smt_expr_list* exprlst) {
-    error err   = NULL;
     bool  begin = true;
     smt_expr_list_node* cur;
     for (;;) {
@@ -242,18 +240,23 @@ error syntax_analyzer_parse_expr_list(syntax_analyzer* syx, smt_expr_list* exprl
 
 // parse the indexing operation.
 static error syntax_analyzer_parse_index(syntax_analyzer* syx, smt_index* idx) {
-    error err = NULL;
     idx->index_container = lex_token_getstr(syx->cur_token);
-    lex_next_token(syx->lex); // pass the '['
+    lex_next_token(syx->lex);
+    close_counter_increase(&syx->clsctr, '[');
     if ((err = syntax_analyzer_parse_expr(syx, &idx->index_idxexpr, true)) != NULL) {
         // TODO: report error...
     }
-    lex_next_token(syx->lex); // pass the ']'
+    if (syntax_analyzer_peek_token(syx)->token_type != TOKEN_OP_RBRACKET) {
+        // TODO: report error...
+    }
+    lex_next_token(syx->lex);
+    if ((err = close_counter_decrease(&syx->clsctr, ']')) != NULL) {
+        // TODO: report error...
+    }
     return NULL;
 }
 
 static error syntax_analyzer_parse_decl(syntax_analyzer* syx, smt_identified_obj* decl_type, smt_ident decl_name) {
-    error    err = NULL;
     smt_decl decl;
     decl.decl_type = decl_type;
     decl.decl_name = decl_name;
@@ -269,21 +272,84 @@ static error syntax_analyzer_parse_decl(syntax_analyzer* syx, smt_identified_obj
 }
 
 static error syntax_analyzer_parse_assign(syntax_analyzer* syx, smt_identified_obj* assign_obj) {
-    error      err = NULL;
     // TODO: pass the smt_assign to the semantic analyzer...
     return NULL;
 }
 
-static error syntax_analyzer_parse_branch_if(syntax_analyzer* syx) {
-    error  err = NULL;
-    smt_if _if;
-    if ((err = syntax_analyzer_parse_expr(syx, &_if.if_cond, false)) != NULL) {
+// parse the if statement of the if-branch statement.
+static error syntax_analyzer_parse_if(syntax_analyzer* syx, smt_if* _if) {
+    if ((err = syntax_analyzer_parse_expr(syx, &_if->if_cond, false)) != NULL) {
         // TODO: report error...
     }
+    if (syntax_analyzer_peek_token(syx)->token_type != TOKEN_OP_LBRACE) {
+        // TODO: report error...
+    }
+    lex_next_token(syx->lex);
+    close_counter_increase(&syx->clsctr, '{');
     if ((err = syntax_analyzer_parse_block(syx)) != NULL) {
         // TODO: report error...
     }
-    // TODO: start to compile the if branch statment...
+    return NULL;
+}
+
+// parse the ef statement of the if-branch statement.
+static error syntax_analyzer_parse_ef(syntax_analyzer* syx, smt_ef* _ef) {
+    if ((err = syntax_analyzer_parse_expr(syx, &_ef->ef_cond, false)) != NULL) {
+        // TODO: report error...
+    }
+    if (syntax_analyzer_peek_token(syx)->token_type != TOKEN_OP_LBRACE) {
+        // TODO: report error...
+    }
+    lex_next_token(syx->lex);
+    close_counter_increase(&syx->clsctr, '{');
+    if ((err = syntax_analyzer_parse_block(syx)) != NULL) {
+        // TODO: report error...
+    }
+    return NULL;
+}
+
+// parse the else statement of the if-branch statement.
+static error syntax_analyzer_parse_else(syntax_analyzer* syx, smt_else* _else) {
+    if (syntax_analyzer_peek_token(syx)->token_type != TOKEN_OP_LBRACE) {
+        // TODO: report error...
+    }
+    lex_next_token(syx->lex);
+    close_counter_increase(&syx->clsctr, '{');
+    if ((err = syntax_analyzer_parse_block(syx)) != NULL) {
+        // TODO: report
+    }
+    return NULL;
+}
+
+static error syntax_analyzer_parse_branch_if(syntax_analyzer* syx) {
+    smt_if _if;
+    if ((err = syntax_analyzer_parse_if(syx, &_if)) != NULL) {
+        // TODO: report error...
+    }
+    
+    smt_ef_list       ef_list;
+    smt_ef_list_node* cur;
+    for (cur = ef_list.first; syntax_analyzer_peek_token(syx)->token_type == TOKEN_KEYWORD_EF;) {
+        smt_ef_list_node* create = (smt_ef_list_node*)mem_alloc(sizeof(smt_ef_list_node));
+        if ((err = syntax_analyzer_parse_ef(syx, &create->_ef)) != NULL) {
+            // TODO: report error...
+        }
+        
+        create->next = NULL;
+        if (cur != NULL) {
+            cur->next = create;
+            cur = create;
+        }
+        else {
+            ef_list.first = create;
+            cur = create;
+        }
+    }
+    
+    smt_else _else;
+    if ((err = syntax_analyzer_parse_else(syx, &_else)) != NULL) {
+        // TODO: report error...
+    }
     
     return NULL;
 }
@@ -301,7 +367,6 @@ static error syntax_analyzer_parse_func_def(syntax_analyzer* syx) {
 }
 
 static error syntax_analyzer_parse_func_call(syntax_analyzer* syx, smt_func_call* call) {
-    error err = NULL;
     call->func_name = lex_token_getstr(syx->cur_token);
     lex_next_token(syx->lex); // pass the '('
     if ((err = syntax_analyzer_parse_expr_list(syx, &call->param_passin)) != NULL) {
@@ -331,7 +396,6 @@ static error syntax_analyzer_parse_deal(syntax_analyzer* syx) {
 }
 
 static error syntax_analyzer_parse_block(syntax_analyzer* syx) {
-    error err = NULL;
     // TODO: write a '{' to the target file
     for (;;) {
         syntax_analyzer_get_token(syx);
@@ -406,8 +470,6 @@ static error syntax_analyzer_parse_block(syntax_analyzer* syx) {
 }
 
 error syntax_analyzer_work(syntax_analyzer* syx) {
-    error err = NULL;
-    
     while (file_stack_isempty(&syx->file_wait_compiled) == false) {
         char* file_name = file_stack_top(&syx->file_wait_compiled);
         
