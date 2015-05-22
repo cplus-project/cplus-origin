@@ -50,7 +50,6 @@ static error syntax_analyzer_parse_branch_switch(syntax_analyzer* syx);
 static error syntax_analyzer_parse_loop         (syntax_analyzer* syx);
 static error syntax_analyzer_parse_loop_for     (syntax_analyzer* syx);
 static error syntax_analyzer_parse_loop_while   (syntax_analyzer* syx);
-static error syntax_analyzer_parse_loop_infinite(syntax_analyzer* syx);
 static error syntax_analyzer_parse_loop_foreach (syntax_analyzer* syx);
 static error syntax_analyzer_parse_func_def     (syntax_analyzer* syx);
 static error syntax_analyzer_parse_func_call    (syntax_analyzer* syx, smt_func_call* call);

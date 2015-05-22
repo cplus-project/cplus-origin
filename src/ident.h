@@ -83,6 +83,22 @@ typedef struct ident_module {
 }ident_module;
 
 // an ident represent an identified object.
+//
+// the example about using an ident object:
+//    ident_table idtable;
+//    ...
+//    ident* id = ident_table_search(&idtable, "foo");
+//    switch (id->id_type) {
+//    case ID_CONST:   // do some process to the 'id->id_info.id_const'
+//    case ID_VAR:     // do some process to the 'id->id_info.id_var'
+//    case ID_TYPE:    // do some process to the 'id->id_info.id_type'
+//    case ID_FUNC:    // do some process to the 'id->id_info.id_func'
+//    case ID_INCLUDE: // do some process to the 'id->id_info.id_include'
+//    case ID_MODULE:  // do some process to the 'id->id_info.id_module'
+//    case ID_MICRO: ...
+//    default: ...
+//    }
+//    ...
 typedef struct ident {
     char* id_name;
     int8  access;

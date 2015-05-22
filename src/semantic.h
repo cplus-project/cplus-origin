@@ -13,6 +13,7 @@
 #define CPLUS_SEMANTIC_H
 
 #include "common.h"
+#include "scope.h"
 
 #define SMT_NULL            0x00
 #define SMT_INCLUDE         0x01
@@ -156,7 +157,7 @@ typedef struct smt_expr {
 }smt_expr;
 
 typedef struct smt_expr_list_node {
-    smt_expr* expr;
+    smt_expr expr;
     struct smt_expr_list_node* next;
 }smt_expr_list_node;
 
@@ -263,9 +264,9 @@ typedef struct smt_loop_infinite {
 //     ...
 // }
 typedef struct smt_loop_foreach {
-    smt_identified_obj loop_foreach_data;
-    smt_identified_obj loop_foreach_index;
-    smt_identified_obj loop_foreach_container;
+    smt_expr loop_foreach_data;
+    smt_expr loop_foreach_index;
+    smt_expr loop_foreach_container;
 }smt_loop_foreach;
 
 typedef struct formal_param {
@@ -335,5 +336,18 @@ typedef struct smt_new {
     smt_expr_list      new_init_params;
     smt_expr           new_capacity;
 }smt_new;
+
+typedef struct {
+    scope* cur_scp; // current scope
+}semantic_analyzer;
+
+extern void  semantic_analyzer_init               (semantic_analyzer* smt);
+extern void  semantic_analyzer_scope_open         (semantic_analyzer* smt);
+extern void  semantic_analyzer_scope_close        (semantic_analyzer* smt);
+extern error semantic_analyzer_parse_branch_if    ();
+extern error semantic_analyzer_parse_loop_for     ();
+extern error semantic_analyzer_parse_loop_while   ();
+extern error semantic_analyzer_parse_loop_infinite();
+extern error semantic_analyzer_parse_loop_foreach ();
 
 #endif

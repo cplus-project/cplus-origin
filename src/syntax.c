@@ -221,7 +221,7 @@ error syntax_analyzer_parse_expr_list(syntax_analyzer* syx, smt_expr_list* exprl
         }
 
         smt_expr_list_node* create = (smt_expr_list_node*)mem_alloc(sizeof(smt_expr_list_node));
-        if ((err = syntax_analyzer_parse_expr(syx, create->expr, false)) != NULL) {
+        if ((err = syntax_analyzer_parse_expr(syx, &create->expr, false)) != NULL) {
             // TODO: report error...
         }
 
@@ -359,6 +359,16 @@ static error syntax_analyzer_parse_branch_switch(syntax_analyzer* syx) {
 }
 
 static error syntax_analyzer_parse_loop(syntax_analyzer* syx) {
+    // 'for {' -> for {...}
+    if (syntax_analyzer_peek_token(syx)->token_type == TOKEN_OP_LBRACE) {
+        lex_next_token(syx->lex);
+        smt_loop_infinite loop_infinite;
+        if ((err = syntax_analyzer_parse_block(syx)) != NULL) {
+            // TODO: report error...
+        }
+        return NULL;
+    }
+    
     return NULL;
 }
 
@@ -462,8 +472,20 @@ static error syntax_analyzer_parse_block(syntax_analyzer* syx) {
                 break;
             }
         }
-        // TODO: else if -> try to parse expression if the token is not a keyword
-        // TODO: else -> report error...
+        else {
+            smt_expr_list expr_list;
+            if ((err = syntax_analyzer_parse_expr_list(syx, &expr_list)) != NULL) {
+                // TODO: report error...
+            }
+            if (syntax_analyzer_peek_token(syx)->token_type == TOKEN_OP_ASSIGN) {
+                if ((err = syntax_analyzer_parse_assign(syx)) != NULL) {
+                    // TODO: report error...
+                }
+            }
+            else {
+                // TODO: send the expr_list to the semantic analyzer...
+            }
+        }
     }
     // TODO: write a '}' to the target file
     return NULL;
@@ -529,13 +551,9 @@ void syntax_analyzer_destroy(syntax_analyzer* syx) {
     close_counter_destroy(&syx->clsctr);
     file_stack_destroy(&syx->file_wait_compiled);
     file_tree_destroy(&syx->file_have_compiled);
+    if (syx->lex != NULL) lex_destroy(syx->lex);
     syx->cur_token = NULL;
-    if (syx->lex != NULL) {
-        lex_destroy(syx->lex);
-    }
-    else {
-        syx->lex = NULL;
-    }
+    syx->lex       = NULL;
 }
 
 #undef syntax_analyzer_get_token
