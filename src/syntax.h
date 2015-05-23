@@ -14,6 +14,7 @@
 #include "common.h"
 #include "close_counter.h"
 #include "lexical.h"
+#include "ident.h"
 #include "fileset.h"
 #include "semantic.h"
 #include "expression.h"
@@ -26,6 +27,7 @@ typedef struct syntax_analyzer {
     file_stack    file_wait_compiled; // files wait to be compiled
     file_tree     file_have_compiled; // files have been compiled
     lex_analyzer* lex;                // the lexer now using
+    smt_analyzer* smt;                // the semantic analyzer now using
     lex_token*    cur_token;          // the current token parsed
     close_counter clsctr;             // guarantee that all brackets are closed correctly
 }syntax_analyzer;
@@ -40,8 +42,9 @@ static error syntax_analyzer_parse_block        (syntax_analyzer* syx);
 static error syntax_analyzer_parse_expr         (syntax_analyzer* syx, smt_expr* expr, bool lhs);
 static error syntax_analyzer_parse_expr_list    (syntax_analyzer* syx, smt_expr_list* exprlst);
 static error syntax_analyzer_parse_index        (syntax_analyzer* syx, smt_index* idx);
-static error syntax_analyzer_parse_decl         (syntax_analyzer* syx, smt_identified_obj* decl_type, smt_ident decl_name);
-static error syntax_analyzer_parse_assign       (syntax_analyzer* syx, smt_identified_obj* assign_obj);
+static error syntax_analyzer_parse_decl         (syntax_analyzer* syx, smt_expr* decl_type, smt_ident decl_name);
+static error syntax_analyzer_parse_assign       (syntax_analyzer* syx, smt_expr* expr_lhs);
+static error syntax_analyzer_parse_assigns      (syntax_analyzer* syx, smt_expr_list* exprs_lhs);
 static error syntax_analyzer_parse_if           (syntax_analyzer* syx, smt_if* _if);
 static error syntax_analyzer_parse_ef           (syntax_analyzer* syx, smt_ef* _ef);
 static error syntax_analyzer_parse_else         (syntax_analyzer* syx, smt_else* _else);
