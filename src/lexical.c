@@ -15,7 +15,7 @@ static error err = NULL;
 // analyzer.
 #define lex_next(lex) \
 lex->i++;                            \
-lex->col++;                          \
+lex->pos_col++;                      \
 if (lex->i >= lex->buff_end_index) { \
     err = lex_read_file(lex);        \
     if (err != NULL) {               \
@@ -146,66 +146,13 @@ void lex_token_destroy(lex_token* lextkn) {
     dynamicarr_char_destroy(&lextkn->token);
 }
 
-/****** methods of lex_token_stack ******/
-
-void lex_token_stack_init(lex_token_stack* lexstk) {
-    lexstk->top = NULL;
-}
-
-void lex_token_stack_push(lex_token_stack* lexstk, char* token, int16 token_type) {
-    lex_token_stack_node* create = (lex_token_stack_node*)mem_alloc(sizeof(lex_token_stack_node));
-    create->token      = token;
-    create->token_type = token_type;
-    create->next       = NULL;
-    if (lexstk->top != NULL) {
-        create->next = lexstk->top;
-        lexstk->top  = create;
-    }
-    else {
-        lexstk->top = create;
-    }
-}
-
-// return true if the stack is empty.
-bool lex_token_stack_isempty(lex_token_stack* lexstk) {
-    if (lexstk->top == NULL) {
-        return true;
-    }
-    return false;
-}
-
-char* lex_token_stack_top_token(lex_token_stack* lexstk) {
-    return lexstk->top->token;
-}
-
-int16 lex_token_stack_top_type(lex_token_stack* lexstk) {
-    return lexstk->top->token_type;
-}
-
-void lex_token_stack_pop(lex_token_stack* lexstk) {
-    lex_token_stack_node* temp = lexstk->top;
-    lexstk->top = lexstk->top->next;
-    mem_free(temp);
-}
-
-void lex_token_stack_destroy(lex_token_stack* lexstk) {
-    lex_token_stack_node* temp;
-    for (;;) {
-        if (lexstk->top == NULL) {
-            return;
-        }
-        temp = lexstk->top;
-        lexstk->top = lexstk->top->next;
-        mem_free(temp);
-    }
-}
-
 /****** methods of lex_analyzer ******/
 
 error lex_init(lex_analyzer* lex) {
     lex->srcfile        = NULL;
-    lex->line           = 1;
-    lex->col            = 1;
+    lex->pos_file       = NULL;
+    lex->pos_line       = 1;
+    lex->pos_col        = 1;
     lex->buff_end_index = 0;
     lex->i              = 0;
     lex->parse_lock     = false;
@@ -221,7 +168,7 @@ error lex_init(lex_analyzer* lex) {
 
 error lex_open_srcfile(lex_analyzer* lex, char* file) {
     lex->srcfile = fopen(file, "r");
-    if (lex == NULL) {
+    if (lex->srcfile == NULL) {
         dynamicarr_char darr;
         dynamicarr_char_init(&darr, 255);
         dynamicarr_char_append(&darr, "not found the source file: ", 27);
@@ -230,6 +177,7 @@ error lex_open_srcfile(lex_analyzer* lex, char* file) {
         dynamicarr_char_destroy(&darr);
         return new_error(errmsg);
     }
+    lex->pos_file = file;
     return NULL;
 }
 
@@ -326,10 +274,12 @@ error lex_parse_token(lex_analyzer* lex) {
             lex_next(lex);
             // counting the line numbers to make some preparations for
             // debuging and error/warning reporting.
-            lex->line++;
-            lex->col = 1;
-            lex->lextkn.token_type = TOKEN_NEXT_LINE;
+            lex->pos_line++;
+            lex->pos_col    = 1;
             lex->parse_lock = true;
+
+            lex->lextkn.token_type = TOKEN_LINEFEED;
+            lex->lextkn.extra_info = EXTRA_INFO_EXPR_END;
             return NULL;
         }
         else {
@@ -710,6 +660,7 @@ error lex_parse_token(lex_analyzer* lex) {
             return NULL;
         case ')':
             lex->lextkn.token_type = TOKEN_OP_RPARENTHESE;
+            lex->lextkn.extra_info = EXTRA_INFO_EXPR_END;
             lex->parse_lock = true;
             return NULL;
         case '&':
@@ -780,6 +731,7 @@ error lex_parse_token(lex_analyzer* lex) {
             return NULL;
         case ',':
             lex->lextkn.token_type = TOKEN_OP_COMMA;
+            lex->lextkn.extra_info = EXTRA_INFO_EXPR_END;
             lex->parse_lock = true;
             return NULL;
         case '+':
@@ -973,12 +925,19 @@ error lex_parse_token(lex_analyzer* lex) {
                 lex->parse_lock = true;
                 return NULL;
             }
+        
+        case ';':
+            lex->lextkn.token_type = TOKEN_OP_SEMC;
+            lex->lextkn.extra_info = EXTRA_INFO_EXPR_END;
+            lex->parse_lock = true;
+            return NULL;
         }
     }
     else if (ch < 124) {
         switch (ch) {
         case '{':
             lex->lextkn.token_type = TOKEN_OP_LBRACE;
+            lex->lextkn.extra_info = EXTRA_INFO_EXPR_END;
             lex->parse_lock = true;
             return NULL;
         case '[':
@@ -987,6 +946,7 @@ error lex_parse_token(lex_analyzer* lex) {
             return NULL;
         case ']':
             lex->lextkn.token_type = TOKEN_OP_RBRACKET;
+            lex->lextkn.extra_info = EXTRA_INFO_EXPR_END;
             lex->parse_lock = true;
             return NULL;
         case '@':

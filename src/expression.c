@@ -158,6 +158,20 @@ error oprd_stack_calcu_once(oprd_stack* oprdstk, optr op) {
     return NULL;
 }
 
+error oprd_stack_calcu(oprd_stack* oprdstk, optr_stack* optrstk) {
+    error err;
+    optr* top_optr;
+    for (;;) {
+        top_optr = optr_stack_isempty(optrstk) == false ? (optr_stack_top(optrstk)) : NULL;
+        if (top_optr == NULL || top_optr->op_token_code == TOKEN_OP_LPARENTHESE) {
+            return NULL;
+        }
+        if ((err = oprd_stack_calcu_once(oprdstk, *top_optr)) != NULL) {
+            return err;
+        }
+    }
+}
+
 void oprd_stack_destroy(oprd_stack* oprdstk) {
     oprd_stack_node* temp;
     for (;;) {

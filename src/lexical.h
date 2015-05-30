@@ -91,7 +91,7 @@
 #define TOKEN_OP_COLON         445  // :
 #define TOKEN_OP_SINGLE_CMT    446  // //
 #define TOKEN_OP_MULTIL_CMT    447  // /**/
-#define TOKEN_NEXT_LINE        502  // change-line symbol
+#define TOKEN_LINEFEED         502  // change-line symbol
 
 // the micro definitions listd below can be used to confirm one lex_token's
 // type, you can use them as the example:
@@ -101,16 +101,18 @@
 //        // process the token here
 //    }
 //    ...
-#define token_isid(token_code)       (token_code == 100)
-#define token_iskeyword(token_code)  (200 <= token_code && token_code < 300)
-#define token_isconstlit(token_code) (300 <= token_code && token_code < 400)
-#define token_isoperator(token_code) (400 <= token_code && token_code < 500)
+#define token_is_id(token_code)       (token_code == 100)
+#define token_is_keyword(token_code)  (200 <= token_code && token_code < 300)
+#define token_is_constlit(token_code) (300 <= token_code && token_code < 400)
+#define token_is_operator(token_code) (400 <= token_code && token_code < 500)
 
 #define LEX_ERROR_EOF          -1
 
 #define EXTRA_INFO_OP_LUNARY   1
 #define EXTRA_INFO_OP_RUNARY   2
 #define EXTRA_INFO_OP_BINARY   3
+#define EXTRA_INFO_EXPR_END    4
+#define EXTRA_INFO_ASSIGN      5
 typedef struct {
     dynamicarr_char token;      // one dynamic char array to store the token's content
     int64           token_len;  // token's length
@@ -126,26 +128,6 @@ extern void  lex_token_clear  (lex_token* lextkn);
 extern void  lex_token_debug  (lex_token* lextkn);
 extern void  lex_token_destroy(lex_token* lextkn);
 
-typedef struct lex_token_stack_node {
-    char* token;
-    int16 token_type;
-    struct lex_token_stack_node* next;
-}lex_token_stack_node;
-
-// the lex_token_stack is a type of stack used to save a set of
-// lexical tokens.
-typedef struct {
-    lex_token_stack_node* top;
-}lex_token_stack;
-
-extern void  lex_token_stack_init     (lex_token_stack* lexstk);
-extern void  lex_token_stack_push     (lex_token_stack* lexstk, char* token, int16 token_type);
-extern bool  lex_token_stack_isempty  (lex_token_stack* lexstk);
-extern char* lex_token_stack_top_token(lex_token_stack* lexstk);
-extern int16 lex_token_stack_top_type (lex_token_stack* lexstk);
-extern void  lex_token_stack_pop      (lex_token_stack* lexstk);
-extern void  lex_token_stack_destroy  (lex_token_stack* lexstk);
-
 // if want to change the lexical analyzer's buffer size and file
 // read rate, just modify the under micro definition.
 // node:
@@ -160,8 +142,9 @@ typedef struct{
                           // always filled with the capacity of LEX_BUFF_SIZE so
                           // the buff_end_index will flag this situation
 
-    int32     line;       // record the current analyzing line count
-    int16     col;        // record the position in the current line
+    char*     pos_file;   // the source file name now parsing
+    int32     pos_line;   // record the current analyzing line count
+    int16     pos_col;    // record the position in the current line
     lex_token lextkn;     // to storage the information of the token which is parsing now
     bool      parse_lock; // if the parse_lock == true, the lexical analyzer can not
                           // continue to parse the next token

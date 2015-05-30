@@ -54,6 +54,11 @@ error smt_analyzer_parse_expr(smt_analyzer* smt, smt_expr* expr) {
     }
 }
 
+error smt_analyzer_parse_decl(smt_analyzer* smt, smt_decl* decl) {
+    debug("in smt_analyzer_parse_decl of semantic.c");
+    return NULL;
+}
+
 error smt_analyzer_parse_assign(smt_analyzer* smt, smt_expr* expr_lhs, smt_expr* expr_rhs) {
     return NULL;
 }

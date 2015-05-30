@@ -172,7 +172,7 @@ typedef struct smt_index {
 typedef struct smt_decl {
     smt_expr* decl_type;
     smt_ident decl_name;
-    smt_expr  decl_init;
+    smt_expr* decl_init;
 }smt_decl;
 
 // represent the assignment statement.
@@ -328,6 +328,7 @@ extern void  smt_analyzer_scope_open         (smt_analyzer* smt);
 extern void  smt_analyzer_scope_close        (smt_analyzer* smt);
 extern error smt_analyzer_parse_ident        (smt_analyzer* smt);
 extern error smt_analyzer_parse_expr         (smt_analyzer* smt, smt_expr* expr);
+extern error smt_analyzer_parse_decl         (smt_analyzer* smt, smt_decl* decl);
 extern error smt_analyzer_parse_assign       (smt_analyzer* smt, smt_expr* expr_lhs, smt_expr* expr_rhs);
 extern error smt_analyzer_parse_assigns      (smt_analyzer* smt, smt_expr_list* exprs_lhs, smt_expr_list* exprs_rhs);
 extern error smt_analyzer_parse_branch_if    (smt_analyzer* smt);

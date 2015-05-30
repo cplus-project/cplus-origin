@@ -28,9 +28,10 @@
 #define OP_PRIORITY_9     0
 extern int8 get_op_priority(int16 op_token_code);
 
-#define OP_TYPE_LUNARY EXTRA_INFO_OP_LUNARY
-#define OP_TYPE_RUNARY EXTRA_INFO_OP_RUNARY
-#define OP_TYPE_BINARY EXTRA_INFO_OP_BINARY
+#define OP_TYPE_LUNARY   EXTRA_INFO_OP_LUNARY
+#define OP_TYPE_RUNARY   EXTRA_INFO_OP_RUNARY
+#define OP_TYPE_BINARY   EXTRA_INFO_OP_BINARY
+#define OP_TYPE_EXPR_END EXTRA_INFO_EXPR_END
 typedef struct optr {
     int16 op_token_code; // TOKEN_OP_XXX
     int8  op_type;       // OP_TYPE_LUNARY or OP_TYPE_RUNARY or OP_TYPE_BINARY
@@ -72,6 +73,7 @@ extern bool      oprd_stack_isempty   (oprd_stack* oprdstk);
 extern smt_expr* oprd_stack_top       (oprd_stack* oprdstk);
 extern void      oprd_stack_pop       (oprd_stack* oprdstk);
 extern error     oprd_stack_calcu_once(oprd_stack* oprdstk, optr op);
+extern error     oprd_stack_calcu     (oprd_stack* oprdstk, optr_stack* optrstk);
 extern void      oprd_stack_destroy   (oprd_stack* oprdstk);
 
 #endif

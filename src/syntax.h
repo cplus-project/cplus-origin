@@ -30,19 +30,21 @@ typedef struct syntax_analyzer {
     smt_analyzer* smt;                // the semantic analyzer now using
     lex_token*    cur_token;          // the current token parsed
     close_counter clsctr;             // guarantee that all brackets are closed correctly
+    int8          err_count;          // the number of errors founded until the current stage
 }syntax_analyzer;
 
 extern void  syntax_analyzer_init               (syntax_analyzer* syx, char* file_name);
 extern error syntax_analyzer_work               (syntax_analyzer* syx);
 extern void  syntax_analyzer_destroy            (syntax_analyzer* syx);
 
+static void  syntax_analyzer_report_error       (syntax_analyzer* syx, char* errmsg);
 static error syntax_analyzer_parse_include      (syntax_analyzer* syx);
 static error syntax_analyzer_parse_module       (syntax_analyzer* syx);
 static error syntax_analyzer_parse_block        (syntax_analyzer* syx);
 static error syntax_analyzer_parse_expr         (syntax_analyzer* syx, smt_expr* expr, bool lhs);
 static error syntax_analyzer_parse_expr_list    (syntax_analyzer* syx, smt_expr_list* exprlst);
 static error syntax_analyzer_parse_index        (syntax_analyzer* syx, smt_index* idx);
-static error syntax_analyzer_parse_decl         (syntax_analyzer* syx, smt_expr* decl_type, smt_ident decl_name);
+static error syntax_analyzer_parse_decl         (syntax_analyzer* syx, smt_expr* decl_type);
 static error syntax_analyzer_parse_assign       (syntax_analyzer* syx, smt_expr* expr_lhs);
 static error syntax_analyzer_parse_assigns      (syntax_analyzer* syx, smt_expr_list* exprs_lhs);
 static error syntax_analyzer_parse_if           (syntax_analyzer* syx, smt_if* _if);
