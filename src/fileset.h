@@ -12,40 +12,40 @@
 
 #include "common.h"
 
-typedef struct file_queue_node {
+typedef struct FileQueueNode {
     char* file_name;
-    struct file_queue_node* next;
-}file_queue_node;
+    struct FileQueueNode* next;
+}FileQueueNode;
 
 // a queue struct to storage files.
 typedef struct {
-    file_queue_node* head;
-    file_queue_node* tail;
-}file_queue;
+    FileQueueNode* head;
+    FileQueueNode* tail;
+}FileQueue;
 
-extern void  file_queue_init   (file_queue* fqueue);
-extern void  file_queue_enqueue(file_queue* fqueue, char* file_name);
-extern bool  file_queue_exist  (file_queue* fqueue, char* file_name);
-extern char* file_queue_front  (file_queue* fqueue);
-extern error file_queue_dequeue(file_queue* fqueue);
-extern void  file_queue_destroy(file_queue* fqueue);
+extern void  fileQueueInit   (FileQueue* fqueue);
+extern void  fileQueueEnqueue(FileQueue* fqueue, char* file_name);
+extern bool  fileQueueExist  (FileQueue* fqueue, char* file_name);
+extern char* fileQueueFront  (FileQueue* fqueue);
+extern error fileQueueDequeue(FileQueue* fqueue);
+extern void  fileQueueDestroy(FileQueue* fqueue);
 
-typedef struct file_stack_node {
+typedef struct FileStackNode {
     char* file_name;
-    struct file_stack_node* next;
-}file_stack_node;
+    struct FileStackNode* next;
+}FileStackNode;
 
 // a stack struct to storage files;
 typedef struct {
-    file_stack_node* top;
-}file_stack;
+    FileStackNode* top;
+}FileStack;
 
-extern void  file_stack_init   (file_stack* fstk);
-extern void  file_stack_push   (file_stack* fstk, char* file_name);
-extern bool  file_stack_isempty(file_stack* fstk);
-extern char* file_stack_top    (file_stack* fstk);
-extern void  file_stack_pop    (file_stack* fstk);
-extern void  file_stack_destroy(file_stack* fstk);
+extern void  fileStackInit   (FileStack* fstk);
+extern void  fileStackPush   (FileStack* fstk, char* file_name);
+extern bool  fileStackIsEmpty(FileStack* fstk);
+extern char* fileStackTop    (FileStack* fstk);
+extern void  fileStackPop    (FileStack* fstk);
+extern void  fileStackDestroy(FileStack* fstk);
 
 #define NODE_COLOR_RED   0x00
 #define NODE_COLOR_BLACK 0x01
@@ -54,22 +54,22 @@ extern void  file_stack_destroy(file_stack* fstk);
 #define NODE_CMP_EQ      0x01
 #define NODE_CMP_GT      0x02
 
-typedef struct file_tree_node {
+typedef struct FileTreeNode {
     char* file_name;
     int8  color;
-    struct file_tree_node* parent;
-    struct file_tree_node* lchild;
-    struct file_tree_node* rchild;
-}file_tree_node;
+    struct FileTreeNode* parent;
+    struct FileTreeNode* lchild;
+    struct FileTreeNode* rchild;
+}FileTreeNode;
 
 // a tree struct to storage files.
 typedef struct {
-    file_tree_node* root;
-}file_tree;
+    FileTreeNode* root;
+}FileTree;
 
-extern void  file_tree_init   (file_tree* ftree);
-extern error file_tree_add    (file_tree* ftree, char* file_name);
-extern bool  file_tree_exist  (file_tree* ftree, char* file_name);
-extern void  file_tree_destroy(file_tree* ftree);
+extern void  FileTreeInit   (FileTree* ftree);
+extern error FileTreeAdd    (FileTree* ftree, char* file_name);
+extern bool  FileTreeExist  (FileTree* ftree, char* file_name);
+extern void  FileTreeDestroy(FileTree* ftree);
 
 #endif

@@ -3,12 +3,12 @@
  * Use of this source code is governed by a BSD-style
  * license that can be found in the LICENSE file.
  *
- *     The lex.h and lex.c define and implement the lexical
- * analyzer of the c+ programming language.
+ *     The lexer.h and lexer.c define and implement the lexical
+ * analyzer of the C+ programming language.
  **/
 
-#ifndef CPLUS_LEX_H
-#define CPLUS_LEX_H
+#ifndef CPLUS_LEXER_H
+#define CPLUS_LEXER_H
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -91,22 +91,39 @@
 #define TOKEN_OP_COLON         445  // :
 #define TOKEN_OP_SINGLE_CMT    446  // //
 #define TOKEN_OP_MULTIL_CMT    447  // /**/
-#define TOKEN_LINEFEED         502  // change-line symbol
+#define TOKEN_LINEFEED         502  // line-feed
+#define TOKEN_TYPE_BYTE        600  // Byte
+#define TOKEN_TYPE_INT8        601  // Int8
+#define TOKEN_TYPE_INT16       602  // Int16
+#define TOKEN_TYPE_INT32       603  // Int32
+#define TOKEN_TYPE_INT64       604  // Int64
+#define TOKEN_TYPE_UINT        605  // Uint
+#define TOKEN_TYPE_UINT8       606  // Uint8
+#define TOKEN_TYPE_UINT16      607  // Uint16
+#define TOKEN_TYPE_UINT32      608  // Uint32
+#define TOKEN_TYPE_UINT64      609  // Uint64
+#define TOKEN_TYPE_FLOAT32     610  // Float32
+#define TOKEN_TYPE_FLOAT64     611  // Float64
+#define TOKEN_TYPE_COMPLEX64   612  // Complex64
+#define TOKEN_TYPE_COMPLEX128  613  // Complex128
+#define TOKEN_TYPE_CHAR        614  // Char
+#define TOKEN_TYPE_STRING      615  // String
 
 // the micro definitions listd below can be used to confirm one lex_token's
 // type, you can use them as the example:
-//    lex_token lextkn;
+//    LexTkn lextkn;
 //    ...
-//    if (token_isid(lextkn.token_type) || token_iskeyword(lextkn.token_type)) {
+//    if (tokenIsID(lextkn.token_type) || tokenIsKeyword(lextkn.token_type)) {
 //        // process the token here
 //    }
 //    ...
-#define token_is_id(token_code)       (token_code == 100)
-#define token_is_keyword(token_code)  (200 <= token_code && token_code < 300)
-#define token_is_constlit(token_code) (300 <= token_code && token_code < 400)
-#define token_is_operator(token_code) (400 <= token_code && token_code < 500)
+#define tokenIsID(token_code)       (token_code == 100)
+#define tokenIsKeywords(token_code) (200 <= token_code && token_code < 300)
+#define tokenIsConstLit(token_code) (300 <= token_code && token_code < 400)
+#define tokenIsOperator(token_code) (400 <= token_code && token_code < 500)
+#define tokenIsPrimType(token_code) (600 <= token_code && token_code < 700)
 
-#define LEX_ERROR_EOF          -1
+#define LEX_ERROR_EOF         -1
 
 #define EXTRA_INFO_OP_LUNARY   1
 #define EXTRA_INFO_OP_RUNARY   2
@@ -114,19 +131,19 @@
 #define EXTRA_INFO_EXPR_END    4
 #define EXTRA_INFO_ASSIGN      5
 typedef struct {
-    dynamicarr_char token;      // one dynamic char array to store the token's content
-    int64           token_len;  // token's length
-    int16           token_type; // will be assigned with one of micro definitions prefixed with 'TOKEN_...'
-    int8            extra_info; // extra information of the token
-}lex_token;
+    DynamicArrChar token;      // one dynamic char array to store the token's content
+    int64          token_len;  // save the token's length
+    int16          token_code; // will be assigned with one of micro definitions prefixed with 'TOKEN_...'
+    int8           extra_info; // extra information of the token
+}LexToken;
 
-extern error lex_token_init   (lex_token* lextkn, int64 capacity);
-extern void  lex_token_append (lex_token* lextkn, char* str, int64 len);
-extern void  lex_token_appendc(lex_token* lextkn, char  ch);
-extern char* lex_token_getstr (lex_token* lextkn);
-extern void  lex_token_clear  (lex_token* lextkn);
-extern void  lex_token_debug  (lex_token* lextkn);
-extern void  lex_token_destroy(lex_token* lextkn);
+extern error lexTokenInit   (LexToken* lextkn, int64 capacity);
+extern void  lexTokenAppend (LexToken* lextkn, char* str, int64 len);
+extern void  lexTokenAppendc(LexToken* lextkn, char  ch);
+extern char* lexTokenGetStr (LexToken* lextkn);
+extern void  lexTokenClear  (LexToken* lextkn);
+extern void  lexTokenDebug  (LexToken* lextkn);
+extern void  lexTokenDestroy(LexToken* lextkn);
 
 // if want to change the lexical analyzer's buffer size and file
 // read rate, just modify the under micro definition.
@@ -135,50 +152,47 @@ extern void  lex_token_destroy(lex_token* lextkn);
 //   the index 'i' and 'buff_end_index' are 16bits numbers.
 #define LEX_BUFF_SIZE 4096
 typedef struct{
-    FILE* srcfile;
-    char  buffer[LEX_BUFF_SIZE];
-    int16 i;              // the array index of buffer
-    int16 buff_end_index; // the last index of the buffer. the buffer will not be
-                          // always filled with the capacity of LEX_BUFF_SIZE so
-                          // the buff_end_index will flag this situation
+    FILE*    srcfile;               // source file descriptor
+    char     buffer[LEX_BUFF_SIZE]; // the buffer used to read the source file
+    int16    i;                     // the array index of buffer
+    int16    buff_end_index;        // the last index of the buffer. the buffer will not be
+                                    // always filled with the capacity of LEX_BUFF_SIZE so
+                                    // the buff_end_index will flag this situation
+    char*    pos_file;              // the source file name now parsing
+    int32    pos_line;              // record the current analyzing line count
+    int16    pos_col;               // record the position in the current line
+    LexToken lextkn;                // to storage the information of the token which is parsing now
+    bool     parse_lock;            // if the parse_lock == true, the lexical analyzer can not
+                                    // continue to parse the next token
+}Lexer;
 
-    char*     pos_file;   // the source file name now parsing
-    int32     pos_line;   // record the current analyzing line count
-    int16     pos_col;    // record the position in the current line
-    lex_token lextkn;     // to storage the information of the token which is parsing now
-    bool      parse_lock; // if the parse_lock == true, the lexical analyzer can not
-                          // continue to parse the next token
-}lex_analyzer;
-
-// first initialize the lexical analyzer before using it.
-// and then you can use the lexical analyzer as the work-flow
-// displayed below:
+// first initialize the lexer before using it and then you can use the lexer as
+// the work-flow displayed below:
 //   ...
-//   lex_analyzer lex;
-//   lex_token*   lextkn;
+//   Lexer     lexer;
+//   LexToken* lextkn;
 //   ...
 //   for (;;) {
 //       // parse a token from the source code buffer
-//       error err = lex_parse_token(&lex);
+//       error err = lexerParseToken(&lexer);
 //       if (err != NULL) {
 //           return err;
 //       }
 //       // read the token parsed just now from the buffer
-//       lextkn = lex_read_token(&lex);
+//       lextkn = lexerReadToken(&lexer);
 //
 //       // do some operations for the token parsed at here...
 //
-//       // clear the current token in the buffer and ready to
-//       // parse the next token
-//       lex_next_token(&lex);
+//       // unlock the lexer ready to parse the next token
+//       lexerNextToken(&lexer);
 //   }
 //   ...
-extern error      lex_init         (lex_analyzer* lex);
-extern error      lex_open_srcfile (lex_analyzer* lex, char* file);
-extern void       lex_close_srcfile(lex_analyzer* lex);
-extern error      lex_parse_token  (lex_analyzer* lex);
-extern lex_token* lex_read_token   (lex_analyzer* lex);
-extern void       lex_next_token   (lex_analyzer* lex);
-extern void       lex_destroy      (lex_analyzer* lex);
+extern error     lexerInit        (Lexer* lexer);
+extern error     lexerOpenSrcFile (Lexer* lexer, char* file);
+extern void      lexerCloseSrcFile(Lexer* lexer);
+extern error     lexerParseToken  (Lexer* lexer);
+extern LexToken* lexerReadToken   (Lexer* lexer);
+extern void      lexerNextToken   (Lexer* lexer);
+extern void      lexerDestroy     (Lexer* lexer);
 
 #endif

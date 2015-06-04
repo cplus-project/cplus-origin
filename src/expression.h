@@ -11,8 +11,8 @@
 #define CPLUS_EXPRESSION_H
 
 #include "common.h"
-#include "lexical.h"
-#include "semantic.h"
+#include "lexer.h"
+#include "ast.h"
 
 // the priority with a smaller number has the higher precedence.
 #define OP_PRIORITY_NULL -1
@@ -26,54 +26,57 @@
 #define OP_PRIORITY_7     2
 #define OP_PRIORITY_8     1
 #define OP_PRIORITY_9     0
-extern int8 get_op_priority(int16 op_token_code);
+
+extern int8 getOptrPriority(int16 op_token_code);
 
 #define OP_TYPE_LUNARY   EXTRA_INFO_OP_LUNARY
 #define OP_TYPE_RUNARY   EXTRA_INFO_OP_RUNARY
 #define OP_TYPE_BINARY   EXTRA_INFO_OP_BINARY
 #define OP_TYPE_EXPR_END EXTRA_INFO_EXPR_END
-typedef struct optr {
+typedef struct OptrInfo {
     int16 op_token_code; // TOKEN_OP_XXX
     int8  op_type;       // OP_TYPE_LUNARY or OP_TYPE_RUNARY or OP_TYPE_BINARY
     int8  op_priority;   // OP_PRIORITY_0 to OP_PRIORITY_9
-}optr;
+}OptrInfo;
 
-typedef struct optr_stack_node {
-    optr op;
-    struct optr_stack_node* next;
-}optr_stack_node;
+typedef struct OptrStackNode {
+    OptrInfo op;
+    struct OptrStackNode* next;
+}OptrStackNode;
 
-// the optr_stack is used to save a set of operators' token code
+// the OptrStack is used to save a set of operators' information
 // to assist to parse the expression.
 typedef struct {
-    optr_stack_node* top;
-}optr_stack;
+    OptrStackNode* top;
+}OptrStack;
 
-extern void  optr_stack_init   (optr_stack* optrstk);
-extern void  optr_stack_push   (optr_stack* optrstk, optr op);
-extern bool  optr_stack_isempty(optr_stack* optrstk);
-extern optr* optr_stack_top    (optr_stack* optrstk);
-extern void  optr_stack_pop    (optr_stack* optrstk);
-extern void  optr_stack_destroy(optr_stack* optrstk);
+extern void      optrStackInit   (OptrStack* optrstk);
+extern void      optrStackPush   (OptrStack* optrstk, OptrInfo op);
+extern bool      optrStackIsEmpty(OptrStack* optrstk);
+extern OptrInfo* optrStackTop    (OptrStack* optrstk);
+extern void      optrStackPop    (OptrStack* optrstk);
+extern void      optrStackDestroy(OptrStack* optrstk);
 
-typedef struct oprd_stack_node {
-    smt_expr* oprd;
-    struct oprd_stack_node* next;
-}oprd_stack_node;
+typedef struct OprdStackNode {
+    ASTNodeExpr* oprd;
+    struct OprdStackNode* next;
+}OprdStackNode;
 
-// the oprd_stack is used to save a set of smt_expr to assist
+// the OprdStack is used to save a set of ASTNodeExpr to assist
 // to parse the expression.
 typedef struct {
-    oprd_stack_node* top;
-}oprd_stack;
+    OprdStackNode* top;
+    int            oprd_count;
+}OprdStack;
 
-extern void      oprd_stack_init      (oprd_stack* oprdstk);
-extern void      oprd_stack_push      (oprd_stack* oprdstk, smt_expr* oprdexpr);
-extern bool      oprd_stack_isempty   (oprd_stack* oprdstk);
-extern smt_expr* oprd_stack_top       (oprd_stack* oprdstk);
-extern void      oprd_stack_pop       (oprd_stack* oprdstk);
-extern error     oprd_stack_calcu_once(oprd_stack* oprdstk, optr op);
-extern error     oprd_stack_calcu     (oprd_stack* oprdstk, optr_stack* optrstk);
-extern void      oprd_stack_destroy   (oprd_stack* oprdstk);
+extern void         oprdStackInit     (OprdStack* oprdstk);
+extern void         oprdStackPush     (OprdStack* oprdstk, ASTNodeExpr* oprdexpr);
+extern bool         oprdStackIsEmpty  (OprdStack* oprdstk);
+extern ASTNodeExpr* oprdStackTop      (OprdStack* oprdstk);
+extern void         oprdStackPop      (OprdStack* oprdstk);
+extern error        oprdStackCalcuOnce(OprdStack* oprdstk, OptrInfo   op);
+extern error        oprdStackCalcu    (OprdStack* oprdstk, OptrStack* optrstk);
+extern ASTNodeExpr* oprdStackGetResult(OprdStack* oprdstk);
+extern void         oprdStackDestroy  (OprdStack* oprdstk);
 
 #endif

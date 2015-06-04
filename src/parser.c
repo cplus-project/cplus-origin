@@ -4,51 +4,247 @@
  * license that can be found in the LICENSE file.
  **/
 
-#include "syntax.h"
-#include "semantic.h"
+#include "parser.h"
 
 static error err = NULL;
 
-#define syntax_analyzer_get_token(syx) \
-err = lex_parse_token(syx->lex);            \
+// this micro definition wraps the operation about extracting
+// tokens from the lexer but without the lex_next_token call.
+// so you can also use this micro to peek the next one token.
+#define parserGetCurToken(parser) \
+err = lexerParseToken(parser->lexer);       \
 if (err != NULL) {                          \
     if (ERROR_CODE(err) == LEX_ERROR_EOF) { \
         return NULL;                        \
     }                                       \
-    return err;                             \
+    return (void*)-1;                       \
 }                                           \
-syx->cur_token = lex_read_token(syx->lex);
+parser->cur_token = lexerReadToken(parser->lexer);
 
-#define check_lex_error(err) \
-if (ERROR_CODE(err) == LEX_ERROR_EOF) { \
-    return NULL;                        \
-}                                       \
-return err;
+// any parserParseXxxx function of parser should be called within
+// this micro definition. this micro will check the lexical errors
+// and distinguish wether they are normal termination or exceptional
+// termination.
+#define parserCheckRetNode(parse_func_call) \
+switch ((int64)(parse_func_call)) {                \
+case  0:                                           \
+    return NULL;                                   \
+case -2:                                           \
+    return AST_NODE_NULL;                          \
+case -1:                                           \
+    fatal("meet some exceptional lexical error."); \
+default:                                           \
+    break;                                         \
+}
 
-// return NULL if peeking the next token failed.
+void parserReportErr(Parser* parser, char* errmsg) {
+    parser->err_count++;
+    printf("#%02d file(%s) line(%d) column(%d):\r\n    %s\r\n",
+        parser->err_count,
+        parser->lexer->pos_file,
+        parser->lexer->pos_line,
+        parser->lexer->pos_col,
+        errmsg
+    );
+    if (parser->err_count >= 50) {
+        fprintf(stderr, "the number of errors exceeds 50. please solve the errors founded already.");
+        exit(EXIT_FAILURE);
+    }
+}
+
+static ASTNodeConstLit* parserParseConstLit(Parser* parser) {
+    ASTNodeConstLit* node_const = (ASTNodeConstLit*)mem_alloc(sizeof(ASTNodeConstLit));
+    node_const->pos_line    = parser->lexer->pos_line;
+    node_const->pos_col     = parser->lexer->pos_col;
+    node_const->const_type  = parser->cur_token->token_code;
+    node_const->const_value = lexTokenGetStr(parser->cur_token);
+    return node_const;
+}
+
+static ASTNodeID* parserParseID(Parser* parser) {
+    ASTNodeID* node_id = (ASTNodeID*)mem_alloc(sizeof(ASTNodeID));
+    
+    node_id->pos_line = parser->lexer->pos_line;
+    node_id->pos_col  = parser->lexer->pos_col;
+
+    if (tokenIsPrimType(parser->cur_token->token_code)) {
+        IdentType* typeinfo = (IdentType*)mem_alloc(sizeof(IdentType));
+        typeinfo->primitive = true;
+        typeinfo->type_entity.instance_primitive.type_token_code = parser->cur_token->token_code;
+        node_id->id = makeIdentType(NULL, ACCESS_NULL, typeinfo);
+        return node_id;
+    }
+
+    Ident* id = scopeSearchID(parser->cur_scope, lexTokenGetStr(parser->cur_token));
+    if (id != NULL) {
+        node_id->id = id;
+        return node_id;
+    }
+
+    parserReportErr(parser, "identifier not declared.");
+    return AST_NODE_NULL;
+}
+
+static ASTNodeExpr* parserParseExpr(Parser* parser) {
+    OprdStack oprdstk;
+    OptrStack optrstk;
+
+    oprdStackInit(&oprdstk);
+    optrStackInit(&optrstk);
+
+    for (;;) {
+        parserGetCurToken(parser);
+
+        // operands are pushed into the stack.
+        if (tokenIsID(parser->cur_token->token_code)) {
+            lexerNextToken(parser->lexer);
+            ASTNodeExpr* oprd = (ASTNodeExpr*)mem_alloc(sizeof(ASTNodeExpr));
+            oprd->expr_type = AST_NODE_ID;
+            parserCheckRetNode(oprd->expr.expr_id = parserParseID(parser));
+            switch (oprd->expr.expr_id->id->id_type) {
+            case ID_CONST:
+            case ID_VAR:
+                oprdStackPush(&oprdstk, oprd);
+                break;
+            case ID_ARRAY:
+                break;
+            case ID_TYPE:
+                break;
+            case ID_FUNC:
+                break;
+            }
+        }
+        else if (tokenIsConstLit(parser->cur_token->token_code)) {
+            lexerNextToken(parser->lexer);
+            ASTNodeExpr* oprd = (ASTNodeExpr*)mem_alloc(sizeof(ASTNodeExpr));
+            oprd->expr_type = AST_NODE_CONST_LIT;
+            parserCheckRetNode(oprd->expr.expr_const_lit = parserParseConstLit(parser));
+            oprdStackPush(&oprdstk, oprd);
+        }
+
+        // operators will be processed based on the previous operators.
+        else if (TOKEN_OP_SPOT <= parser->cur_token->token_code && parser->cur_token->token_code <= TOKEN_OP_LOGIC_OR) {
+            OptrInfo cur_optr;
+            cur_optr.op_token_code = parser->cur_token->token_code;
+            cur_optr.op_type       = parser->cur_token->extra_info;
+            cur_optr.op_priority   = getOptrPriority(parser->cur_token->token_code);
+
+            // the '(' will be directly pushed into the operator stack.
+            // the unary operator like $(dereference) and @(get address) will be pushed into stack
+            // as well, because the operand needed by them will be parsed later.
+            if (cur_optr.op_token_code == TOKEN_OP_LPARENTHESE || cur_optr.op_token_code == OP_TYPE_LUNARY) {
+                optrStackPush(&optrstk, cur_optr);
+                continue;
+            }
+
+            OptrInfo* top_optr;
+            for (;;) {
+                top_optr = optrStackIsEmpty(&optrstk) == false ? optrStackTop(&optrstk) : NULL;
+                if (top_optr == NULL || cur_optr.op_priority > top_optr->op_priority) {
+                    optrStackPush(&optrstk, cur_optr);
+                    break;
+                }
+                else if (top_optr->op_type == OP_TYPE_EXPR_END) {
+                    oprdStackCalcu(&oprdstk, &optrstk);
+                    break;
+                }
+                else {
+                    oprdStackCalcuOnce(&oprdstk, *top_optr);
+                }
+            }
+        }
+
+        else {
+            oprdStackCalcu(&oprdstk, &optrstk);
+            break;
+        }
+    }
+
+    oprdStackDestroy(&oprdstk);
+    optrStackDestroy(&optrstk);
+
+    return oprdStackGetResult(&oprdstk);
+}
+
+static ASTNodeFuncCall* parserParseFuncCall(Parser* parser) {
+    ASTNodeFuncCall* node_func_call = (ASTNodeFuncCall*)mem_alloc(sizeof(ASTNodeFuncCall));
+    node_func_call->func_name = lexTokenGetStr(parser->cur_token);
+    return node_func_call;
+}
+
+static ASTNodeBlock* parserParseBlock(Parser* parser) {
+    ASTNodeBlock*     node_block = (ASTNodeBlock*)mem_alloc(sizeof(ASTNodeBlock));
+    ASTNodeBlockStmt* cur_stmt;
+    for (;;) {
+        parserGetCurToken(parser);
+        if (tokenIsKeywords(parser->cur_token->token_code)) {
+            switch (parser->cur_token->token_code) {
+            case TOKEN_KEYWORD_IF:
+                break;
+
+            case TOKEN_KEYWORD_SWITCH:
+                break;
+
+            case TOKEN_KEYWORD_FOR:
+                break;
+
+            case TOKEN_KEYWORD_BREAK:
+                break;
+
+            case TOKEN_KEYWORD_CONTINUE:
+                break;
+
+            case TOKEN_KEYWORD_TYPE:
+                break;
+
+            case TOKEN_KEYWORD_FUNC:
+                break;
+
+            case TOKEN_KEYWORD_NEW:
+                break;
+
+            case TOKEN_KEYWORD_RETURN:
+                break;
+
+            case TOKEN_KEYWORD_ERROR:
+                break;
+
+            case TOKEN_KEYWORD_DEAL:
+                break;
+
+            default:
+                parserReportErr(parser, "unknown keyword.");
+                break;
+            }
+        }
+        else if (parser->cur_token->token_code == TOKEN_LINEFEED) {
+            lexerNextToken(parser->lexer);
+            continue;
+        }
+        else {
+            /*
+             expr id   -> declaration
+             expr =    -> assignment
+             expr ,    -> expression list
+             */
+
+            ASTNodeExpr* node_expr;
+            parserCheckRetNode(node_expr = parserParseExpr(parser));
+        }
+    }
+    return NULL;
+}
+
+/////////////////////////////////////////////////////////////////////////////////////
+
+/*
+
 static lex_token* syntax_analyzer_peek_token(syntax_analyzer* syx) {
     error err = lex_parse_token(syx->lex);
     if (err != NULL) {
         return NULL;
     }
     return lex_read_token(syx->lex);
-}
-
-// print and count the error. if the number of errors exceeds 50, the compiler
-// will stop working and notify the programmer.
-static void syntax_analyzer_report_error(syntax_analyzer* syx, char* errmsg) {
-    syx->err_count++;
-    printf("#%03d file(%s) line(%d) col(%d):\r\n     %s\r\n",
-        syx->err_count,
-        syx->lex->pos_file,
-        syx->lex->pos_line,
-        syx->lex->pos_col,
-        errmsg
-    );
-    if (syx->err_count >= 50) {
-        fprintf(stderr, "the number of errors exceeds 50. please solve the errors founded already.");
-        exit(EXIT_FAILURE);
-    }
 }
 
 void syntax_analyzer_init(syntax_analyzer* syx, char* file_name) {
@@ -90,7 +286,7 @@ static error syntax_analyzer_parse_module(syntax_analyzer* syx) {
     int16           last_type = TOKEN_UNKNOWN;
     dynamicarr_char darr;
     dynamicarr_char_init(&darr, 255);
-    
+
     for (;;) {
         syntax_analyzer_get_token(syx);
         if (syx->cur_token->token_type != TOKEN_KEYWORD_MODULE) {
@@ -206,7 +402,7 @@ static error syntax_analyzer_parse_expr(syntax_analyzer* syx, smt_expr* expr, bo
             cur_optr.op_token_code = tkntype;
             cur_optr.op_priority   = get_op_priority(tkntype);
             cur_optr.op_type       = syx->cur_token->extra_info;
-  
+
             // the '(' will be directly pushed into the operator stack.
             // the unary operator like $(dereference) and @(get address) will be pushed into stack
             // as well, because the operand needed by them will be parsed later.
@@ -387,7 +583,7 @@ static error syntax_analyzer_parse_branch_if(syntax_analyzer* syx) {
     if ((err = syntax_analyzer_parse_if(syx, &_if)) != NULL) {
         // TODO: report error...
     }
-    
+
     smt_ef_list       ef_list;
     smt_ef_list_node* cur;
     for (cur = ef_list.first; syntax_analyzer_peek_token(syx)->token_type == TOKEN_KEYWORD_EF;) {
@@ -395,7 +591,7 @@ static error syntax_analyzer_parse_branch_if(syntax_analyzer* syx) {
         if ((err = syntax_analyzer_parse_ef(syx, &create->_ef)) != NULL) {
             // TODO: report error...
         }
-        
+
         create->next = NULL;
         if (cur != NULL) {
             cur->next = create;
@@ -406,12 +602,12 @@ static error syntax_analyzer_parse_branch_if(syntax_analyzer* syx) {
             cur = create;
         }
     }
-    
+
     smt_else _else;
     if ((err = syntax_analyzer_parse_else(syx, &_else)) != NULL) {
         // TODO: report error...
     }
-    
+
     return NULL;
 }
 
@@ -425,7 +621,7 @@ static error syntax_analyzer_parse_branch_switch(syntax_analyzer* syx) {
         // TODO: report error...
     }
     lex_next_token(syx->lex);
-    
+
     // parsing case and default statement in this loop
     bool default_exist = false;
     for (;;) {
@@ -447,7 +643,7 @@ static error syntax_analyzer_parse_branch_switch(syntax_analyzer* syx) {
                 }
             }
             break;
-            
+
         case TOKEN_KEYWORD_DEFAULT: {
                 if (default_exist == true) {
                     // TODO: report error...
@@ -464,20 +660,20 @@ static error syntax_analyzer_parse_branch_switch(syntax_analyzer* syx) {
                 }
             }
             break;
-            
+
         case TOKEN_OP_RBRACE:
             if ((err = close_counter_decrease(&syx->clsctr, '}')) != NULL) {
                 // TODO: report error...
             }
             lex_next_token(syx->lex);
             break;
-            
+
         default:
             // TODO: report error...
             break;
         }
     }
-    
+
     return NULL;
 }
 
@@ -493,7 +689,7 @@ static error syntax_analyzer_parse_loop(syntax_analyzer* syx) {
     if (syntax_analyzer_peek_token(syx)->token_type == TOKEN_OP_SEMC) {
         lex_next_token(syx->lex);
     }
-    
+
     smt_expr expr1;
     if ((err = syntax_analyzer_parse_expr(syx, &expr1, true)) != NULL) {
         // TODO: report error...
@@ -508,12 +704,12 @@ static error syntax_analyzer_parse_loop(syntax_analyzer* syx) {
     case TOKEN_OP_COLON:
         break;
     }
-    
+
     smt_expr expr2;
     if ((err = syntax_analyzer_parse_expr(syx, &expr2, true)) != NULL) {
         // TODO: report error...
     }
-    
+
     return NULL;
 }
 
@@ -529,7 +725,7 @@ static error syntax_analyzer_parse_formal_params(syntax_analyzer* syx, formal_pa
             lex_next_token(syx->lex);
             return NULL;
         }
-        
+
         if (tail != NULL) {
             tail->next = (formal_param*)mem_alloc(sizeof(formal_param));
             tail->next->next = NULL;
@@ -540,11 +736,11 @@ static error syntax_analyzer_parse_formal_params(syntax_analyzer* syx, formal_pa
             head->next = NULL;
             tail = head;
         }
-        
+
         if ((err = syntax_analyzer_parse_expr(syx, &tail->param_type, false)) != NULL) {
             // TODO: report error...
         }
-        
+
         syntax_analyzer_get_token(syx);
         if (syx->cur_token->token_type != TOKEN_ID) {
             // TODO: report error...
@@ -559,14 +755,14 @@ static error syntax_analyzer_parse_func_def(syntax_analyzer* syx) {
     smt_func_def func_def;
     func_def.params_passin = NULL;
     func_def.params_retout = NULL;
-    
+
     syntax_analyzer_get_token(syx);
     if (syx->cur_token->token_type != TOKEN_ID) {
         // TODO: report error...
     }
     func_def.func_name = lex_token_getstr(syx->cur_token);
     lex_next_token(syx->lex);
-    
+
     if ((err = syntax_analyzer_parse_formal_params(syx, func_def.params_passin)) != NULL) {
         // TODO: report error...
     }
@@ -600,7 +796,7 @@ static error syntax_analyzer_parse_type_members(syntax_analyzer* syx, member_dec
             lex_next_token(syx->lex);
             return NULL;
         }
-        
+
         if (tail != NULL) {
             tail->next = (member_decl*)mem_alloc(sizeof(member_decl));
             tail->next->next = NULL;
@@ -611,7 +807,7 @@ static error syntax_analyzer_parse_type_members(syntax_analyzer* syx, member_dec
             head->next = NULL;
             tail = head;
         }
-        
+
         switch (syx->cur_token->token_type) {
         case TOKEN_KEYWORD_IN:
             tail->access = ACCESS_IN;
@@ -625,18 +821,18 @@ static error syntax_analyzer_parse_type_members(syntax_analyzer* syx, member_dec
             tail->access = ACCESS_IN;
             break;
         }
-        
+
         if ((err = syntax_analyzer_parse_expr(syx, &tail->member_type, false)) != NULL) {
             // TODO: report error...
         }
-        
+
         syntax_analyzer_get_token(syx);
         if (syntax_analyzer_peek_token(syx)->token_type != TOKEN_ID) {
             // TODO: report error...
         }
         tail->member_name = lex_token_getstr(syx->cur_token);
         lex_next_token(syx->lex);
-        
+
         if (syntax_analyzer_peek_token(syx)->token_type != TOKEN_LINEFEED) {
             // TODO: report error...
         }
@@ -657,7 +853,7 @@ static error syntax_analyzer_parse_type(syntax_analyzer* syx) {
                 if ((err = syntax_analyzer_parse_expr(syx, type_decl.type_bind, false)) != NULL) {
                     // TODO: report error...
                 }
-            } 
+            }
             else type_decl.type_bind = NULL;
             // smt_parse_type_decl();
         }
@@ -685,11 +881,11 @@ static error syntax_analyzer_parse_new(syntax_analyzer* syx) {
     smt_new _new;
     _new.new_init_params = NULL;
     _new.new_capacity    = NULL;
-    
+
     if ((err = syntax_analyzer_parse_expr(syx, &_new.new_type_name, false)) != NULL) {
         // TODO: report error...
     }
-    
+
     if (syntax_analyzer_peek_token(syx)->token_type == TOKEN_OP_LPARENTHESE) {
         lex_next_token(syx->lex);
         close_counter_increase(&syx->clsctr, '(');
@@ -699,7 +895,7 @@ static error syntax_analyzer_parse_new(syntax_analyzer* syx) {
             // TODO: report error...
         }
     }
-    
+
     if (syntax_analyzer_peek_token(syx)->token_type == TOKEN_OP_LBRACKET) {
         lex_next_token(syx->lex);
         close_counter_increase(&syx->clsctr, '[');
@@ -708,7 +904,7 @@ static error syntax_analyzer_parse_new(syntax_analyzer* syx) {
             // TODO: report error...
         }
     }
-    
+
     smt_analyzer_parse_new(syx->smt, &_new);
     return NULL;
 }
@@ -760,7 +956,7 @@ static error syntax_analyzer_parse_block(syntax_analyzer* syx) {
                     check_lex_error(err);
                 }
                 break;
-            
+
             case TOKEN_KEYWORD_NEW:
                 lex_next_token(syx->lex);
                 if ((err = syntax_analyzer_parse_new(syx)) != NULL) {
@@ -845,13 +1041,13 @@ error syntax_analyzer_work(syntax_analyzer* syx) {
 
         // if the file has been compiled then import the data from the obj file.
         if (file_tree_exist(&syx->file_have_compiled, file_name) == true) {
-            // TODO: 
+            // TODO:
         }
         // if the file has not been compiled then try to compile the file.
         else {
             smt_analyzer smt;
             smt_analyzer_init(&smt);
-            
+
             lex_analyzer lex;
             lex_init(&lex);
             // try to open the source file. the compile operation process will
@@ -888,7 +1084,7 @@ error syntax_analyzer_work(syntax_analyzer* syx) {
             if ((err = syntax_analyzer_parse_block(syx)) != NULL) {
                 // TODO: report error...
             }
-            
+
             // parse the file successfully if get here. then add the file in the cache,
             // if next time some source file includes this file, the file information will
             // be extracted from the cache.
@@ -916,7 +1112,7 @@ void syntax_analyzer_destroy(syntax_analyzer* syx) {
     syx->lex       = NULL;
     syx->smt       = NULL;
     syx->err_count = 0;
-}
+}*/
 
-#undef syntax_analyzer_get_token
-#undef check_lex_error
+#undef parserGetCurToken
+#undef parserCheckRetNode

@@ -6,22 +6,22 @@
 
 #include "scope.h"
 
-void scope_init(scope* scp, scope* outer) {
-    ident_table_init(&scp->itab);
-    scp->outer = outer;
+void scopeInit(Scope* scope, Scope* outer) {
+    identTableInit(&scope->id_table);
+    scope->outer = outer;
 }
 
-error scope_add_id(scope* scp, ident* id) {
-    return ident_table_add(&scp->itab, id);
+error scopeAddID(Scope* scope, Ident* id) {
+    return identTableAdd(&scope->id_table, id);
 }
 
 // search an identifier from the outermost scope to the innermost
-// scope.
-ident* scope_search_id(scope* scp, char* id_name) {
-    ident* id;
-    scope* ptr = scp;
+// scope. return NULL if the identify is not in all scopes.
+Ident* scopeSearchID(Scope* scope, char* id_name) {
+    Ident* id;
+    Scope* ptr = scope;
     for (;;) {
-        id = ident_table_search(&ptr->itab, id_name);
+        id = identTableSearch(&ptr->id_table, id_name);
         if (id != NULL) {
             return id;
         }
@@ -32,7 +32,7 @@ ident* scope_search_id(scope* scp, char* id_name) {
     }
 }
 
-void scope_destroy(scope* scp) {
-    ident_table_destroy(&scp->itab);
-    scp->outer = NULL;
+void scopeDestroy(Scope* scope) {
+    identTableDestroy(&scope->id_table);
+    scope->outer = NULL;
 }

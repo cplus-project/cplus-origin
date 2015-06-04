@@ -6,7 +6,7 @@
 
 #include "expression.h"
 
-int8 get_op_priority(int16 op_token_code) {
+int8 getOptrPriority(int16 op_token_code) {
     if (op_token_code > 408) {
         if (op_token_code < 431) {
             if (op_token_code < 414) return OP_PRIORITY_0;
@@ -24,14 +24,14 @@ int8 get_op_priority(int16 op_token_code) {
     return OP_PRIORITY_NULL;
 }
 
-/****** methods of optr_stack ******/
+/****** methods of OptrStack ******/
 
-void optr_stack_init(optr_stack* optrstk) {
+void optrStackInit(OptrStack* optrstk) {
     optrstk->top = NULL;
 }
 
-void optr_stack_push(optr_stack* optrstk, optr op) {
-    optr_stack_node* create = (optr_stack_node*)mem_alloc(sizeof(optr_stack_node));
+void optrStackPush(OptrStack* optrstk, OptrInfo op) {
+    OptrStackNode* create = (OptrStackNode*)mem_alloc(sizeof(OptrStackNode));
     create->op   = op;
     create->next = NULL;
     if (optrstk->top != NULL) {
@@ -44,25 +44,25 @@ void optr_stack_push(optr_stack* optrstk, optr op) {
 }
 
 // return true if the stack is empty.
-bool optr_stack_isempty(optr_stack* optrstk) {
+bool optrStackIsEmpty(OptrStack* optrstk) {
     if (optrstk->top == NULL) {
         return true;
     }
     return false;
 }
 
-optr* optr_stack_top(optr_stack* optrstk) {
+OptrInfo* optrStackTop(OptrStack* optrstk) {
     return &optrstk->top->op;
 }
 
-void optr_stack_pop(optr_stack* optrstk) {
-    optr_stack_node* temp = optrstk->top;
+void optrStackPop(OptrStack* optrstk) {
+    OptrStackNode* temp = optrstk->top;
     optrstk->top = optrstk->top->next;
     mem_free(temp);
 }
 
-void optr_stack_destroy(optr_stack* optrstk) {
-    optr_stack_node* temp;
+void optrStackDestroy(OptrStack* optrstk) {
+    OptrStackNode* temp;
     for (;;) {
         if (optrstk->top == NULL) {
             return;
@@ -73,14 +73,15 @@ void optr_stack_destroy(optr_stack* optrstk) {
     }
 }
 
-/****** methods of oprd_stack ******/
+/****** methods of OprdStack ******/
 
-void oprd_stack_init(oprd_stack* oprdstk) {
-    oprdstk->top = NULL;
+void oprdStackInit(OprdStack* oprdstk) {
+    oprdstk->top        = NULL;
+    oprdstk->oprd_count = 0;
 }
 
-void oprd_stack_push(oprd_stack* oprdstk, smt_expr* oprdexpr) {
-    oprd_stack_node* create = (oprd_stack_node*)mem_alloc(sizeof(oprd_stack_node));
+void oprdStackPush(OprdStack* oprdstk, ASTNodeExpr* oprdexpr) {
+    OprdStackNode* create = (OprdStackNode*)mem_alloc(sizeof(OprdStackNode));
     create->oprd = oprdexpr;
     create->next = NULL;
     if (oprdstk->top != NULL) {
@@ -90,90 +91,98 @@ void oprd_stack_push(oprd_stack* oprdstk, smt_expr* oprdexpr) {
     else {
         oprdstk->top = create;
     }
+    oprdstk->oprd_count++;
 }
 
 // return true if the stack is empty.
-bool oprd_stack_isempty(oprd_stack* oprdstk) {
+bool oprdStackIsEmpty(OprdStack* oprdstk) {
     if (oprdstk->top == NULL) {
         return true;
     }
     return false;
 }
 
-smt_expr* oprd_stack_top(oprd_stack* oprdstk) {
+ASTNodeExpr* oprdStackTop(OprdStack* oprdstk) {
     return oprdstk->top->oprd;
 }
 
-void oprd_stack_pop(oprd_stack* oprdstk) {
+void oprdStackPop(OprdStack* oprdstk) {
     oprdstk->top = oprdstk->top->next;
+    oprdstk->oprd_count--;
 }
 
-error oprd_stack_calcu_once(oprd_stack* oprdstk, optr op) {
+error oprdStackCalcuOnce(OprdStack* oprdstk, OptrInfo op) {
     switch (op.op_type) {
     case OP_TYPE_LUNARY:
     case OP_TYPE_RUNARY: {
             // get the operand of the unary operator
-            if (oprd_stack_isempty(oprdstk) == true) {
+            if (oprdStackIsEmpty(oprdstk) == true) {
                 return new_error("no enough operands.");
             }
-            smt_expr* oprd = oprd_stack_top(oprdstk);
-            oprd_stack_pop(oprdstk);
-            
-            // get the result expression
-            smt_expr* calcu_ret = (smt_expr*)mem_alloc(sizeof(smt_expr*));
-            calcu_ret->expr_type = SMT_EXPR_UNARY;
-            calcu_ret->expr.expr_unary = (smt_expr_unary*)mem_alloc(sizeof(smt_expr_unary));
-            calcu_ret->expr.expr_unary->op_token_code = op.op_token_code;
-            calcu_ret->expr.expr_unary->oprd          = oprd;
-            oprd_stack_push(oprdstk, calcu_ret);
-        }
-        break;
-    case OP_TYPE_BINARY: {
-            // get the two operands of the binary operator
-            if (oprd_stack_isempty(oprdstk) == true) {
-                return new_error("no enough operands.");
-            }
-            smt_expr* oprd2 = oprd_stack_top(oprdstk);
-            oprd_stack_pop(oprdstk);
-            if (oprd_stack_isempty(oprdstk) == true) {
-                return new_error("no enough operands.");
-            }
-            smt_expr* oprd1 = oprd_stack_top(oprdstk);
-            oprd_stack_pop(oprdstk);
+            ASTNodeExpr* oprd = oprdStackTop(oprdstk);
+            oprdStackPop(oprdstk);
 
             // get the result expression
-            smt_expr* calcu_ret = (smt_expr*)mem_alloc(sizeof(smt_expr));
-            calcu_ret->expr_type = SMT_EXPR_BINARY;
-            calcu_ret->expr.expr_binary = (smt_expr_binary*)mem_alloc(sizeof(smt_expr_binary));
+            ASTNodeExpr* calcu_ret = (ASTNodeExpr*)mem_alloc(sizeof(ASTNodeExpr*));
+            calcu_ret->expr_type = AST_NODE_EXPR_UNRY;
+            calcu_ret->expr.expr_unary = (ASTNodeExprUnry*)mem_alloc(sizeof(ASTNodeExprUnry));
+            calcu_ret->expr.expr_unary->op_token_code = op.op_token_code;
+            calcu_ret->expr.expr_unary->oprd = oprd;
+            oprdStackPush(oprdstk, calcu_ret);
+        }
+        break;
+
+    case OP_TYPE_BINARY: {
+            // get the two operands of the binary operator
+            if (oprdStackIsEmpty(oprdstk) == true) {
+                return new_error("no enough operands.");
+            }
+            ASTNodeExpr* oprd2 = oprdStackTop(oprdstk);
+            oprdStackPop(oprdstk);
+            if (oprdStackIsEmpty(oprdstk) == true) {
+                return new_error("no enough operands.");
+            }
+            ASTNodeExpr* oprd1 = oprdStackTop(oprdstk);
+            oprdStackPop(oprdstk);
+
+            // get the result expression
+            ASTNodeExpr* calcu_ret = (ASTNodeExpr*)mem_alloc(sizeof(ASTNodeExpr));
+            calcu_ret->expr_type = AST_NODE_EXPR_BNRY;
+            calcu_ret->expr.expr_binary = (ASTNodeExprBnry*)mem_alloc(sizeof(ASTNodeExprBnry));
             calcu_ret->expr.expr_binary->op_token_code = op.op_token_code;
             calcu_ret->expr.expr_binary->oprd1 = oprd1;
             calcu_ret->expr.expr_binary->oprd2 = oprd2;
-            oprd_stack_push(oprdstk, calcu_ret);
+            oprdStackPush(oprdstk, calcu_ret);
         }
         break;
-    default:
-        return new_error("invalid operator type.");
     }
-    
+
     return NULL;
 }
 
-error oprd_stack_calcu(oprd_stack* oprdstk, optr_stack* optrstk) {
-    error err;
-    optr* top_optr;
+error oprdStackCalcu(OprdStack* oprdstk, OptrStack* optrstk) {
+    error     err;
+    OptrInfo* top_optr;
     for (;;) {
-        top_optr = optr_stack_isempty(optrstk) == false ? (optr_stack_top(optrstk)) : NULL;
+        top_optr = optrStackIsEmpty(optrstk) == false ? (optrStackTop(optrstk)) : NULL;
         if (top_optr == NULL || top_optr->op_token_code == TOKEN_OP_LPARENTHESE) {
             return NULL;
         }
-        if ((err = oprd_stack_calcu_once(oprdstk, *top_optr)) != NULL) {
+        if ((err = oprdStackCalcuOnce(oprdstk, *top_optr)) != NULL) {
             return err;
         }
     }
 }
 
-void oprd_stack_destroy(oprd_stack* oprdstk) {
-    oprd_stack_node* temp;
+ASTNodeExpr* oprdStackGetResult(OprdStack* oprdstk) {
+    if (oprdstk->oprd_count == 1)
+        return oprdStackTop(oprdstk);
+    else
+        return (void*)-1;
+}
+
+void oprdStackDestroy(OprdStack* oprdstk) {
+    OprdStackNode* temp;
     for (;;) {
         if (oprdstk->top == NULL) {
             return;

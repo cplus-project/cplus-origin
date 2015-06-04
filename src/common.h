@@ -49,41 +49,20 @@ typedef unsigned char          uchar;
 // example:
 //    #define ERR_INPUT_EOF  -1
 //    #define ERR_INPUT_FAIL -2
+//    ...
 //    error err = NEW_ERROR_CODE(ERR_INPUT_EOF);
-//    if (ERROR_CODE(err) == ERR_INPUT_EOF) {
-//        // handle the error...
+//    if (err != NULL) {
+//        switch (ERROR_CODE(err)) {
+//        case ERR_INPUT_EOF:  ...; break;
+//        case ERR_INPUT_FAIL: ...; break;
+//        }
 //    }
+//    ...
 typedef char* error;
 extern error new_error(char* errmsg);
+
 #define NEW_ERROR_CODE(code) (error)code
 #define ERROR_CODE(err)      (int64)err
-
-#define ERROR_TYPE_GENERAL   0x00
-#define ERROR_TYPE_LEXICAL   0x01
-#define ERROR_TYPE_SYNTACTIC 0x02
-#define ERROR_TYPE_SEMANTIC  0x03
-
-typedef struct error_list_node {
-    error err;
-    int32 err_type;
-    int32 line_count;
-    struct error_list_node* next;
-}error_list_node;
-
-// the error_list is used to store a set of compile-error.
-// it is different from the another error of C+ language.
-typedef struct {
-    int8 err_count;
-    int8 upper_limit;
-    error_list_node* head;
-    error_list_node* tail;
-}error_list;
-
-extern void error_list_init     (error_list* errlist, int8 upper_limit);
-extern bool error_list_add      (error_list* errlist, error err, int32 err_type, int32 line_count);
-extern int8 error_list_err_count(error_list* errlist);
-extern void error_list_display  (error_list* errlist);
-extern void error_list_destroy  (error_list* errlist);
 
 // all operations about memory allocating/releasing must use
 // the function mem_alloc and mem_free. mem_alloc can process
@@ -92,7 +71,8 @@ extern void error_list_destroy  (error_list* errlist);
 extern void* mem_alloc(size_t size);
 extern void  mem_free (void *ptr);
 
-// show some message to debug.
+// other functions to debug the program.
 extern void  debug(char* msg);
+extern void  fatal(char* msg);
 
 #endif

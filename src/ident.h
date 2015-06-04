@@ -12,14 +12,16 @@
 
 #include "common.h"
 
-#define ID_UNKNOWN       0x00
+#define ID_UNKNOWN         -1
+#define ID_PLACEHOLDER   0x00
 #define ID_CONST         0x01
 #define ID_VAR           0x02
-#define ID_TYPE          0x03
-#define ID_FUNC          0x04
-#define ID_INCLUDE       0x05
-#define ID_MODULE        0x06
-#define ID_MICRO         0x07
+#define ID_ARRAY         0x03
+#define ID_TYPE          0x04
+#define ID_FUNC          0x05
+#define ID_INCLUDE       0x06
+#define ID_MODULE        0x07
+#define ID_MICRO         0x08
 
 #define ACCESS_NULL      0x00
 #define ACCESS_IN        0x01
@@ -32,65 +34,126 @@
 #define NODE_CMP_EQ      0x01
 #define NODE_CMP_GT      0x02
 
-typedef struct ident         ident;
-typedef struct ident_const   ident_const;
-typedef struct ident_var     ident_var;
-typedef struct ident_type    ident_type;
-typedef struct ident_func    ident_func;
-typedef struct ident_include ident_include;
-typedef struct ident_module  ident_module;
-typedef struct ident_table   ident_table;
+typedef struct Ident        Ident;
+typedef struct IdentConst   IdentConst;
+typedef struct IdentVar     IdentVar;
+typedef struct IdentArray   IdentArray;
+typedef struct IdentType    IdentType;
+typedef struct IdentFunc    IdentFunc;
+typedef struct IdentInclude IdentInclude;
+typedef struct IdentModule  IdentModule;
+typedef struct IdentTable   IdentTable;
 
-// a ident_const represents a const identifier.
-typedef struct ident_const {
-    ident_type* const_type;
-    char*       const_value;
-}ident_const;
+// represent a constant's information.
+struct IdentConst {
+    IdentType* instance;
+};
 
-// a ident_var represents a variable identifier.
-typedef struct ident_var {
-    ident_type* var_type;
-    char*       var_value;
-}ident_var;
+// represent a variable's information.
+struct IdentVar {
+    IdentType* instance;
+};
 
-// a ident_type represents a type name.
-typedef struct ident_type {
-    ident_table* itab;
-}ident_type;
+// represent an array's information.
+struct IdentArray {
+    IdentType* arr_datatype;
+    int64      arr_len;
+};
 
-typedef struct param_list_node {
+typedef struct PrimitiveType PrimitiveType;
+typedef struct CompoundType  CompoundType;
+
+
+// represent a primitive type of C+
+// the primitive_type_token_code can be assigned with one of (see
+// micro defined in lexer.h):
+//    TOKEN_TYPE_BYTE
+//    TOKEN_TYPE_INT8
+//    TOKEN_TYPE_INT16
+//    ...
+//    TOKEN_TYPE_STRING
+//
+struct PrimitiveType {
+    int16 type_token_code;
+    bool  is_const;
+    union {
+        char*          value_const;
+        PrimitiveType* value_var;
+    }value;
+};
+
+// used to save the members' information of the type.
+// the member_entity will be used base on the value of the
+// member_type, the case of them is:
+//    ID_CONST => member_entity.instance_const
+//    ID_VAR   => member_entity.instance_var
+//    ID_ARRAY => member_entity.instance_array
+//    ID_TYPE  => member_entity.instance_type
+typedef struct Member {
+    int8  access;
+    char* member_name;
+    int8  member_type;
+    union {
+        IdentConst instance_const;
+        IdentVar   instance_var;
+        IdentArray instance_array;
+        IdentType* instance_type;
+    }member_entity;
+    
+    struct Member* next;
+}Member;
+
+// represent a compound type.
+struct CompoundType {
+    Member* member;
+};
+
+// represent a type definition's information.
+// primitive:
+//    true  => type_entity.instance_primitive
+//    false => type_entity.instance_compound
+struct IdentType {
+    bool primitive;
+    union {
+        PrimitiveType instance_primitive;
+        CompoundType  instance_compound;
+    }type_entity;
+};
+
+typedef struct ParamListNode {
     char* param_type;
     char* param_name;
-    struct param_list_node* next;
-}param_list_node;
+    struct ParamListNode* next;
+}ParamListNode;
 
 typedef struct {
-    param_list_node* head;
-}param_list;
+    ParamListNode* head;
+}ParamList;
 
-// a ident_type represents a function name.
-typedef struct ident_func {
-    param_list passin;
-    param_list retout;
-}ident_func;
+// represent a function definition's information.
+struct IdentFunc {
+    ParamList passin;
+    ParamList retout;
+};
 
-typedef struct ident_include {
-    ident_table* itab;
-}ident_include;
+struct IdentInclude {
+    IdentTable* id_table;
+};
 
-typedef struct ident_module {
-    ident_table* itab;
-}ident_module;
+struct IdentModule {
+    IdentTable* id_table;
+};
 
-// an ident represent an identified object.
+// an Ident represents an identified object.
 //
-// the example about using an ident object:
-//    ident_table idtable;
+// the example about using an Ident object:
+//    IdentTable id_table;
 //    ...
-//    ident* id = ident_table_search(&idtable, "foo");
+//    Ident* id = identTableSearch(&id_table, "foo");
 //    switch (id->id_type) {
 //    case ID_CONST:   // do some process to the 'id->id_info.id_const'
 //    case ID_VAR:     // do some process to the 'id->id_info.id_var'
+//    case ID_ARRAY:   // do some process to the 'id->id_info.id_array'
 //    case ID_TYPE:    // do some process to the 'id->id_info.id_type'
 //    case ID_FUNC:    // do some process to the 'id->id_info.id_func'
 //    case ID_INCLUDE: // do some process to the 'id->id_info.id_include'
@@ -99,44 +162,45 @@ typedef struct ident_module {
 //    default: ...
 //    }
 //    ...
-typedef struct ident {
+struct Ident {
     char* id_name;
     int8  access;
     int8  id_type;
     union {
-        ident_const*   id_const;
-        ident_var*     id_var;
-        ident_type*    id_type;
-        ident_func*    id_func;
-        ident_include* id_include;
-        ident_module*  id_module;
-    }id_info;
-}ident;
+        IdentConst*   id_const;
+        IdentVar*     id_var;
+        IdentArray*   id_array;
+        IdentType*    id_type;
+        IdentFunc*    id_func;
+        IdentInclude* id_include;
+        IdentModule*  id_module;
+    }id_entity;
+};
 
-extern ident* make_id_const  (char* id_name, int8 access, ident_type* constant_type, char* constant_value);
-extern ident* make_id_var    (char* id_name, int8 access, ident_type* variable_type, char* variable_value);
-extern ident* make_id_type   (char* id_name, int8 access);
-extern ident* make_id_func   (char* id_name, int8 access);
-extern ident* make_id_include(char* id_name);
-extern ident* make_id_module (char* id_name);
+extern Ident* makeIdentConst  (char* id_name, int8 access, IdentType* instance);
+extern Ident* makeIdentVar    (char* id_name, int8 access, IdentType* instance);
+extern Ident* makeIdentType   (char* id_name, int8 access, IdentType* typeinfo);
+extern Ident* makeIdentFunc   (char* id_name, int8 access);
+extern Ident* makeIdentInclude(char* id_name);
+extern Ident* makeIdentModule (char* id_name);
 
-typedef struct ident_table_node {
-    ident* id;
+typedef struct IdentTableNode {
+    Ident* id;
     int8   color;
-    struct ident_table_node* parent;
-    struct ident_table_node* lchild;
-    struct ident_table_node* rchild;
-}ident_table_node;
+    struct IdentTableNode* parent;
+    struct IdentTableNode* lchild;
+    struct IdentTableNode* rchild;
+}IdentTableNode;
 
-// the ident_table is used to storage a set of information
+// the IdentTable is used to storage a set of information
 // about nameable objects in C+ language.
-typedef struct ident_table {
-    ident_table_node* root;
-}ident_table;
+struct IdentTable {
+    IdentTableNode* root;
+};
 
-extern void   ident_table_init   (ident_table* itab);
-extern error  ident_table_add    (ident_table* itab, ident* id);
-extern ident* ident_table_search (ident_table* itab, char*  id_name);
-extern void   ident_table_destroy(ident_table* itab);
+extern void   identTableInit   (IdentTable* id_table);
+extern error  identTableAdd    (IdentTable* id_table, Ident* id);
+extern Ident* identTableSearch (IdentTable* id_table, char*  id_name);
+extern void   identTableDestroy(IdentTable* id_table);
 
 #endif

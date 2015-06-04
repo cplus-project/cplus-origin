@@ -6,15 +6,15 @@
 
 #include "fileset.h"
 
-/****** methods of file_queue ******/
+/****** methods of FileQueue ******/
 
-void file_queue_init(file_queue* fqueue) {
+void fileQueueInit(FileQueue* fqueue) {
     fqueue->head = NULL;
     fqueue->tail = NULL;
 }
 
-void file_queue_enqueue(file_queue* fqueue, char* file_name) {
-    file_queue_node* create = (file_queue_node*)mem_alloc(sizeof(file_queue_node));
+void fileQueueEnqueue(FileQueue* fqueue, char* file_name) {
+    FileQueueNode* create = (FileQueueNode*)mem_alloc(sizeof(FileQueueNode));
     create->file_name = file_name;
     create->next      = NULL;
     if (fqueue->head != NULL) {
@@ -28,9 +28,9 @@ void file_queue_enqueue(file_queue* fqueue, char* file_name) {
 }
 
 // return true if the file is already in the queue.
-bool file_queue_exist(file_queue* fqueue, char* file_name) {
+bool fileQueueExist(FileQueue* fqueue, char* file_name) {
     int i;
-    file_queue_node* ptr;
+    FileQueueNode* ptr;
     for (ptr = fqueue->head; ptr != NULL; ptr = ptr->next) {
         for (i = 0; ; i++) {
             if (file_name[i] != ptr->file_name[i]) {
@@ -45,18 +45,18 @@ bool file_queue_exist(file_queue* fqueue, char* file_name) {
 }
 
 // return NULL if the queue is empty.
-char* file_queue_front(file_queue* fqueue) {
+char* fileQueueFront(FileQueue* fqueue) {
     if (fqueue->head == NULL) {
         return NULL;
     }
     return fqueue->head->file_name;
 }
 
-error file_queue_dequeue(file_queue* fqueue) {
+error fileQueueDequeue(FileQueue* fqueue) {
     if (fqueue->head == NULL) {
         return new_error("the file queue is empty.");
     }
-    file_queue_node* temp = fqueue->head;
+    FileQueueNode* temp = fqueue->head;
     fqueue->head = fqueue->head->next;
     if (fqueue->head == NULL) {
         fqueue->tail =  NULL;
@@ -65,8 +65,8 @@ error file_queue_dequeue(file_queue* fqueue) {
     mem_free(temp);
 }
 
-void file_queue_destroy(file_queue* fqueue) {
-    file_queue_node* temp;
+void fileQueueDestroy(FileQueue* fqueue) {
+    FileQueueNode* temp;
     for (;;) {
         if (fqueue->head == NULL) {
             fqueue->tail =  NULL;
@@ -77,14 +77,14 @@ void file_queue_destroy(file_queue* fqueue) {
     }
 }
 
-/****** methods of file_stack ******/
+/****** methods of FileStack ******/
 
-void file_stack_init(file_stack* fstk) {
+void fileStackInit(FileStack* fstk) {
     fstk->top = NULL;
 }
 
-void file_stack_push(file_stack* fstk, char* file_name) {
-    file_stack_node* create = (file_stack_node*)mem_alloc(sizeof(file_stack_node));
+void fileStackPush(FileStack* fstk, char* file_name) {
+    FileStackNode* create = (FileStackNode*)mem_alloc(sizeof(FileStackNode));
     create->file_name = file_name;
     create->next      = NULL;
     if (fstk->top != NULL) {
@@ -97,25 +97,25 @@ void file_stack_push(file_stack* fstk, char* file_name) {
 }
 
 // return true if the stack is empty.
-bool file_stack_isempty(file_stack* fstk) {
+bool fileStackIsEmpty(FileStack* fstk) {
     if (fstk->top != NULL) {
         return false;
     }
     return true;
 }
 
-char* file_stack_top(file_stack* fstk) {
+char* fileStackTop(FileStack* fstk) {
     return fstk->top->file_name;
 }
 
-void file_stack_pop(file_stack* fstk) {
-    file_stack_node* temp = fstk->top;
+void fileStackPop(FileStack* fstk) {
+    FileStackNode* temp = fstk->top;
     fstk->top = fstk->top->next;
     mem_free(temp);
 }
 
-void file_stack_destroy(file_stack* fstk) {
-    file_stack_node* temp;
+void fileStackDestroy(FileStack* fstk) {
+    FileStackNode* temp;
     for (;;) {
         if (fstk->top == NULL) {
             return;
@@ -126,9 +126,9 @@ void file_stack_destroy(file_stack* fstk) {
     }
 }
 
-/****** methods of file_tree ******/
+/****** methods of FileTree ******/
 
-void file_tree_init(file_tree* ftree) {
+void fileTreeInit(FileTree* ftree) {
     ftree->root = NULL;
 }
 
@@ -140,7 +140,7 @@ void file_tree_init(file_tree* ftree) {
 // (1) if the name1's length is longer , return NODE_CMP_GT.
 // (2) if the name1's length is shorter, return NODE_CMP_LT.
 // (3) if tow names'  length are equal , return NODE_CMP_EQ.
-static int file_tree_cmp(char* name1, char* name2) {
+static int fileTreeCmp(char* name1, char* name2) {
     int64 i;
     for (i = 0; ; i++) {
         if (name1[i] < name2[i]) {
@@ -168,7 +168,7 @@ static int file_tree_cmp(char* name1, char* name2) {
 //  a   rchild   ----/    node      c
 //     /      \          /    \
 //    b        c        a      b
-static error file_tree_left_rotate(file_tree* ftree, file_tree_node* node) {
+static error fileTreeLeftRotate(FileTree* ftree, FileTreeNode* node) {
     if (node == ftree->root) {
         ftree->root = node->rchild;
         node->rchild->parent = NULL;
@@ -192,7 +192,7 @@ static error file_tree_left_rotate(file_tree* ftree, file_tree_node* node) {
 //   lchild   c ----/  a      node
 //  /      \                 /    \
 // a        b               b      c
-static error file_tree_right_rotate(file_tree* ftree, file_tree_node* node) {
+static error fileTreeRightRotate(FileTree* ftree, FileTreeNode* node) {
     if (node == ftree->root) {
         ftree->root = node->lchild;
         node->lchild->parent = NULL;
@@ -211,8 +211,8 @@ static error file_tree_right_rotate(file_tree* ftree, file_tree_node* node) {
 
 // fix the balance of the tree and try to keep the properties
 // of the red black tree.
-static void file_tree_add_fixup(file_tree* ftree, file_tree_node* added) {
-    file_tree_node* uncle = NULL;
+static void fileTreeAddFixup(FileTree* ftree, FileTreeNode* added) {
+    FileTreeNode* uncle = NULL;
     for (;;) {
         if (added->parent == NULL || added->parent->parent == NULL)
             break;
@@ -224,11 +224,11 @@ static void file_tree_add_fixup(file_tree* ftree, file_tree_node* added) {
                 if (uncle == NULL || uncle->color == NODE_COLOR_BLACK) {
                     if (added == added->parent->rchild) {
                         added =  added->parent;
-                        file_tree_left_rotate(ftree, added);
+                        fileTreeLeftRotate(ftree, added);
                     }
                     added->parent->color         = NODE_COLOR_BLACK;
                     added->parent->parent->color = NODE_COLOR_RED;
-                    file_tree_right_rotate(ftree, added->parent->parent);
+                    fileTreeRightRotate(ftree, added->parent->parent);
                     break;
                 }
             }
@@ -237,11 +237,11 @@ static void file_tree_add_fixup(file_tree* ftree, file_tree_node* added) {
                 if (uncle == NULL || uncle->color == NODE_COLOR_BLACK) {
                     if (added == added->parent->lchild) {
                         added =  added->parent;
-                        file_tree_right_rotate(ftree, added);
+                        fileTreeRightRotate(ftree, added);
                     }
                     added->parent->color         = NODE_COLOR_BLACK;
                     added->parent->parent->color = NODE_COLOR_RED;
-                    file_tree_left_rotate(ftree, added->parent->parent);
+                    fileTreeLeftRotate(ftree, added->parent->parent);
                     break;
                 }
             }
@@ -259,25 +259,25 @@ static void file_tree_add_fixup(file_tree* ftree, file_tree_node* added) {
     ftree->root->color = NODE_COLOR_BLACK;
 }
 
-error file_tree_add(file_tree* ftree, char* file_name) {
+error fileTreeAdd(FileTree* ftree, char* file_name) {
     if (file_name == NULL) {
         return new_error("the filename can not be NULL.");
     }
-    file_tree_node* create = (file_tree_node*)mem_alloc(sizeof(file_tree_node));
+    FileTreeNode* create = (FileTreeNode*)mem_alloc(sizeof(FileTreeNode));
     create->file_name = file_name;
     create->color     = NODE_COLOR_RED;
     create->parent    = NULL;
     create->lchild    = NULL;
     create->rchild    = NULL;
     if (ftree->root != NULL) {
-        file_tree_node* ptr = ftree->root;
+        FileTreeNode* ptr = ftree->root;
         for (;;) {
-            switch (file_tree_cmp(file_name, ptr->file_name)) {
+            switch (fileTreeCmp(file_name, ptr->file_name)) {
             case NODE_CMP_LT:
                 if (ptr->lchild == NULL) {
                     ptr->lchild = create;
                     create->parent = ptr;
-                    file_tree_add_fixup(ftree, create);
+                    fileTreeAddFixup(ftree, create);
                     return NULL;
                 }
                 ptr = ptr->lchild;
@@ -286,7 +286,7 @@ error file_tree_add(file_tree* ftree, char* file_name) {
                 if (ptr->rchild == NULL) {
                     ptr->rchild = create;
                     create->parent = ptr;
-                    file_tree_add_fixup(ftree, create);
+                    fileTreeAddFixup(ftree, create);
                     return NULL;
                 }
                 ptr = ptr->rchild;
@@ -308,13 +308,13 @@ error file_tree_add(file_tree* ftree, char* file_name) {
 // return:
 //    true  -> the file exists.
 //    false -> the file not exists.
-bool file_tree_exist(file_tree* ftree, char* file_name) {
+bool fileTreeExist(FileTree* ftree, char* file_name) {
     if (ftree->root == NULL) {
         return false;
     }
-    file_tree_node* ptr = ftree->root;
+    FileTreeNode* ptr = ftree->root;
     for (;;) {
-        switch (file_tree_cmp(file_name, ptr->file_name)) {
+        switch (fileTreeCmp(file_name, ptr->file_name)) {
         case NODE_CMP_LT:
             if (ptr->lchild != NULL)
                 ptr = ptr->lchild;
@@ -336,14 +336,14 @@ bool file_tree_exist(file_tree* ftree, char* file_name) {
     }
 }
 
-static void file_tree_destroy_node(file_tree_node* node) {
+static void fileTreeDestroyNode(FileTreeNode* node) {
     if (node != NULL) {
-        if (node->lchild != NULL) file_tree_destroy_node(node->lchild);
-        if (node->rchild != NULL) file_tree_destroy_node(node->rchild);
+        if (node->lchild != NULL) fileTreeDestroyNode(node->lchild);
+        if (node->rchild != NULL) fileTreeDestroyNode(node->rchild);
         mem_free(node);
     }
 }
 
-void file_tree_destroy(file_tree* ftree) {
-    file_tree_destroy_node(ftree->root);
+void fileTreeDestroy(FileTree* ftree) {
+    fileTreeDestroyNode(ftree->root);
 }

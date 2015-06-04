@@ -6,76 +6,74 @@
 
 #include "ident.h"
 
-ident* make_id_const(char* id_name, int8 access, ident_type* constant_type, char* constant_value) {
-    ident* id = (ident*)mem_alloc(sizeof(ident));
+static Ident id_placeholder = {NULL, ACCESS_IN, ID_PLACEHOLDER, NULL};
+
+Ident* makeIdentconst(char* id_name, int8 access, IdentType* instance) {
+    Ident* id = (Ident*)mem_alloc(sizeof(Ident));
     id->id_name = id_name;
     id->access  = access;
     id->id_type = ID_CONST;
-    id->id_info.id_const = (ident_const*)mem_alloc(sizeof(ident_const));
-    id->id_info.id_const->const_type  = constant_type;
-    id->id_info.id_const->const_value = constant_value;
+    id->id_entity.id_const = (IdentConst*)mem_alloc(sizeof(IdentConst));
+    id->id_entity.id_const->instance = instance;
     return id;
 }
 
-ident* make_id_var(char* id_name, int8 access, ident_type* variable_type, char* variable_value) {
-    ident* id = (ident*)mem_alloc(sizeof(ident));
+Ident* makeIdentVar(char* id_name, int8 access, IdentType* instance) {
+    Ident* id = (Ident*)mem_alloc(sizeof(Ident));
     id->id_name = id_name;
     id->access  = access;
     id->id_type = ID_VAR;
-    id->id_info.id_var = (ident_var*)mem_alloc(sizeof(ident_var));
-    id->id_info.id_var->var_type  = variable_type;
-    id->id_info.id_var->var_value = variable_value;
+    id->id_entity.id_var = (IdentVar*)mem_alloc(sizeof(IdentVar));
+    id->id_entity.id_var->instance = instance;
     return id;
 }
 
-ident* make_id_type(char* id_name, int8 access) {
-    ident* id = (ident*)mem_alloc(sizeof(ident));
+Ident* makeIdentType(char* id_name, int8 access, IdentType* typeinfo) {
+    Ident* id = (Ident*)mem_alloc(sizeof(Ident));
     id->id_name = id_name;
     id->access  = access;
     id->id_type = ID_TYPE;
-    id->id_info.id_type = (ident_type*)mem_alloc(sizeof(ident_type));
-    id->id_info.id_type->itab = (ident_table*)mem_alloc(sizeof(ident_table));
-    ident_table_init(id->id_info.id_type->itab);
+    id->id_entity.id_type = typeinfo;
     return id;
 }
 
-ident* make_id_func(char* id_name, int8 access) {
-    ident* id = (ident*)mem_alloc(sizeof(ident));
+Ident* makeIdentFunc(char* id_name, int8 access) {
+    Ident* id = (Ident*)mem_alloc(sizeof(Ident));
     id->id_name = id_name;
     id->access  = access;
     id->id_type = ID_FUNC;
-    id->id_info.id_func = (ident_func*)mem_alloc(sizeof(ident_func));
-    id->id_info.id_func->passin.head = NULL;
-    id->id_info.id_func->retout.head = NULL;
+    id->id_entity.id_func = (IdentFunc*)mem_alloc(sizeof(IdentFunc));
+    id->id_entity.id_func->passin.head = NULL;
+    id->id_entity.id_func->retout.head = NULL;
     return id;
 }
 
-ident* make_id_include(char* id_name) {
-    ident* id = (ident*)mem_alloc(sizeof(ident));
+Ident* makeIdentInclude(char* id_name) {
+    Ident* id = (Ident*)mem_alloc(sizeof(Ident));
     id->id_name = id_name;
     id->access  = ACCESS_NULL;
     id->id_type = ID_INCLUDE;
-    id->id_info.id_include = (ident_include*)mem_alloc(sizeof(ident_include));
-    id->id_info.id_include->itab = (ident_table*)mem_alloc(sizeof(ident_table));
-    ident_table_init(id->id_info.id_include->itab);
+    id->id_entity.id_include = (IdentInclude*)mem_alloc(sizeof(IdentInclude));
+    id->id_entity.id_include->id_table = (IdentTable*)mem_alloc(sizeof(IdentTable));
+    identTableInit(id->id_entity.id_include->id_table);
     return id;
 }
 
-ident* make_id_module(char* id_name) {
-    ident* id = (ident*)mem_alloc(sizeof(ident));
+Ident* makeIdentModule(char* id_name) {
+    Ident* id = (Ident*)mem_alloc(sizeof(Ident));
     id->id_name = id_name;
     id->access  = ACCESS_NULL;
     id->id_type = ID_MODULE;
-    id->id_info.id_module = (ident_module*)mem_alloc(sizeof(ident_module));
-    id->id_info.id_module->itab = (ident_table*)mem_alloc(sizeof(ident_table));
-    ident_table_init(id->id_info.id_module->itab);
+    id->id_entity.id_module = (IdentModule*)mem_alloc(sizeof(IdentModule));
+    id->id_entity.id_module->id_table = (IdentTable*)mem_alloc(sizeof(IdentTable));
+    identTableInit(id->id_entity.id_module->id_table);
     return id;
 }
 
-/****** methods of ident_table ******/
+/****** methods of IdentTable ******/
 
-void ident_table_init(ident_table* itab) {
-    itab->root = NULL;
+void identTableInit(IdentTable* id_table) {
+    id_table->root = NULL;
 }
 
 // firstly compare every character of the two name from index 0:
@@ -86,7 +84,7 @@ void ident_table_init(ident_table* itab) {
 // (1) if the name1's length is longer , return NODE_CMP_GT.
 // (2) if the name1's length is shorter, return NODE_CMP_LT.
 // (3) if tow names'  length are equal , return NODE_CMP_EQ.
-static int ident_table_cmp(char* name1, char* name2) {
+static int identTableCmp(char* name1, char* name2) {
     int64 i;
     for (i = 0; ; i++) {
         if (name1[i] < name2[i]) {
@@ -114,14 +112,16 @@ static int ident_table_cmp(char* name1, char* name2) {
 //  a   rchild   ----/    node      c
 //     /      \          /    \
 //    b        c        a      b
-static error ident_table_left_rotate(ident_table* itab, ident_table_node* node) {
-    if (node == itab->root) {
-        itab->root = node->rchild;
+static error identTableLeftRotate(IdentTable* id_table, IdentTableNode* node) {
+    if (node == id_table->root) {
+        id_table->root = node->rchild;
         node->rchild->parent = NULL;
     }
     else {
-        node == node->parent->lchild ? (node->parent->lchild = node->rchild) : (node->parent->rchild = node->rchild);
-        node->rchild->parent = node->parent;
+        (node == node->parent->lchild)?
+        (node->parent->lchild = node->rchild):
+        (node->parent->rchild = node->rchild);
+         node->rchild->parent = node->parent;
     }
     node->parent = node->rchild;
     node->rchild = node->rchild->lchild;
@@ -138,14 +138,16 @@ static error ident_table_left_rotate(ident_table* itab, ident_table_node* node) 
 //   lchild   c ----/  a      node
 //  /      \                 /    \
 // a        b               b      c
-static error ident_table_right_rotate(ident_table* itab, ident_table_node* node) {
-    if (node == itab->root) {
-        itab->root = node->lchild;
+static error identTableRightRotate(IdentTable* id_table, IdentTableNode* node) {
+    if (node == id_table->root) {
+        id_table->root = node->lchild;
         node->lchild->parent = NULL;
     }
     else {
-        node == node->parent->lchild ? (node->parent->lchild = node->lchild) : (node->parent->rchild = node->lchild);
-        node->lchild->parent = node->parent;
+        (node == node->parent->lchild)?
+        (node->parent->lchild = node->lchild):
+        (node->parent->rchild = node->lchild);
+         node->lchild->parent = node->parent;
     }
     node->parent = node->lchild;
     node->lchild = node->lchild->rchild;
@@ -157,8 +159,8 @@ static error ident_table_right_rotate(ident_table* itab, ident_table_node* node)
 
 // fix the balance of the tree and try to keep the properties
 // of the red black tree.
-static void ident_table_add_fixup(ident_table* itab, ident_table_node* added) {
-    ident_table_node* uncle = NULL;
+static void identTableAddFixup(IdentTable* id_table, IdentTableNode* added) {
+    IdentTableNode* uncle = NULL;
     for (;;) {
         if (added->parent == NULL || added->parent->parent == NULL)
             break;
@@ -170,11 +172,11 @@ static void ident_table_add_fixup(ident_table* itab, ident_table_node* added) {
                 if (uncle == NULL || uncle->color == NODE_COLOR_BLACK) {
                     if (added == added->parent->rchild) {
                         added =  added->parent;
-                        ident_table_left_rotate(itab, added);
+                        identTableLeftRotate(id_table, added);
                     }
                     added->parent->color         = NODE_COLOR_BLACK;
                     added->parent->parent->color = NODE_COLOR_RED;
-                    ident_table_right_rotate(itab, added->parent->parent);
+                    identTableRightRotate(id_table, added->parent->parent);
                     break;
                 }
             }
@@ -183,11 +185,11 @@ static void ident_table_add_fixup(ident_table* itab, ident_table_node* added) {
                 if (uncle == NULL || uncle->color == NODE_COLOR_BLACK) {
                     if (added == added->parent->lchild) {
                         added =  added->parent;
-                        ident_table_right_rotate(itab, added);
+                        identTableRightRotate(id_table, added);
                     }
                     added->parent->color         = NODE_COLOR_BLACK;
                     added->parent->parent->color = NODE_COLOR_RED;
-                    ident_table_left_rotate(itab, added->parent->parent);
+                    identTableLeftRotate(id_table, added->parent->parent);
                     break;
                 }
             }
@@ -202,28 +204,28 @@ static void ident_table_add_fixup(ident_table* itab, ident_table_node* added) {
             break;
         }
     }
-    itab->root->color = NODE_COLOR_BLACK;
+    id_table->root->color = NODE_COLOR_BLACK;
 }
 
-error ident_table_add(ident_table* itab, ident* id) {
+error identTableAdd(IdentTable* id_table, Ident* id) {
     if (id->id_name == NULL) {
         return new_error("the identifier's name can not be NULL.");
     }
-    ident_table_node* create = (ident_table_node*)mem_alloc(sizeof(ident_table_node));
+    IdentTableNode* create = (IdentTableNode*)mem_alloc(sizeof(IdentTableNode));
     create->id       = id;
     create->color    = NODE_COLOR_RED;
     create->parent   = NULL;
     create->lchild   = NULL;
     create->rchild   = NULL;
-    if (itab->root != NULL) {
-        ident_table_node* ptr = itab->root;
+    if (id_table->root != NULL) {
+        IdentTableNode* ptr = id_table->root;
         for (;;) {
-            switch (ident_table_cmp(id->id_name, ptr->id->id_name)) {
+            switch (identTableCmp(id->id_name, ptr->id->id_name)) {
             case NODE_CMP_LT:
                 if (ptr->lchild == NULL) {
                     ptr->lchild = create;
                     create->parent = ptr;
-                    ident_table_add_fixup(itab, create);
+                    identTableAddFixup(id_table, create);
                     return NULL;
                 }
                 ptr = ptr->lchild;
@@ -232,7 +234,7 @@ error ident_table_add(ident_table* itab, ident* id) {
                 if (ptr->rchild == NULL) {
                     ptr->rchild = create;
                     create->parent = ptr;
-                    ident_table_add_fixup(itab, create);
+                    identTableAddFixup(id_table, create);
                     return NULL;
                 }
                 ptr = ptr->rchild;
@@ -246,7 +248,7 @@ error ident_table_add(ident_table* itab, ident* id) {
     }
     else {
         create->color = NODE_COLOR_BLACK;
-        itab->root = create;
+        id_table->root = create;
         return NULL;
     }
 }
@@ -254,25 +256,30 @@ error ident_table_add(ident_table* itab, ident* id) {
 // return:
 //       NULL -> the identifier is not in the table.
 //   NOT NULL -> the identifier is found.
-ident* ident_table_search(ident_table* itab, char* id_name) {
-    if (itab->root == NULL) {
+Ident* identTableSearch(IdentTable* id_table, char* id_name) {
+    if (id_table->root == NULL) {
         return NULL;
     }
-    ident_table_node* ptr = itab->root;
+    if (strcmp(id_name, "_") == 0) {
+        return &id_placeholder;
+    }
+    IdentTableNode* ptr = id_table->root;
     for (;;) {
-        switch (ident_table_cmp(id_name, ptr->id->id_name)) {
+        switch (identTableCmp(id_name, ptr->id->id_name)) {
         case NODE_CMP_LT:
-            if (ptr->lchild != NULL)
+            if (ptr->lchild != NULL) {
                 ptr = ptr->lchild;
-            else
-                return NULL;
-            break;
+                break;
+            }
+            return NULL;
+
         case NODE_CMP_GT:
-            if (ptr->rchild != NULL)
+            if (ptr->rchild != NULL) {
                 ptr = ptr->rchild;
-            else
-                return NULL;
-            break;
+                break;
+            }
+            return NULL;
+
         case NODE_CMP_EQ:
             return ptr->id;
 
@@ -282,36 +289,47 @@ ident* ident_table_search(ident_table* itab, char* id_name) {
     }
 }
 
-static void ident_table_destroy_node(ident_table_node* node) {
+static void identTableDestroyNode(IdentTableNode* node) {
     if (node != NULL) {
-        if (node->lchild != NULL) ident_table_destroy_node(node->lchild);
-        if (node->rchild != NULL) ident_table_destroy_node(node->rchild);
+        if (node->lchild != NULL) identTableDestroyNode(node->lchild);
+        if (node->rchild != NULL) identTableDestroyNode(node->rchild);
         switch (node->id->id_type) {
         case ID_TYPE:
-            ident_table_destroy(node->id->id_info.id_type->itab);
+            if (node->id->id_entity.id_type->primitive == false) {
+                Member* temp;
+                Member* ptr = node->id->id_entity.id_type->type_entity.instance_compound.member;
+                for (;;) {
+                    if (ptr == NULL) {
+                        break;
+                    }
+                    temp = ptr;
+                    ptr  = ptr->next;
+                    mem_free(temp);
+                }
+            }
             break;
         case ID_FUNC: {
-                param_list_node* del = NULL;
-                param_list_node* ptr = node->id->id_info.id_func->passin.head;
+                ParamListNode* del = NULL;
+                ParamListNode* ptr = node->id->id_entity.id_func->passin.head;
                 while (ptr != NULL) {
                     del = ptr;
                     ptr = ptr->next;
                     mem_free(del);
                 }
-                for (ptr = node->id->id_info.id_func->retout.head; ptr != NULL;) {
+                for (ptr = node->id->id_entity.id_func->retout.head; ptr != NULL;) {
                     del = ptr;
                     ptr = ptr->next;
                     mem_free(del);
                 }
-                node->id->id_info.id_func->passin.head = NULL;
-                node->id->id_info.id_func->retout.head = NULL;
+                node->id->id_entity.id_func->passin.head = NULL;
+                node->id->id_entity.id_func->retout.head = NULL;
             }
             break;
         case ID_INCLUDE:
-            ident_table_destroy(node->id->id_info.id_include->itab);
+            identTableDestroy(node->id->id_entity.id_include->id_table);
             break;
         case ID_MODULE:
-            ident_table_destroy(node->id->id_info.id_module->itab);
+            identTableDestroy(node->id->id_entity.id_module->id_table);
             break;
         }
         mem_free(node->id);
@@ -319,6 +337,6 @@ static void ident_table_destroy_node(ident_table_node* node) {
     }
 }
 
-void ident_table_destroy(ident_table* itab) {
-    ident_table_destroy_node(itab->root);
+void identTableDestroy(IdentTable* id_table) {
+    identTableDestroyNode(id_table->root);
 }

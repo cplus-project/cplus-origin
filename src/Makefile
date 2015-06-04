@@ -1,10 +1,10 @@
 obj := cplus
 compiler := gcc
 
-cplus: common.o utf.o lexical.o dynamicarr.o convert.o ident.o scope.o \
-       close_counter.o fileset.o syntax.o semantic.o expression.o errsys.o
-	${compiler} ${obj}.c common.o utf.o lexical.o dynamicarr.o convert.o ident.o \
-	scope.o close_counter.o fileset.o syntax.o semantic.o expression.o errsys.o -o ${obj}
+cplus: common.o utf.o lexer.o dynamicarr.o convert.o ident.o scope.o closectr.o \
+	fileset.o parser.o expression.o ast.o
+	${compiler} ${obj}.c common.o utf.o lexer.o dynamicarr.o convert.o ident.o scope.o \
+	closectr.o fileset.o parser.o expression.o ast.o -o ${obj}
 
 common.o: common.h common.c
 	${compiler} -c common.h common.c
@@ -12,8 +12,8 @@ common.o: common.h common.c
 utf.o: utf.h utf.c
 	${compiler} -c utf.h utf.c
 
-lexical.o: lexical.h lexical.c
-	${compiler} -c lexical.h lexical.c
+lexer.o: lexer.h lexer.c
+	${compiler} -c lexer.h lexer.c
 
 dynamicarr.o: dynamicarr.h dynamicarr.c
 	${compiler} -c dynamicarr.h dynamicarr.c
@@ -27,8 +27,8 @@ ident.o: ident.h ident.c
 scope.o: scope.h scope.c
 	${compiler} -c scope.h scope.c
 
-close_counter.o: close_counter.h close_counter.c
-	${compiler} -c close_counter.h close_counter.c
+closectr.o: closectr.h closectr.c
+	${compiler} -c closectr.h closectr.c
 
 errors.o: errors.h errors.c
 	${compiler} -c errors.h errors.c
@@ -36,17 +36,14 @@ errors.o: errors.h errors.c
 fileset.o: fileset.h fileset.c
 	${compiler} -c fileset.h fileset.c
 
-syntax.o: syntax.h syntax.c
-	${compiler} -c syntax.h syntax.c
-
-semantic.o: semantic.h semantic.c
-	${compiler} -c semantic.h semantic.c
+parser.o: parser.h parser.c
+	${compiler} -c parser.h parser.c
 
 expression.o: expression.h expression.c
 	${compiler} -c expression.h expression.c
 
-errsys.o: errsys.h errsys.c
-	${compiler} -c errsys.h errsys.c
+ast.o: ast.h ast.c
+	${compiler} -c ast.h ast.c
 
 clean:
 	rm *.o *.gch
