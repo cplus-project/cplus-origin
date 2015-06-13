@@ -13,7 +13,6 @@
 #include "common.h"
 #include "ident.h"
 
-#define AST_NODE_NULL         (void*)-2
 #define AST_NODE                   0x00
 #define AST_NDOE_INCLUDE           0x01
 #define AST_NODE_MODULE            0x02
@@ -22,38 +21,40 @@
 #define AST_NODE_CONST_LIT         0x05
 #define AST_NODE_ID                0x06
 #define AST_NODE_EXPR              0x07
-#define AST_NODE_EXPR_UNRY         0x08
-#define AST_NODE_EXPR_BNRY         0x09
-#define AST_NODE_INDEX             0x0A
-#define AST_NODE_DECL              0x0B
-#define AST_NODE_ASSIGN            0x0C
-#define AST_NODE_IF                0x0D
-#define AST_NODE_EF                0x0E
-#define AST_NODE_ELSE              0x0F
-#define AST_NODE_SWITCH            0x10
-#define AST_NODE_SWITCH_CASE       0x11
-#define AST_NODE_SWITCH_DEFT       0x12
-#define AST_NODE_LOOP_FOR          0x13
-#define AST_NODE_LOOP_WHILE        0x14
-#define AST_NODE_LOOP_INF          0x15
-#define AST_NODE_LOOP_FOREACH      0x16
-#define AST_NODE_FUNC_DEF          0x17
-#define AST_NODE_FUNC_CALL         0x18
-#define AST_NODE_RETURN            0x19
-#define AST_NODE_TYPE_DECL         0x1A
-#define AST_NODE_TYPE_DEF          0x1B
-#define AST_NODE_NEW               0x1C
-#define AST_NODE_ERROR             0x1D
-#define AST_NODE_DEAL              0x1E
+#define AST_NODE_EXPR_LIST         0x08
+#define AST_NODE_EXPR_UNRY         0x09
+#define AST_NODE_EXPR_BNRY         0x0A
+#define AST_NODE_INDEX             0x0B
+#define AST_NODE_DECL              0x0C
+#define AST_NODE_ASSIGN            0x0D
+#define AST_NODE_IF                0x0E
+#define AST_NODE_EF                0x0F
+#define AST_NODE_ELSE              0x10
+#define AST_NODE_SWITCH            0x11
+#define AST_NODE_SWITCH_CASE       0x12
+#define AST_NODE_SWITCH_DEFT       0x13
+#define AST_NODE_LOOP_FOR          0x14
+#define AST_NODE_LOOP_WHILE        0x15
+#define AST_NODE_LOOP_INF          0x16
+#define AST_NODE_LOOP_FOREACH      0x17
+#define AST_NODE_FUNC_DEF          0x18
+#define AST_NODE_FUNC_CALL         0x19
+#define AST_NODE_RETURN            0x1A
+#define AST_NODE_TYPE_DECL         0x1B
+#define AST_NODE_TYPE_DEF          0x1C
+#define AST_NODE_NEW               0x1D
+#define AST_NODE_ERROR             0x1E
+#define AST_NODE_DEAL              0x1F
 
 typedef struct ASTNode            ASTNode;
 typedef struct ASTNodeInclude     ASTNodeInclude;
 typedef struct ASTNodeModule      ASTNodeModule;
 typedef struct ASTNodeBlock       ASTNodeBlock;
 typedef struct ASTNodeBlockStmt   ASTNodeBlockStmt;
-typedef struct ASTNodeConstLit    ASTNodeConstLit;
 typedef struct ASTNodeID          ASTNodeID;
+typedef struct ASTNodeConstLit    ASTNodeConstLit;
 typedef struct ASTNodeExpr        ASTNodeExpr;
+typedef struct ASTNodeExprList    ASTNodeExprList;
 typedef struct ASTNodeExprUnry    ASTNodeExprUnry;
 typedef struct ASTNodeExprBnry    ASTNodeExprBnry;
 typedef struct ASTNodeIndex       ASTNodeIndex;
@@ -126,12 +127,10 @@ struct ASTNodeBlock {
     ASTNodeBlockStmt* stmts;
 };
 
-// represent an nameable object (constant, variable, type or function...) of C+.
-// this struct can save the  information abount different kinds of these objects.
 struct ASTNodeID {
-    int32  pos_line;
-    int16  pos_col;
-    Ident* id;
+    int32 pos_line;
+    int16 pos_col;
+    char* id;
 };
 
 // represent the constant literal.
@@ -179,6 +178,16 @@ struct ASTNodeExpr {
     }expr;
 };
 
+typedef struct ASTNodeExprListNode {
+    ASTNodeExpr* expr;
+    struct ASTNodeExprListNode* next;
+}ASTNodeExprListNode;
+
+// represent a set of expressions separated by comma(',')
+struct ASTNodeExprList {
+    ASTNodeExprListNode* exprs;
+};
+
 // represent an unary expression.
 struct ASTNodeExprUnry {
     int16        op_token_code;
@@ -195,10 +204,8 @@ struct ASTNodeExprBnry {
 // represent the operation about extracting data from the container
 // (e.g. array, slice).
 struct ASTNodeIndex {
-    int32        pos_line;
-    int16        pos_col;
-    ASTNodeID*   idx_container;
-    ASTNodeExpr* idx_expr;
+    ASTNodeID*   array;
+    ASTNodeExpr* index;
 };
 
 // represent the declaration statement.
@@ -311,7 +318,8 @@ struct ASTNodeFuncDef {
 };
 
 struct ASTNodeFuncCall {
-    char* func_name;
+    ASTNodeID*       func_name;
+    ASTNodeExprList* func_params;
 };
 
 typedef struct {
