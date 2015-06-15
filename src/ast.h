@@ -14,43 +14,47 @@
 #include "ident.h"
 
 #define AST_NODE                   0x00
-#define AST_NDOE_INCLUDE           0x01
-#define AST_NODE_MODULE            0x02
-#define AST_NODE_BLOCK             0x03
-#define AST_NODE_STMT              0x04
-#define AST_NODE_CONST_LIT         0x05
-#define AST_NODE_ID                0x06
-#define AST_NODE_EXPR              0x07
-#define AST_NODE_EXPR_LIST         0x08
-#define AST_NODE_EXPR_UNRY         0x09
-#define AST_NODE_EXPR_BNRY         0x0A
-#define AST_NODE_INDEX             0x0B
-#define AST_NODE_DECL              0x0C
-#define AST_NODE_ASSIGN            0x0D
-#define AST_NODE_IF                0x0E
-#define AST_NODE_EF                0x0F
-#define AST_NODE_ELSE              0x10
-#define AST_NODE_SWITCH            0x11
-#define AST_NODE_SWITCH_CASE       0x12
-#define AST_NODE_SWITCH_DEFT       0x13
-#define AST_NODE_LOOP_FOR          0x14
-#define AST_NODE_LOOP_WHILE        0x15
-#define AST_NODE_LOOP_INF          0x16
-#define AST_NODE_LOOP_FOREACH      0x17
-#define AST_NODE_FUNC_DEF          0x18
-#define AST_NODE_FUNC_CALL         0x19
-#define AST_NODE_RETURN            0x1A
-#define AST_NODE_TYPE_DECL         0x1B
-#define AST_NODE_TYPE_DEF          0x1C
-#define AST_NODE_NEW               0x1D
-#define AST_NODE_ERROR             0x1E
-#define AST_NODE_DEAL              0x1F
+#define AST_NODE_STMT              0x01
+#define AST_NDOE_INCLUDE           0x02
+#define AST_NODE_MODULE            0x03
+#define AST_NODE_BLOCK             0x04
+#define AST_NODE_CASE_BODY         0x05
+#define AST_NODE_GLOBAL_SCOPE      0x06
+#define AST_NODE_CONST_LIT         0x07
+#define AST_NODE_ID                0x08
+#define AST_NODE_EXPR              0x09
+#define AST_NODE_EXPR_LIST         0x0A
+#define AST_NODE_EXPR_UNRY         0x0B
+#define AST_NODE_EXPR_BNRY         0x0C
+#define AST_NODE_INDEX             0x0D
+#define AST_NODE_DECL              0x0E
+#define AST_NODE_ASSIGN            0x0F
+#define AST_NODE_IF                0x10
+#define AST_NODE_EF                0x11
+#define AST_NODE_ELSE              0x12
+#define AST_NODE_SWITCH            0x13
+#define AST_NODE_SWITCH_CASE       0x14
+#define AST_NODE_SWITCH_DEFT       0x15
+#define AST_NODE_LOOP_FOR          0x16
+#define AST_NODE_LOOP_WHILE        0x17
+#define AST_NODE_LOOP_INF          0x18
+#define AST_NODE_LOOP_FOREACH      0x19
+#define AST_NODE_FUNC_DEF          0x1A
+#define AST_NODE_FUNC_CALL         0x1B
+#define AST_NODE_RETURN            0x1C
+#define AST_NODE_TYPE_DECL         0x1D
+#define AST_NODE_TYPE_DEF          0x1E
+#define AST_NODE_NEW               0x1F
+#define AST_NODE_ERROR             0x20
+#define AST_NODE_DEAL              0x21
 
 typedef struct ASTNode            ASTNode;
+typedef struct ASTNodeStmt        ASTNodeStmt;
 typedef struct ASTNodeInclude     ASTNodeInclude;
 typedef struct ASTNodeModule      ASTNodeModule;
 typedef struct ASTNodeBlock       ASTNodeBlock;
-typedef struct ASTNodeBlockStmt   ASTNodeBlockStmt;
+typedef struct ASTNodeCaseBody    ASTNodeCaseBody;
+typedef struct ASTNodeGlobalScope ASTNodeGlobalScope;
 typedef struct ASTNodeID          ASTNodeID;
 typedef struct ASTNodeConstLit    ASTNodeConstLit;
 typedef struct ASTNodeExpr        ASTNodeExpr;
@@ -103,6 +107,7 @@ struct ASTNodeModule {
 struct ASTNode {
     int8 node_type;
     union {
+        ASTNodeBlock*       node_block;
         ASTNodeExpr*        node_expr;
         ASTNodeDecl*        node_decl;
         ASTNodeAssign*      node_assign;
@@ -116,15 +121,25 @@ struct ASTNode {
     }node;
 };
 
-// represent a statement in the block.
-struct ASTNodeBlockStmt {
-    ASTNode*          stmt;
-    ASTNodeBlockStmt* next;
+// represent an statement in one of the Block/CaseBody/GlobalScope.
+struct ASTNodeStmt {
+    ASTNode*     stmt;
+    ASTNodeStmt* next;
 };
 
-// represent a set of statements between a couple of braces.
+// represent a set of statements between a couple of braces('{' and '}').
 struct ASTNodeBlock {
-    ASTNodeBlockStmt* stmts;
+    ASTNodeStmt* stmts;
+};
+
+// represent a set of statements in an keyword case's scope.
+struct ASTNodeCaseBody {
+    ASTNodeStmt* stmts;
+};
+
+// represent a set of statements in global scope of the source file.
+struct ASTNodeGlobalScope {
+    ASTNodeStmt* stmts;
 };
 
 struct ASTNodeID {
@@ -251,7 +266,7 @@ struct ASTNodeElse {
 // default:
 //     ...
 // }
-struct ASTNode_switch {
+struct ASTNodeSwitch {
     ASTNodeExpr*       option;
     ASTNodeSwitchCase* branch_case;
     ASTNodeSwitchDeft* branch_default;
@@ -260,7 +275,7 @@ struct ASTNode_switch {
 // represent the case statement of the switch statement.
 struct ASTNodeSwitchCase {
     ASTNodeExpr*       value;
-    ASTNodeBlock*      block;
+    ASTNodeCaseBody*   body;
     ASTNodeSwitchCase* next;
 };
 

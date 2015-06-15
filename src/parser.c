@@ -208,7 +208,7 @@ static ASTNodeIf* parserParseIf(Parser* parser) {
 
 // parsing the ef(else if) statement.
 static ASTNodeEf* parserParseEf(Parser* parser) {
-    ASTNodeEf* node_ef = (ASTNodeEf*)mem_alloc(sizeof(ASTNodeEf));
+    ASTNodeEf* node_ef = NULL;
     ASTNodeEf* cur     = NULL;
     ASTNodeEf* create  = NULL;
     for (;;) {
@@ -235,6 +235,87 @@ static ASTNodeElse* parserParseElse(Parser* parser) {
     return node_else;
 }
 
+// parsing the switch statement.
+static ASTNodeSwitch* parserParseSwitch(Parser* parser) {
+    ASTNodeSwitch* node_switch = (ASTNodeSwitch*)mem_alloc(sizeof(ASTNodeSwitch));
+    node_switch->option         = parserParseExpr(parser);
+    node_switch->branch_case    = NULL;
+    node_switch->branch_default = NULL;
+
+    parserGetCurToken(parser);
+    if (parser->cur_token->token_code != TOKEN_OP_LBRACE) {
+        parserReportErr(parser, "miss the { to open the switch statement's scope.");
+    }
+    lexerNextToken(parser->lexer);
+
+    ASTNodeSwitchCase* cur    = NULL;
+    ASTNodeSwitchCase* create = NULL;
+    for (;;) {
+        parserGetCurToken(parser);
+        switch (parser->cur_token->token_code) {
+        case TOKEN_KEYWORD_CASE:
+            lexerNextToken(parser->lexer);
+            if ((create = parserParseSwitchCase(parser)) == NULL) {
+                return NULL;
+            }
+            cur != NULL ? (cur->next = create) : (node_switch->branch_case = create);
+            cur = create;
+            break;
+
+        case TOKEN_KEYWORD_DEFAULT:
+            lexerNextToken(parser->lexer);
+            if (node_switch->branch_default == NULL) {
+                node_switch->branch_default = parserParseSwitchDeft(parser);
+                break;
+            }
+            else {
+                parserReportErr(parser, "multiple default branches in one switch statment.");
+                return NULL;
+            }
+
+        case TOKEN_OP_RBRACE:
+            lexerReadToken(parser->lexer);
+            return node_switch;
+
+        default:
+            parserReportErr(parser, "invalid token within the switch statement context.");
+            return NULL;
+        }
+    }
+}
+
+// parsing the case branch of the switch statement.
+static ASTNodeSwitchCase* parserParseSwitchCase(Parser* parser) {
+    ASTNodeSwitchCase* node_switch_case = (ASTNodeSwitchCase*)mem_alloc(sizeof(ASTNodeSwitchCase));
+    node_switch_case->value = parserParseExpr(parser);
+
+    parserGetCurToken(parser);
+    if (parser->cur_token->token_code != TOKEN_OP_COLON) { // pass the :
+        parserReportErr(parser, "miss the : to begin the case branch of the switch statement.");
+        return NULL;
+    }
+    lexerNextToken(parser->lexer);
+
+    node_switch_case->body = parserParseCaseBody(parser);
+    node_switch_case->next = NULL;
+    return node_switch_case;
+}
+
+// parsing the default branch of the switch statement.
+static ASTNodeSwitchDeft* parserParseSwitchDeft(Parser* parser) {
+    ASTNodeSwitchDeft* node_switch_deft = (ASTNodeSwitchDeft*)mem_alloc(sizeof(ASTNodeSwitchDeft));
+    node_switch_deft->block = parserParseBlock(parser);
+    return node_switch_deft;
+}
+
+static ASTNode* parserParseLoop(Parse* parser) {
+    return NULL;
+}
+
+static ASTNodeLoopFor* parserParseLoopFor(Parser* parser) {
+    return NULL;
+}
+
 // parsing function call statement.
 static ASTNodeFuncCall* parserParseFuncCall(Parser* parser) {
     ASTNodeFuncCall* node_func_call = (ASTNodeFuncCall*)mem_alloc(sizeof(ASTNodeFuncCall));
@@ -246,6 +327,8 @@ static ASTNodeFuncCall* parserParseFuncCall(Parser* parser) {
 // parsing block which represents a set of statements between
 // a couple of braces.
 static ASTNodeBlock* parserParseBlock(Parser* parser) {
+
+    // check the '{' which is the start symbol of a Block
     parserGetCurToken(parser);
     if (parser->cur_token->token_code != TOKEN_OP_LBRACE) {
         parserReportErr(parser, "miss a left-brace '{' to open new scope.");
@@ -253,28 +336,47 @@ static ASTNodeBlock* parserParseBlock(Parser* parser) {
     }
     lexerNextToken(parser->lexer);
 
-    ASTNodeBlock*     node_block = (ASTNodeBlock*)mem_alloc(sizeof(ASTNodeBlock));
-    ASTNodeBlockStmt* cur_stmt;
+    ASTNodeBlock* node_block = (ASTNodeBlock*)mem_alloc(sizeof(ASTNodeBlock));
+    ASTNodeStmt*  stmt_cur   = NULL;
+    ASTNodeStmt*  stmt_new   = NULL;
     for (;;) {
         parserGetCurToken(parser);
         if (tokenIsKeywords(parser->cur_token->token_code)) {
             switch (parser->cur_token->token_code) {
             case TOKEN_KEYWORD_IF:
+                stmt_new  = parserParseIf(parser);
+                stmt_cur != NULL ? (stmt_cur->next = stmt_new) : (node_block->stmts = stmt_new);
+                stmt_cur  = stmt_new;
                 break;
 
             case TOKEN_KEYWORD_SWITCH:
+                stmt_new  = parserParseSwitch(parser);
+                stmt_cur != NULL ? (stmt_cur->next = stmt_new) : (node_block->stmts = stmt_new);
+                stmt_cur  = stmt_new;
                 break;
 
             case TOKEN_KEYWORD_FOR:
+                // stmt_new  = parserParseLoop(parser);
+                stmt_cur != NULL ? (stmt_cur->next = stmt_new) : (node_block->stmts = stmt_new);
+                stmt_cur  = stmt_new;
                 break;
 
             case TOKEN_KEYWORD_BREAK:
+                // stmt_new  = parserParseSwitch(parser);
+                stmt_cur != NULL ? (stmt_cur->next = stmt_new) : (node_block->stmts = stmt_new);
+                stmt_cur  = stmt_new;
                 break;
 
             case TOKEN_KEYWORD_CONTINUE:
+                // stmt_new  = parserParseSwitch(parser);
+                stmt_cur != NULL ? (stmt_cur->next = stmt_new) : (node_block->stmts = stmt_new);
+                stmt_cur  = stmt_new;
                 break;
 
             case TOKEN_KEYWORD_TYPE:
+                stmt_new  = parserParseSwitch(parser);
+                stmt_cur != NULL ? (stmt_cur->next = stmt_new) : (node_block->stmts = stmt_new);
+                stmt_cur  = stmt_new;
                 break;
 
             case TOKEN_KEYWORD_FUNC:
@@ -293,16 +395,20 @@ static ASTNodeBlock* parserParseBlock(Parser* parser) {
                 break;
 
             default:
-                parserReportErr(parser, "unknown keyword.");
+                parserReportErr(parser, "unacceptable keyword in block context.");
                 break;
             }
         }
-        else if (parser->cur_token->token_code == TOKEN_LINEFEED) {
-            lexerNextToken(parser->lexer);
+        else if (parser->cur_token->token_code == TOKEN_OP_LBRACE) {
+            stmt_new = (ASTNode*)mem_alloc(sizeof(ASTNode));
+            stmt_new->node_type = AST_NODE_BLOCK;
+            stmt_new->node.node_block = parserParseBlock(parser);
+            stmt_cur != NULL ? (stmt_cur->next = stmt_new) : (node_block->stmts = stmt_new);
+            stmt_cur  = stmt_new;
             continue;
         }
-        else if (parser->cur_token->token_code == TOKEN_OP_LBRACE) {
-            // TODO: parserParseBlock
+        else if (parser->cur_token->token_code == TOKEN_LINEFEED) {
+            lexerNextToken(parser->lexer);
             continue;
         }
         else if (parser->cur_token->token_code == TOKEN_OP_RBRACE) {
@@ -318,6 +424,129 @@ static ASTNodeBlock* parserParseBlock(Parser* parser) {
             ASTNodeExpr* node_expr = parserParseExpr(parser);
         }
     }
+}
+
+static ASTNodeCaseBody* parserParseCaseBody(Parser* parser) {
+    ASTNodeCaseBody* node_case_body = (ASTNodeCaseBody*)mem_alloc(sizeof(ASTNodeCaseBody));
+    ASTNodeStmt*     stmt_cur       = NULL;
+    ASTNodeStmt*     stmt_new       = NULL;
+
+    for (;;) {
+        parserGetCurToken(parser);
+        if (tokenIsKeywords(parser->cur_token->token_code)) {
+            switch (parser->cur_token->token_code) {
+            case TOKEN_KEYWORD_IF:
+                stmt_new  = parserParseIf(parser);
+                stmt_cur != NULL ? (stmt_cur->next = stmt_new) : (node_block->stmts = stmt_new);
+                stmt_cur  = stmt_new;
+                break;
+
+            case TOKEN_KEYWORD_SWITCH:
+                stmt_new  = parserParseSwitch(parser);
+                stmt_cur != NULL ? (stmt_cur->next = stmt_new) : (node_block->stmts = stmt_new);
+                stmt_cur  = stmt_new;
+                break;
+
+            case TOKEN_KEYWORD_FOR:
+                // stmt_new  = parserParseLoop(parser);
+                stmt_cur != NULL ? (stmt_cur->next = stmt_new) : (node_block->stmts = stmt_new);
+                stmt_cur  = stmt_new;
+                break;
+
+            case TOKEN_KEYWORD_BREAK:
+                // stmt_new  = parserParseSwitch(parser);
+                stmt_cur != NULL ? (stmt_cur->next = stmt_new) : (node_block->stmts = stmt_new);
+                stmt_cur  = stmt_new;
+                break;
+
+            case TOKEN_KEYWORD_CONTINUE:
+                // stmt_new  = parserParseSwitch(parser);
+                stmt_cur != NULL ? (stmt_cur->next = stmt_new) : (node_block->stmts = stmt_new);
+                stmt_cur  = stmt_new;
+                break;
+                
+            case TOKEN_KEYWORD_FTHROUGH:
+                // stmt_new  = parserParseSwitch(parser);
+                stmt_cur != NULL ? (stmt_cur->next = stmt_new) : (node_block->stmts = stmt_new);
+                stmt_cur  = stmt_new;
+                break;
+
+            case TOKEN_KEYWORD_TYPE:
+                stmt_new  = parserParseSwitch(parser);
+                stmt_cur != NULL ? (stmt_cur->next = stmt_new) : (node_block->stmts = stmt_new);
+                stmt_cur  = stmt_new;
+                break;
+
+            case TOKEN_KEYWORD_FUNC:
+                break;
+
+            case TOKEN_KEYWORD_NEW:
+                break;
+
+            case TOKEN_KEYWORD_RETURN:
+                break;
+
+            case TOKEN_KEYWORD_ERROR:
+                break;
+
+            case TOKEN_KEYWORD_DEAL:
+                break;
+
+            case TOKEN_KEYWORD_CASE:
+            case TOKEN_KEYWORD_DEFAULT:
+                return node_case_body;
+
+            default:
+                parserReportErr(parser, "unacceptable keyword in case context.");
+                break;
+            }
+        }
+        else if (parser->cur_token->token_code == TOKEN_OP_RBRACE) {
+            return node_case_body;
+        }
+        else if (parser->cur_token->token_code == TOKEN_OP_LBRACE) {
+            
+        }
+        else if (parser->cur_token->token_code == TOKEN_LINEFEED) {
+            lexerNextToken(parser->lexer);
+        }
+        else {
+            // TODO: parsing expressions
+        }
+    }
+    return NULL;
+}
+
+static ASTNodeGlobalScope* parserParseGlobalScope(Parser* parser) {
+    ASTNodeGlobalScope* node_global_scope = (ASTNodeGlobalScope*)mem_alloc(sizeof(ASTNodeGlobalScope));
+    ASTNodeStmt*        stmt_cur          = NULL;
+    ASTNodeStmt*        stmt_new          = NULL;
+    for (;;) {
+        parserGetCurToken(parser);
+        if (tokenIsKeywords(parser->cur_token->token_code)) {
+            switch (parser->cur_token->token_code) {
+            case TOKEN_KEYWORD_TYPE:
+                break;
+                
+            case TOKEN_KEYWORD_FUNC:
+                break;
+                
+            case TOKEN_KEYWORD_MODULE:
+                break;
+                
+            case TOKEN_KEYWORD_INCLUDE:
+                break;
+                
+            default:
+                parserReportErr(parser, "unacceptable keyword in the global scope context.");
+                break;
+            }
+        }
+        else {
+            // TODO: parsing expressions
+        }
+    }
+    return NULL;
 }
 
 /*

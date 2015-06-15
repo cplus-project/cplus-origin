@@ -41,6 +41,8 @@ extern void  parserDestroy  (Parser* parser);
 static ASTNodeInclude*     parserParseInclude    (Parser* parser);
 static ASTNodeModule*      parserParseModule     (Parser* parser);
 static ASTNodeBlock*       parserParseBlock      (Parser* parser);
+static ASTNodeCaseBody*    parserParseCaseBody   (Parser* parser);
+static ASTNodeGlobalScope* parserParseGlobalScope(Parser* parser);
 static ASTNodeConstLit*    parserParseConstLit   (Parser* parser);
 static ASTNodeID*          parserParseID         (Parser* parser);
 static ASTNodeExpr*        parserParseExpr       (Parser* parser);

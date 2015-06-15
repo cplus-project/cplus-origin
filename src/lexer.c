@@ -376,7 +376,7 @@ error lexerParseToken(Lexer* lexer) {
                     }
                 }
                 if ('b' <= token_content[0] && token_content[0] <= 'f') {
-                    // for func
+                    // for func fallthrough
                     if (lexer->lextkn.token_len == 3 && strcmp(token_content, "for") == 0) {
                         lexer->lextkn.token_code = TOKEN_KEYWORD_FOR;
                         lexer->parse_lock = true;
@@ -384,6 +384,11 @@ error lexerParseToken(Lexer* lexer) {
                     }
                     else if (lexer->lextkn.token_len == 4 && strcmp(token_content, "func") == 0) {
                         lexer->lextkn.token_code = TOKEN_KEYWORD_FUNC;
+                        lexer->parse_lock = true;
+                        return NULL;
+                    }
+                    else if (lexer->lextkn.token_len == 11 && strcmp(token_content, "fallthrough") == 0) {
+                        lexer->lextkn.token_code = TOKEN_KEYWORD_FTHROUGH;
                         lexer->parse_lock = true;
                         return NULL;
                     }
