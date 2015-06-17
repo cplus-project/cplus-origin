@@ -67,9 +67,9 @@ typedef struct {
     FileTreeNode* root;
 }FileTree;
 
-extern void  FileTreeInit   (FileTree* ftree);
-extern error FileTreeAdd    (FileTree* ftree, char* file_name);
-extern bool  FileTreeExist  (FileTree* ftree, char* file_name);
-extern void  FileTreeDestroy(FileTree* ftree);
+extern void  fileTreeInit   (FileTree* ftree);
+extern error fileTreeAdd    (FileTree* ftree, char* file_name);
+extern bool  fileTreeExist  (FileTree* ftree, char* file_name);
+extern void  fileTreeDestroy(FileTree* ftree);
 
 #endif

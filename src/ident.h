@@ -18,10 +18,10 @@
 #define ID_VAR           0x02
 #define ID_ARRAY         0x03
 #define ID_TYPE          0x04
-#define ID_FUNC          0x05
-#define ID_INCLUDE       0x06
-#define ID_MODULE        0x07
-#define ID_MICRO         0x08
+#define ID_FUNCTION      0x05
+#define ID_EXPANDER      0x06
+#define ID_INCLUDE       0x07
+#define ID_MODULE        0x08
 
 #define ACCESS_NULL      0x00
 #define ACCESS_IN        0x01
@@ -40,106 +40,86 @@ typedef struct IdentVar     IdentVar;
 typedef struct IdentArray   IdentArray;
 typedef struct IdentType    IdentType;
 typedef struct IdentFunc    IdentFunc;
+typedef struct IdentExpn    IdentExpn;
 typedef struct IdentInclude IdentInclude;
 typedef struct IdentModule  IdentModule;
 typedef struct IdentTable   IdentTable;
 
-// represent a constant's information.
+// represent a constant's information. a constant can not be
+// assigned more than once.
 struct IdentConst {
-    IdentType* instance;
+    IdentType* data_type_info;
 };
 
-// represent a variable's information.
+// represent a variable's information. a variable is an address's
+// name, it can be used to modify the address's content frequently.
 struct IdentVar {
-    IdentType* instance;
+    IdentType* data_type_info;
 };
 
 // represent an array's information.
 struct IdentArray {
-    IdentType* arr_datatype;
-    int64      arr_len;
+    IdentType* data_type_info;
 };
 
-typedef struct PrimitiveType PrimitiveType;
-typedef struct CompoundType  CompoundType;
-
-
-// represent a primitive type of C+
-// the primitive_type_token_code can be assigned with one of (see
-// micro defined in lexer.h):
-//    TOKEN_TYPE_BYTE
-//    TOKEN_TYPE_INT8
-//    TOKEN_TYPE_INT16
-//    ...
-//    TOKEN_TYPE_STRING
-//
-struct PrimitiveType {
-    int16 type_token_code;
-    bool  is_const;
-    union {
-        char*          value_const;
-        PrimitiveType* value_var;
-    }value;
-};
-
-// used to save the members' information of the type.
-// the member_entity will be used base on the value of the
-// member_type, the case of them is:
-//    ID_CONST => member_entity.instance_const
-//    ID_VAR   => member_entity.instance_var
-//    ID_ARRAY => member_entity.instance_array
-//    ID_TYPE  => member_entity.instance_type
+// represent the member's information of a type. it is only used
+// when the type's primitive is false(means the type is a compound
+// type).
 typedef struct Member {
-    int8  access;
     char* member_name;
+    int8  member_access;
     int8  member_type;
     union {
-        IdentConst instance_const;
-        IdentVar   instance_var;
-        IdentArray instance_array;
-        IdentType* instance_type;
-    }member_entity;
-    
+        IdentConst* constant;
+        IdentVar*   variable;
+        IdentArray* array;
+        IdentType*  type;
+        IdentFunc*  function;
+        IdentExpn*  expander;
+    }member;
+
     struct Member* next;
 }Member;
 
-// represent a compound type.
-struct CompoundType {
-    Member* member;
-};
-
-// represent a type definition's information.
-// primitive:
-//    true  => type_entity.instance_primitive
-//    false => type_entity.instance_compound
+// represent a type's information.
 struct IdentType {
     bool primitive;
     union {
-        PrimitiveType instance_primitive;
-        CompoundType  instance_compound;
-    }type_entity;
+        int16   prim_type_token_code;
+        Member* members;
+    }type;
 };
 
-typedef struct ParamListNode {
-    char* param_type;
-    char* param_name;
-    struct ParamListNode* next;
-}ParamListNode;
+// represent a parameter passed into or returned out by a function
+// or a expander.
+typedef struct Parameter {
+    IdentType* param_data_type_info;
+    char*      param_name;
 
-typedef struct {
-    ParamListNode* head;
-}ParamList;
+    struct Parameter* next;
+}Parameter;
 
-// represent a function definition's information.
+// represent a function's information.
 struct IdentFunc {
-    ParamList passin;
-    ParamList retout;
+    Parameter* params_passin;
+    Parameter* params_retout;
+    // TODO: design a way to represent the error_tag list
 };
 
+// represent a expander's information. the expander is often called
+// 'micro' in other languages.
+struct IdentExpn {
+    Parameter* params_passin;
+    // TODO: design a way to represent the expander's body
+};
+
+// represent an included file's information about identified objects
+// within it.
 struct IdentInclude {
     IdentTable* id_table;
 };
 
+// represent a module's information about identified objects within it.
 struct IdentModule {
     IdentTable* id_table;
 };
@@ -151,14 +131,10 @@ struct IdentModule {
 //    ...
 //    Ident* id = identTableSearch(&id_table, "foo");
 //    switch (id->id_type) {
-//    case ID_CONST:   // do some process to the 'id->id_info.id_const'
-//    case ID_VAR:     // do some process to the 'id->id_info.id_var'
-//    case ID_ARRAY:   // do some process to the 'id->id_info.id_array'
-//    case ID_TYPE:    // do some process to the 'id->id_info.id_type'
-//    case ID_FUNC:    // do some process to the 'id->id_info.id_func'
-//    case ID_INCLUDE: // do some process to the 'id->id_info.id_include'
-//    case ID_MODULE:  // do some process to the 'id->id_info.id_module'
-//    case ID_MICRO: ...
+//    case ID_CONST: // do some process to the 'id->id_info.id_const'
+//    case ID_VAR:   // do some process to the 'id->id_info.id_var'
+//    case ID_ARRAY: // do some process to the 'id->id_info.id_array'
+//    ...
 //    default: ...
 //    }
 //    ...
@@ -167,22 +143,16 @@ struct Ident {
     int8  access;
     int8  id_type;
     union {
-        IdentConst*   id_const;
-        IdentVar*     id_var;
-        IdentArray*   id_array;
-        IdentType*    id_type;
-        IdentFunc*    id_func;
-        IdentInclude* id_include;
-        IdentModule*  id_module;
-    }id_entity;
+        IdentConst*   constant;
+        IdentVar*     variable;
+        IdentArray*   array;
+        IdentType*    type;
+        IdentFunc*    function;
+        IdentExpn*    expander;
+        IdentInclude* include;
+        IdentModule*  module;
+    }id;
 };
-
-extern Ident* makeIdentConst  (char* id_name, int8 access, IdentType* instance);
-extern Ident* makeIdentVar    (char* id_name, int8 access, IdentType* instance);
-extern Ident* makeIdentType   (char* id_name, int8 access, IdentType* typeinfo);
-extern Ident* makeIdentFunc   (char* id_name, int8 access);
-extern Ident* makeIdentInclude(char* id_name);
-extern Ident* makeIdentModule (char* id_name);
 
 typedef struct IdentTableNode {
     Ident* id;

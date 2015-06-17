@@ -6,71 +6,9 @@
 
 #include "ident.h"
 
+// the id_placeholder represents the '_' which is called the anonymous
+// identifier.
 static Ident id_placeholder = {NULL, ACCESS_IN, ID_PLACEHOLDER, NULL};
-
-Ident* makeIdentconst(char* id_name, int8 access, IdentType* instance) {
-    Ident* id = (Ident*)mem_alloc(sizeof(Ident));
-    id->id_name = id_name;
-    id->access  = access;
-    id->id_type = ID_CONST;
-    id->id_entity.id_const = (IdentConst*)mem_alloc(sizeof(IdentConst));
-    id->id_entity.id_const->instance = instance;
-    return id;
-}
-
-Ident* makeIdentVar(char* id_name, int8 access, IdentType* instance) {
-    Ident* id = (Ident*)mem_alloc(sizeof(Ident));
-    id->id_name = id_name;
-    id->access  = access;
-    id->id_type = ID_VAR;
-    id->id_entity.id_var = (IdentVar*)mem_alloc(sizeof(IdentVar));
-    id->id_entity.id_var->instance = instance;
-    return id;
-}
-
-Ident* makeIdentType(char* id_name, int8 access, IdentType* typeinfo) {
-    Ident* id = (Ident*)mem_alloc(sizeof(Ident));
-    id->id_name = id_name;
-    id->access  = access;
-    id->id_type = ID_TYPE;
-    id->id_entity.id_type = typeinfo;
-    return id;
-}
-
-Ident* makeIdentFunc(char* id_name, int8 access) {
-    Ident* id = (Ident*)mem_alloc(sizeof(Ident));
-    id->id_name = id_name;
-    id->access  = access;
-    id->id_type = ID_FUNC;
-    id->id_entity.id_func = (IdentFunc*)mem_alloc(sizeof(IdentFunc));
-    id->id_entity.id_func->passin.head = NULL;
-    id->id_entity.id_func->retout.head = NULL;
-    return id;
-}
-
-Ident* makeIdentInclude(char* id_name) {
-    Ident* id = (Ident*)mem_alloc(sizeof(Ident));
-    id->id_name = id_name;
-    id->access  = ACCESS_NULL;
-    id->id_type = ID_INCLUDE;
-    id->id_entity.id_include = (IdentInclude*)mem_alloc(sizeof(IdentInclude));
-    id->id_entity.id_include->id_table = (IdentTable*)mem_alloc(sizeof(IdentTable));
-    identTableInit(id->id_entity.id_include->id_table);
-    return id;
-}
-
-Ident* makeIdentModule(char* id_name) {
-    Ident* id = (Ident*)mem_alloc(sizeof(Ident));
-    id->id_name = id_name;
-    id->access  = ACCESS_NULL;
-    id->id_type = ID_MODULE;
-    id->id_entity.id_module = (IdentModule*)mem_alloc(sizeof(IdentModule));
-    id->id_entity.id_module->id_table = (IdentTable*)mem_alloc(sizeof(IdentTable));
-    identTableInit(id->id_entity.id_module->id_table);
-    return id;
-}
-
-/****** methods of IdentTable ******/
 
 void identTableInit(IdentTable* id_table) {
     id_table->root = NULL;
@@ -295,9 +233,9 @@ static void identTableDestroyNode(IdentTableNode* node) {
         if (node->rchild != NULL) identTableDestroyNode(node->rchild);
         switch (node->id->id_type) {
         case ID_TYPE:
-            if (node->id->id_entity.id_type->primitive == false) {
+            if (node->id->id.type->primitive == false) {
                 Member* temp;
-                Member* ptr = node->id->id_entity.id_type->type_entity.instance_compound.member;
+                Member* ptr = node->id->id.type->type.members;
                 for (;;) {
                     if (ptr == NULL) {
                         break;
@@ -308,28 +246,40 @@ static void identTableDestroyNode(IdentTableNode* node) {
                 }
             }
             break;
-        case ID_FUNC: {
-                ParamListNode* del = NULL;
-                ParamListNode* ptr = node->id->id_entity.id_func->passin.head;
+
+        case ID_FUNCTION: {
+                Parameter* del = NULL;
+                Parameter* ptr = node->id->id.function->params_passin;
                 while (ptr != NULL) {
                     del = ptr;
                     ptr = ptr->next;
                     mem_free(del);
                 }
-                for (ptr = node->id->id_entity.id_func->retout.head; ptr != NULL;) {
+                for (ptr = node->id->id.function->params_retout; ptr != NULL;) {
                     del = ptr;
                     ptr = ptr->next;
                     mem_free(del);
                 }
-                node->id->id_entity.id_func->passin.head = NULL;
-                node->id->id_entity.id_func->retout.head = NULL;
             }
             break;
-        case ID_INCLUDE:
-            identTableDestroy(node->id->id_entity.id_include->id_table);
+
+        case ID_EXPANDER: {
+                Parameter* del = NULL;
+                Parameter* ptr = node->id->id.expander->params_passin;
+                while (ptr != NULL) {
+                    del = ptr;
+                    ptr = ptr->next;
+                    mem_free(del);
+                }
+            }
             break;
+
+        case ID_INCLUDE:
+            identTableDestroy(node->id->id.include->id_table);
+            break;
+
         case ID_MODULE:
-            identTableDestroy(node->id->id_entity.id_module->id_table);
+            identTableDestroy(node->id->id.module->id_table);
             break;
         }
         mem_free(node->id);

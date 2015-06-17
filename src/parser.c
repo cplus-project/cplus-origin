@@ -308,7 +308,7 @@ static ASTNodeSwitchDeft* parserParseSwitchDeft(Parser* parser) {
     return node_switch_deft;
 }
 
-static ASTNode* parserParseLoop(Parse* parser) {
+static ASTNode* parserParseLoop(Parser* parser) {
     return NULL;
 }
 
@@ -344,13 +344,13 @@ static ASTNodeBlock* parserParseBlock(Parser* parser) {
         if (tokenIsKeywords(parser->cur_token->token_code)) {
             switch (parser->cur_token->token_code) {
             case TOKEN_KEYWORD_IF:
-                stmt_new  = parserParseIf(parser);
+                // stmt_new  = parserParseIf(parser);
                 stmt_cur != NULL ? (stmt_cur->next = stmt_new) : (node_block->stmts = stmt_new);
                 stmt_cur  = stmt_new;
                 break;
 
             case TOKEN_KEYWORD_SWITCH:
-                stmt_new  = parserParseSwitch(parser);
+                // stmt_new  = parserParseSwitch(parser);
                 stmt_cur != NULL ? (stmt_cur->next = stmt_new) : (node_block->stmts = stmt_new);
                 stmt_cur  = stmt_new;
                 break;
@@ -374,7 +374,7 @@ static ASTNodeBlock* parserParseBlock(Parser* parser) {
                 break;
 
             case TOKEN_KEYWORD_TYPE:
-                stmt_new  = parserParseSwitch(parser);
+                // stmt_new  = parserParseSwitch(parser);
                 stmt_cur != NULL ? (stmt_cur->next = stmt_new) : (node_block->stmts = stmt_new);
                 stmt_cur  = stmt_new;
                 break;
@@ -400,9 +400,6 @@ static ASTNodeBlock* parserParseBlock(Parser* parser) {
             }
         }
         else if (parser->cur_token->token_code == TOKEN_OP_LBRACE) {
-            stmt_new = (ASTNode*)mem_alloc(sizeof(ASTNode));
-            stmt_new->node_type = AST_NODE_BLOCK;
-            stmt_new->node.node_block = parserParseBlock(parser);
             stmt_cur != NULL ? (stmt_cur->next = stmt_new) : (node_block->stmts = stmt_new);
             stmt_cur  = stmt_new;
             continue;
@@ -436,45 +433,24 @@ static ASTNodeCaseBody* parserParseCaseBody(Parser* parser) {
         if (tokenIsKeywords(parser->cur_token->token_code)) {
             switch (parser->cur_token->token_code) {
             case TOKEN_KEYWORD_IF:
-                stmt_new  = parserParseIf(parser);
-                stmt_cur != NULL ? (stmt_cur->next = stmt_new) : (node_block->stmts = stmt_new);
-                stmt_cur  = stmt_new;
                 break;
 
             case TOKEN_KEYWORD_SWITCH:
-                stmt_new  = parserParseSwitch(parser);
-                stmt_cur != NULL ? (stmt_cur->next = stmt_new) : (node_block->stmts = stmt_new);
-                stmt_cur  = stmt_new;
                 break;
 
             case TOKEN_KEYWORD_FOR:
-                // stmt_new  = parserParseLoop(parser);
-                stmt_cur != NULL ? (stmt_cur->next = stmt_new) : (node_block->stmts = stmt_new);
-                stmt_cur  = stmt_new;
                 break;
 
             case TOKEN_KEYWORD_BREAK:
-                // stmt_new  = parserParseSwitch(parser);
-                stmt_cur != NULL ? (stmt_cur->next = stmt_new) : (node_block->stmts = stmt_new);
-                stmt_cur  = stmt_new;
                 break;
 
             case TOKEN_KEYWORD_CONTINUE:
-                // stmt_new  = parserParseSwitch(parser);
-                stmt_cur != NULL ? (stmt_cur->next = stmt_new) : (node_block->stmts = stmt_new);
-                stmt_cur  = stmt_new;
                 break;
                 
             case TOKEN_KEYWORD_FTHROUGH:
-                // stmt_new  = parserParseSwitch(parser);
-                stmt_cur != NULL ? (stmt_cur->next = stmt_new) : (node_block->stmts = stmt_new);
-                stmt_cur  = stmt_new;
                 break;
 
             case TOKEN_KEYWORD_TYPE:
-                stmt_new  = parserParseSwitch(parser);
-                stmt_cur != NULL ? (stmt_cur->next = stmt_new) : (node_block->stmts = stmt_new);
-                stmt_cur  = stmt_new;
                 break;
 
             case TOKEN_KEYWORD_FUNC:
@@ -521,6 +497,7 @@ static ASTNodeGlobalScope* parserParseGlobalScope(Parser* parser) {
     ASTNodeGlobalScope* node_global_scope = (ASTNodeGlobalScope*)mem_alloc(sizeof(ASTNodeGlobalScope));
     ASTNodeStmt*        stmt_cur          = NULL;
     ASTNodeStmt*        stmt_new          = NULL;
+
     for (;;) {
         parserGetCurToken(parser);
         if (tokenIsKeywords(parser->cur_token->token_code)) {
@@ -547,6 +524,54 @@ static ASTNodeGlobalScope* parserParseGlobalScope(Parser* parser) {
         }
     }
     return NULL;
+}
+
+void parserInit(Parser* parser) {
+    fileStackInit(&parser->file_wait_compiled);
+    fileTreeInit (&parser->file_have_compiled);
+    parser->lexer     = NULL;
+    parser->ast       = NULL;
+    parser->cur_token = NULL;
+    parser->cur_scope = NULL;
+    parser->err_count = 0;
+}
+
+error parserStart(Parser* parser, char* main_file) {
+    fileStackPush(&parser->file_wait_compiled, main_file);
+    for (;;) {
+        if (fileStackIsEmpty(&parser->file_wait_compiled) == true) {
+            return NULL;
+        }
+        char* file = fileStackTop(&parser->file_wait_compiled);
+        
+        if (fileTreeExist(&parser->file_have_compiled, file) == true) {
+            // TODO: the file has been compiled...
+            //       just use it directory.
+        }
+        else {
+            
+        }
+        
+        fileStackPop(&parser->file_wait_compiled);
+    }
+}
+
+void parserDestroy(Parser* parser) {
+    fileStackDestroy(&parser->file_wait_compiled);
+    fileTreeDestroy (&parser->file_have_compiled);
+
+    if (parser->ast != NULL)
+        astDestroy(parser->ast);
+    if (parser->lexer != NULL) 
+        lexerDestroy(parser->lexer);
+    if (parser->cur_scope != NULL)
+        scopeDestroy(parser->cur_scope);
+
+    parser->lexer     = NULL;
+    parser->ast       = NULL;
+    parser->cur_scope = NULL;
+    parser->cur_token = NULL;
+    parser->err_count = 0;
 }
 
 /*

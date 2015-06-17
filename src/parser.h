@@ -12,13 +12,12 @@
 #define CPLUS_PARSER_H
 
 #include "common.h"
-#include "closectr.h"
 #include "lexer.h"
 #include "ident.h"
-#include "scope.h"
 #include "fileset.h"
 #include "ast.h"
 #include "expression.h"
+#include "scope.h"
 
 // the parser is used to parse the source code based on
 // the rules of C+ programming language syntax.
@@ -28,13 +27,12 @@ typedef struct Parser {
     Lexer*       lexer;              // the lexer now using
     AST*         ast;                // the abstract syntax tree now building
     LexToken*    cur_token;          // the current token parsed
-    Scope*       cur_scope;          // the current scope being parsing
-    CloseCounter clsctr;             // guarantee that all brackets are closed correctly
+    Scope*       cur_scope;          // the current scope being parsed
     int8         err_count;          // the number of errors founded until the current stage
 }Parser;
 
 extern void  parserInit     (Parser* parser);
-extern error parserBuildAST (Parser* parser, char* main_file);
+extern error parserStart    (Parser* parser, char* main_file);
 extern void  parserReportErr(Parser* parser, char* errmsg);
 extern void  parserDestroy  (Parser* parser);
 

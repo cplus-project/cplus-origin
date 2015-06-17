@@ -9,6 +9,7 @@
 
 #include <string.h>
 #include "common.h"
+#include "parser.h"
 
 int main(int argc, char* argv[]) {
     error err = NULL;
@@ -32,7 +33,9 @@ int main(int argc, char* argv[]) {
             return 0;
         }
 
-        // TODO: start compiling the src files here...
+        Parser parser;
+        parserInit (&parser);
+        parserStart(&parser, filename);
     }
 
     return 0;

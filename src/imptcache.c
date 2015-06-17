@@ -4,16 +4,5 @@
  * license that can be found in the LICENSE file.
  **/
 
-#include "ast.h"
+#include "imptcache.h"
 
-void astInit(AST* ast) {
-    ast->global_scope = NULL;
-}
-
-void astDisplay(AST* ast) {
-
-}
-
-void astDestroy(AST* ast) {
-
-}

@@ -139,7 +139,9 @@ struct ASTNodeCaseBody {
 
 // represent a set of statements in global scope of the source file.
 struct ASTNodeGlobalScope {
-    ASTNodeStmt* stmts;
+    ASTNodeModule*  modules;
+    ASTNodeInclude* includes;
+    ASTNodeStmt*    stmts;
 };
 
 struct ASTNodeID {
@@ -338,7 +340,11 @@ struct ASTNodeFuncCall {
 };
 
 typedef struct {
-
+    ASTNodeGlobalScope* global_scope;
 }AST;
+
+extern void astInit   (AST* ast);
+extern void astDisplay(AST* ast);
+extern void astDestroy(AST* ast);
 
 #endif
