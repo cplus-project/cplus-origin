@@ -20,7 +20,7 @@ if (lexer->i >= lexer->buff_end_index) { \
     }                                    \
 }
 
-/****** methods of lexToken ******/
+/****** methods of LexToken ******/
 
 error lexTokenInit(LexToken* lextkn, int64 capacity) {
     if ((err = dynamicArrCharInit(&lextkn->token, capacity)) != NULL) {
@@ -145,7 +145,7 @@ void lexTokenDestroy(LexToken* lextkn) {
     dynamicArrCharDestroy(&lextkn->token);
 }
 
-/****** methods of lex_analyzer ******/
+/****** methods of Lexer ******/
 
 error lexerInit(Lexer* lexer) {
     lexer->srcfile        = NULL;

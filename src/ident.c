@@ -168,6 +168,7 @@ error identTableAdd(IdentTable* id_table, Ident* id) {
                 }
                 ptr = ptr->lchild;
                 break;
+
             case NODE_CMP_GT:
                 if (ptr->rchild == NULL) {
                     ptr->rchild = create;
@@ -177,10 +178,9 @@ error identTableAdd(IdentTable* id_table, Ident* id) {
                 }
                 ptr = ptr->rchild;
                 break;
+
             case NODE_CMP_EQ:
                 return new_error("err: identifier redefined.");
-            default:
-                return new_error("err: can not compare the two id names.");
             }
         }
     }
@@ -220,9 +220,6 @@ Ident* identTableSearch(IdentTable* id_table, char* id_name) {
 
         case NODE_CMP_EQ:
             return ptr->id;
-
-        default:
-            return NULL;
         }
     }
 }

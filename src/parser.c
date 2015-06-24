@@ -527,8 +527,8 @@ static ASTNodeGlobalScope* parserParseGlobalScope(Parser* parser) {
 }
 
 void parserInit(Parser* parser) {
-    fileStackInit(&parser->file_wait_compiled);
-    fileTreeInit (&parser->file_have_compiled);
+    compileWaitQueueInit(&parser->file_queue);
+    compileCacheTreeInit(&parser->file_cache);
     parser->lexer     = NULL;
     parser->ast       = NULL;
     parser->cur_token = NULL;
@@ -536,29 +536,167 @@ void parserInit(Parser* parser) {
     parser->err_count = 0;
 }
 
-error parserStart(Parser* parser, char* main_file) {
-    fileStackPush(&parser->file_wait_compiled, main_file);
+// get the filename in the include statement when the filename using
+// the format <...>
+static char* parserParseIncludeFile(Parser* parser) {
+    lexerNextToken(parser->lexer); // pass the delimiter '<'
+    char*          file_name = NULL;
+    DynamicArrChar darr;
+    dynamicArrCharInit(&darr, 255);
     for (;;) {
-        if (fileStackIsEmpty(&parser->file_wait_compiled) == true) {
+        parserGetCurToken(parser);
+
+        // close with the delimiter '>'
+        if (parser->cur_token->token_code == TOKEN_OP_GT) {
+            lexerNextToken(parser->lexer);
+            file_name = dynamicArrCharGetStr(&darr);
+            break;
+        }
+
+        // catenate all element without the '>'
+        dynamicArrCharAppend(
+            &darr,
+            lexTokenGetStr(parser->cur_token),
+            parser->cur_token->token_len
+        );
+        lexerNextToken(parser->lexer);
+    }
+    dynamicArrCharDestroy(&darr);
+
+    return file_name; 
+}
+
+// TODO: need to delete
+static void compileWaitQueueDebug(CompileWaitQueue* waitqueue) {
+    CompileWaitQueueNode* ptr;
+    for (ptr = waitqueue->head; ptr != NULL; ptr = ptr->next) {
+        printf("%s\r\n", ptr->file_info.file_name);
+    }
+}
+
+// do the preprocess operation for the include keyword.
+static error parserParseDependInclude(Parser* parser) {
+    lexerNextToken(parser->lexer); // pass the keyword 'include'
+
+    char*          file_name = NULL;
+    DynamicArrChar darr;
+    dynamicArrCharInit(&darr, 255);
+
+    parserGetCurToken(parser);
+    switch (parser->cur_token->token_code) {
+    case TOKEN_CONST_STRING:
+        file_name = lexTokenGetStr(parser->cur_token);
+        if ((err = compileCacheTreeCacheNew(&parser->file_cache, file_name)) != NULL) {
+            parserReportErr(parser, err);
+            exit(EXIT_FAILURE);
+        }
+        compileWaitQueueEnqueue(&parser->file_queue, file_name);
+        lexerNextToken(parser->lexer);
+        break;
+
+    case TOKEN_OP_LT:
+        file_name = parserParseIncludeFile(parser);
+        if ((err = compileCacheTreeCacheNew(&parser->file_cache, file_name)) != NULL) {
+            parserReportErr(parser, err);
+            exit(EXIT_FAILURE);
+        }
+        compileWaitQueueEnqueue(&parser->file_queue, file_name);
+        break;
+
+    default:
+        dynamicArrCharDestroy(&darr);
+        return new_error("not valid syntax for include statement.");
+    }
+
+    dynamicArrCharDestroy(&darr);
+    return NULL;
+}
+
+static error parserParseDependModule(Parser* parser) {
+    lexerNextToken(parser->lexer); // pass the keyword 'module'
+}
+
+// preprocess the dependent files included by the one file. this progress
+// will need the help of import cache system(in imptcache.h and imptcache.c).
+//
+static error parserParseDependences(Parser* parser) {
+    char* file = NULL;
+
+    for (;;) {
+        parserGetCurToken(parser);
+        switch (parser->cur_token->token_code) {
+        case TOKEN_KEYWORD_INCLUDE:
+            if ((err = parserParseDependInclude(parser)) != NULL) {
+                parserReportErr(parser, err);
+                return err;
+            }
+            break;
+
+        case TOKEN_KEYWORD_MODULE:
+            if ((err = parserParseDependModule(parser)) != NULL) {
+                parserReportErr(parser, err);
+                return err;
+            }
+            break;
+
+        default:
             return NULL;
         }
-        char* file = fileStackTop(&parser->file_wait_compiled);
-        
-        if (fileTreeExist(&parser->file_have_compiled, file) == true) {
-            // TODO: the file has been compiled...
-            //       just use it directory.
+    }
+}
+
+// the parserNewLexer and parserDelLexer must appear in pairs.
+static void parserNewLexer(Parser* parser, char* file) {
+    parser->lexer = (Lexer*)mem_alloc(sizeof(Lexer));
+    lexerInit(parser->lexer);
+    if ((err = lexerOpenSrcFile(parser->lexer, file)) != NULL) {
+        parserReportErr(parser, err);
+        exit(EXIT_FAILURE);
+    }
+}
+
+// the parserNewLexer and parserDelLexer must appear in pairs.
+static void parserDelLexer(Parser* parser) {
+    lexerDestroy(parser->lexer);
+    parser->lexer = NULL;
+}
+
+error parserStart(Parser* parser, char* main_file) {
+    compileWaitQueueEnqueue(&parser->file_queue, main_file);
+
+    WaitCompileFile* file     = NULL;
+    Lexer*           lexer    = NULL;
+    IdentTable*      id_table = NULL;
+
+    while (compileWaitQueueIsEmpty(&parser->file_queue) == false) {
+        // GetFile function will reset the 'cur' pointer of the wait queue
+        // so that new dependences can be inserted into the correct positions
+        // in the queue.
+        file = compileWaitQueueGetFile(&parser->file_queue);
+
+        parserNewLexer(parser, file->file_name);
+        if (file->depend_parsed == false) {
+            if ((err = parserParseDependences(parser)) != NULL) {
+                parserReportErr(parser, err);
+                exit(EXIT_FAILURE);
+            }
+            file->depend_parsed = true;
         }
         else {
-            
+            if (compileCacheTreeCacheGet(&parser->file_cache, file->file_name) != NULL) {
+                fatal("some exceptional error.");
+            }
+            // AST* ast = parserParseGlobalScope(parser);
+            compileWaitQueueDequeue(&parser->file_queue);
+            compileCacheTreeCacheOver(&parser->file_cache, file->file_name, (IdentTable*)99);
         }
-        
-        fileStackPop(&parser->file_wait_compiled);
+        parserDelLexer(parser);
     }
 }
 
 void parserDestroy(Parser* parser) {
-    fileStackDestroy(&parser->file_wait_compiled);
-    fileTreeDestroy (&parser->file_have_compiled);
+    compileWaitQueueDestroy(&parser->file_queue);
+    compileCacheTreeDestroy(&parser->file_cache);
 
     if (parser->ast != NULL)
         astDestroy(parser->ast);
@@ -573,87 +711,6 @@ void parserDestroy(Parser* parser) {
     parser->cur_token = NULL;
     parser->err_count = 0;
 }
-
-/*
-error syntax_analyzer_work(syntax_analyzer* syx) {
-    while (file_stack_isempty(&syx->file_wait_compiled) == false) {
-        char* file_name = file_stack_top(&syx->file_wait_compiled);
-
-        // if the file has been compiled then import the data from the obj file.
-        if (file_tree_exist(&syx->file_have_compiled, file_name) == true) {
-            // TODO:
-        }
-        // if the file has not been compiled then try to compile the file.
-        else {
-            smt_analyzer smt;
-            smt_analyzer_init(&smt);
-
-            lex_analyzer lex;
-            lex_init(&lex);
-            // try to open the source file. the compile operation process will
-            // terminate if the open operation failed.
-            err = lex_open_srcfile(&lex, file_name);
-            if (err != NULL) {
-                printf("%s\r\n", err);
-                exit(EXIT_FAILURE);
-            }
-
-            syx->lex = &lex;
-            // preprocess the import portion(include and module) of the source file.
-            // if all include files or modules have been compiled already, the syntax
-            // analyzer will continue to parse the file. if there are some dependences
-            // have not been solved, the analyzer will parse the dependences firstly.
-            if ((err = syntax_analyzer_parse_include(syx)) != NULL) {
-                if (ERROR_CODE(err) == SYNTAX_ERROR_DEPENDENCE_NEEDED) {
-                    // TODO: means some dependence files have not been compiled yet...
-                }
-                else {
-                    // TODO: report error...
-                }
-            }
-            if ((err = syntax_analyzer_parse_module(syx)) != NULL) {
-                if (ERROR_CODE(err) == SYNTAX_ERROR_DEPENDENCE_NEEDED) {
-                    // TODO: means some dependence files have not been compiled yet...
-                }
-                else {
-                    // TODO: report error...
-                }
-            }
-
-            // parsing the global block of the source file.
-            if ((err = syntax_analyzer_parse_block(syx)) != NULL) {
-                // TODO: report error...
-            }
-
-            // parse the file successfully if get here. then add the file in the cache,
-            // if next time some source file includes this file, the file information will
-            // be extracted from the cache.
-            file_stack_pop(&syx->file_wait_compiled);
-            if ((err = file_tree_add(&syx->file_have_compiled, file_name)) != NULL) {
-                fprintf(stderr, "add the compiled file to the cache-tree failed...");
-                exit(EXIT_FAILURE);
-            }
-
-            lex_destroy(&lex);
-            smt_analyzer_destroy(&smt);
-        }
-    }
-
-    return NULL;
-}
-
-
-void syntax_analyzer_destroy(syntax_analyzer* syx) {
-    close_counter_destroy(&syx->clsctr);
-    file_stack_destroy(&syx->file_wait_compiled);
-    file_tree_destroy(&syx->file_have_compiled);
-    if (syx->lex != NULL) lex_destroy(syx->lex);
-    if (syx->smt != NULL) smt_analyzer_destroy(syx->smt);
-    syx->cur_token = NULL;
-    syx->lex       = NULL;
-    syx->smt       = NULL;
-    syx->err_count = 0;
-}*/
 
 #undef parserGetCurToken
 #undef parserCheckRetNode

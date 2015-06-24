@@ -13,8 +13,8 @@
 
 #include "common.h"
 #include "lexer.h"
+#include "imptcache.h"
 #include "ident.h"
-#include "fileset.h"
 #include "ast.h"
 #include "expression.h"
 #include "scope.h"
@@ -22,13 +22,13 @@
 // the parser is used to parse the source code based on
 // the rules of C+ programming language syntax.
 typedef struct Parser {
-    FileStack    file_wait_compiled; // files wait to be compiled
-    FileTree     file_have_compiled; // files have been compiled
-    Lexer*       lexer;              // the lexer now using
-    AST*         ast;                // the abstract syntax tree now building
-    LexToken*    cur_token;          // the current token parsed
-    Scope*       cur_scope;          // the current scope being parsed
-    int8         err_count;          // the number of errors founded until the current stage
+    CompileWaitQueue file_queue; // files wait to be compiled
+    CompileCacheTree file_cache; // files have been compiled
+    Lexer*           lexer;      // the lexer now using
+    AST*             ast;        // the abstract syntax tree now building
+    LexToken*        cur_token;  // the current token parsed
+    Scope*           cur_scope;  // the current scope being parsed
+    int8             err_count;  // the number of errors founded until the current stage
 }Parser;
 
 extern void  parserInit     (Parser* parser);
