@@ -330,7 +330,9 @@ static void compileCacheTreeDestroyNode(CompileCacheTreeNode* node) {
     if (node != NULL) {
         if (node->lchild != NULL) compileCacheTreeDestroyNode(node->lchild);
         if (node->rchild != NULL) compileCacheTreeDestroyNode(node->rchild);
-        identTableDestroy(node->id_table);
+        if (node->id_table != NULL) {
+            identTableDestroy(node->id_table);
+        }
         mem_free(node);
     }
 }

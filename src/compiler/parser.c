@@ -680,7 +680,7 @@ error parserStart(Parser* parser, char* main_file) {
             }
             // AST* ast = parserParseGlobalScope(parser);
             compileWaitQueueDequeue(&parser->file_queue);
-            compileCacheTreeCacheOver(&parser->file_cache, file->file_name, (IdentTable*)99);
+            //compileCacheTreeCacheOver(&parser->file_cache, file->file_name, (IdentTable*)mem_alloc(sizeof(IdentTable)));
         }
         parserDelLexer(parser);
     }

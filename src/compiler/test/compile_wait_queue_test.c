@@ -57,6 +57,6 @@ int main() {
     compileWaitQueueDebug(&waitqueue);
     
     compileWaitQueueDestroy(&waitqueue);
-    debug("\r\n～test over～");
+    debug("\r\ntest over");
     return 0;
 }
