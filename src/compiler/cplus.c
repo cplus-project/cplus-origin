@@ -21,7 +21,7 @@ int main(int argc, char* argv[]) {
 
     Parser parser;
     parserInit (&parser);
-    parserStart(&parser, "./input/main.cplus");
+    parserStart(&parser, "main.cplus");
 
     return 0;
 }

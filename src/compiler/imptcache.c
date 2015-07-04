@@ -9,13 +9,15 @@
 /****** methods of CompileWaitQueue ******/
 
 void compileWaitQueueInit(CompileWaitQueue* waitqueue) {
-    waitqueue->head = NULL;
     waitqueue->cur  = NULL;
+    waitqueue->head = (CompileWaitQueueNode*)mem_alloc(sizeof(CompileWaitQueueNode));
+    waitqueue->head->next = NULL;
+    waitqueue->head->prev = NULL;
 }
 
-// return true is the queue is empty.
+// return true if the queue is empty.
 bool compileWaitQueueIsEmpty(CompileWaitQueue* waitqueue) {
-    return waitqueue->head == NULL ? true : false;
+    return waitqueue->head->next == NULL ? true : false;
 }
 
 void compileWaitQueueEnqueue(CompileWaitQueue* waitqueue, char* file) {
@@ -23,36 +25,34 @@ void compileWaitQueueEnqueue(CompileWaitQueue* waitqueue, char* file) {
     create->file_info.file_name     = file;
     create->file_info.depend_parsed = false;
 
-    if (waitqueue->head != NULL && waitqueue->cur != NULL) {
+    if (waitqueue->head->next != NULL) {
+        create->prev = waitqueue->cur->prev;
         create->next = waitqueue->cur;
-        if (waitqueue->cur->prev != NULL) {
-            waitqueue->cur->prev->next = create;
-            create->prev = waitqueue->cur->prev;
-        }
-        else {
-            create->prev = NULL;
-        }
+        waitqueue->cur->prev->next = create;
         waitqueue->cur->prev = create;
     }
     else {
         create->next = NULL;
-        create->prev = NULL;
-        waitqueue->head = create;
-        waitqueue->cur  = create;
+        create->prev = waitqueue->head;
+        waitqueue->head->next = create;
     }
 }
 
+// return the head node of the queue and set the head node to the
+// 'cur' position. all new dependency nodes will be inserted into
+// the previous position of the 'cur' position.
+//
 WaitCompileFile* compileWaitQueueGetFile(CompileWaitQueue* waitqueue) {
-    waitqueue->cur = waitqueue->head;
+    waitqueue->cur = waitqueue->head->next;
     return waitqueue->cur != NULL ? &waitqueue->cur->file_info : NULL;
 }
 
 void compileWaitQueueDequeue(CompileWaitQueue* waitqueue) {
-    CompileWaitQueueNode* del = waitqueue->head;
+    CompileWaitQueueNode* del = waitqueue->head->next;
     if (del != NULL) {
         if (del->next != NULL) {
-            waitqueue->head = del->next;
-            del->next->prev = NULL;
+            waitqueue->head->next = del->next;
+            del->next->prev = waitqueue->head;
         }
         mem_free(del);
     }

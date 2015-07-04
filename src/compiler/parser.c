@@ -566,14 +566,6 @@ static char* parserParseIncludeFile(Parser* parser) {
     return file_name; 
 }
 
-// TODO: need to delete
-static void compileWaitQueueDebug(CompileWaitQueue* waitqueue) {
-    CompileWaitQueueNode* ptr;
-    for (ptr = waitqueue->head; ptr != NULL; ptr = ptr->next) {
-        printf("%s\r\n", ptr->file_info.file_name);
-    }
-}
-
 // do the preprocess operation for the include keyword.
 static error parserParseDependInclude(Parser* parser) {
     lexerNextToken(parser->lexer); // pass the keyword 'include'
