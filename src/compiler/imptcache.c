@@ -53,6 +53,12 @@ void compileWaitQueueDequeue(CompileWaitQueue* waitqueue) {
         if (del->next != NULL) {
             waitqueue->head->next = del->next;
             del->next->prev = waitqueue->head;
+            del->prev = NULL;
+            del->next = NULL;
+        }
+        else {
+            waitqueue->head->next = NULL;
+            del->prev = NULL;
         }
         mem_free(del);
     }

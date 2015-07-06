@@ -630,6 +630,10 @@ static error parserParseDependences(Parser* parser) {
                 return err;
             }
             break;
+            
+        case TOKEN_LINEFEED:
+            lexerNextToken(parser->lexer);
+            break;
 
         default:
             return NULL;
@@ -679,8 +683,13 @@ error parserStart(Parser* parser, char* main_file) {
                 fatal("some exceptional error.");
             }
             // AST* ast = parserParseGlobalScope(parser);
+
+            // node: must add the file to the cache tree firstly and remove the file
+            // from the wait queue secondly. because the dequeue operation will release
+            // the memory used by the file's node.
+            //
+            compileCacheTreeCacheOver(&parser->file_cache, file->file_name, (IdentTable*)mem_alloc(sizeof(IdentTable)));
             compileWaitQueueDequeue(&parser->file_queue);
-            //compileCacheTreeCacheOver(&parser->file_cache, file->file_name, (IdentTable*)mem_alloc(sizeof(IdentTable)));
         }
         parserDelLexer(parser);
     }
