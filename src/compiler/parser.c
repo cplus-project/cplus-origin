@@ -40,6 +40,15 @@ void parserReportErr(Parser* parser, char* errmsg) {
     }
 }
 
+// parse the source file and build the abstract syntax tree. 
+static AST* parserBuildAST(Parser* parser) {
+    AST* ast = (AST*)mem_alloc(sizeof(AST));
+    if ((ast->global_scope = parserParseGlobalScope(parser)) == NULL) {
+        parserReportErr(parser, "build failed");
+    }
+    return ast;
+}
+
 // parse constant literals.
 static ASTNodeConstLit* parserParseConstLit(Parser* parser) {
     ASTNodeConstLit* node_const = (ASTNodeConstLit*)mem_alloc(sizeof(ASTNodeConstLit));
@@ -446,7 +455,7 @@ static ASTNodeCaseBody* parserParseCaseBody(Parser* parser) {
 
             case TOKEN_KEYWORD_CONTINUE:
                 break;
-                
+
             case TOKEN_KEYWORD_FTHROUGH:
                 break;
 
@@ -481,7 +490,7 @@ static ASTNodeCaseBody* parserParseCaseBody(Parser* parser) {
             return node_case_body;
         }
         else if (parser->cur_token->token_code == TOKEN_OP_LBRACE) {
-            
+
         }
         else if (parser->cur_token->token_code == TOKEN_LINEFEED) {
             lexerNextToken(parser->lexer);
@@ -504,16 +513,16 @@ static ASTNodeGlobalScope* parserParseGlobalScope(Parser* parser) {
             switch (parser->cur_token->token_code) {
             case TOKEN_KEYWORD_TYPE:
                 break;
-                
+
             case TOKEN_KEYWORD_FUNC:
                 break;
-                
+
             case TOKEN_KEYWORD_MODULE:
                 break;
-                
+
             case TOKEN_KEYWORD_INCLUDE:
                 break;
-                
+
             default:
                 parserReportErr(parser, "unacceptable keyword in the global scope context.");
                 break;
@@ -563,7 +572,7 @@ static char* parserParseIncludeFile(Parser* parser) {
     }
     dynamicArrCharDestroy(&darr);
 
-    return file_name; 
+    return file_name;
 }
 
 // do the preprocess operation for the include keyword.
@@ -606,6 +615,31 @@ static error parserParseDependInclude(Parser* parser) {
 
 static error parserParseDependModule(Parser* parser) {
     lexerNextToken(parser->lexer); // pass the keyword 'module'
+
+    char*          filename = NULL;
+    DynamicArrChar darr;
+    dynamicArrCharInit(&darr, 255);
+
+    for (;;) {
+        parserGetCurToken(parser);
+        switch (parser->cur_token->token_code) {
+        case TOKEN_ID:
+            dynamicArrCharAppend(&darr, lexTokenGetStr(parser->cur_token), parser->cur_token->token_len);
+            break;
+
+        case TOKEN_OP_DIV:
+            dynamicArrCharAppendc(&darr, '/');
+            break;
+
+        case TOKEN_LINEFEED:
+            // parse and compile the files in the module here...
+            // TODO: open directory here and read all files
+            break;
+
+        default:
+            break;
+        }
+    }
 }
 
 // preprocess the dependent files included by the one file. this progress
@@ -630,7 +664,7 @@ static error parserParseDependences(Parser* parser) {
                 return err;
             }
             break;
-            
+
         case TOKEN_LINEFEED:
             lexerNextToken(parser->lexer);
             break;
@@ -682,7 +716,8 @@ error parserStart(Parser* parser, char* main_file) {
             if (compileCacheTreeCacheGet(&parser->file_cache, file->file_name) != NULL) {
                 fatal("some exceptional error.");
             }
-            // AST* ast = parserParseGlobalScope(parser);
+
+            // AST* ast = parserBuildAST(parser);
 
             // node: must add the file to the cache tree firstly and remove the file
             // from the wait queue secondly. because the dequeue operation will release
@@ -701,7 +736,7 @@ void parserDestroy(Parser* parser) {
 
     if (parser->ast != NULL)
         astDestroy(parser->ast);
-    if (parser->lexer != NULL) 
+    if (parser->lexer != NULL)
         lexerDestroy(parser->lexer);
     if (parser->cur_scope != NULL)
         scopeDestroy(parser->cur_scope);

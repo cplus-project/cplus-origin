@@ -36,6 +36,7 @@ extern error parserStart    (Parser* parser, char* main_file);
 extern void  parserReportErr(Parser* parser, char* errmsg);
 extern void  parserDestroy  (Parser* parser);
 
+static AST*                parserBuildAST        (Parser* parser);
 static ASTNodeInclude*     parserParseInclude    (Parser* parser);
 static ASTNodeModule*      parserParseModule     (Parser* parser);
 static ASTNodeBlock*       parserParseBlock      (Parser* parser);
