@@ -10,6 +10,7 @@
 #ifndef CPLUS_COMMON_H
 #define CPLUS_COMMON_H
 
+#include "config.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>

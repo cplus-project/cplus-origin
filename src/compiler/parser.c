@@ -613,6 +613,7 @@ static error parserParseDependInclude(Parser* parser) {
     return NULL;
 }
 
+// do the preprocess operation for the module keyword.
 static error parserParseDependModule(Parser* parser) {
     lexerNextToken(parser->lexer); // pass the keyword 'module'
 

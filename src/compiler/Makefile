@@ -2,9 +2,9 @@ obj := cplus
 compiler := gcc
 
 cplus: common.o utf.o lexer.o dynamicarr.o convert.o ident.o scope.o closectr.o \
-	imptcache.o parser.o expression.o ast.o
-	${compiler} ${obj}.c common.o utf.o lexer.o dynamicarr.o convert.o ident.o scope.o \
-	closectr.o imptcache.o parser.o expression.o ast.o -o ${obj}
+	filesys.o imptcache.o parser.o expression.o ast.o
+	${compiler} ${obj}.c common.o utf.o lexer.o dynamicarr.o convert.o ident.o \
+	scope.o closectr.o filesys.o imptcache.o parser.o expression.o ast.o -o ${obj}
 
 common.o: common.h common.c
 	${compiler} -c common.h common.c
@@ -32,6 +32,9 @@ closectr.o: closectr.h closectr.c
 
 errors.o: errors.h errors.c
 	${compiler} -c errors.h errors.c
+
+filesys.o: filesys.h filesys.c
+	${compiler} -c filesys.h filesys.c
 
 imptcache.o: imptcache.h imptcache.c
 	${compiler} -c imptcache.h imptcache.c
