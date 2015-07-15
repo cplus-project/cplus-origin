@@ -21,6 +21,34 @@
     #include <windows.h>
 #endif
 
-extern 
+#define FILE_TYPE_OTHER   0
+#define FILE_TYPE_REGULAR 1
+#define FILE_TYPE_DIR     2
+
+// the FileInfo is used to storage a file's information in
+// a directory.
+//
+typedef struct {
+    char* file_name;
+    int8  file_type;
+}FileInfo;
+
+typedef struct DirectoryFile {
+    FileInfo fileinfo;
+    struct DirectoryFile* next;
+}DirectoryFile;
+
+// the Directory represents a directory with a set of files
+// inside it.
+//
+typedef struct {
+    DirectoryFile* head;
+    DirectoryFile* cur;
+    DirectoryFile* tail;
+}Directory;
+
+extern error     directoryOpen       (Directory* directory, char* dirpath);
+extern FileInfo* directoryGetNextFile(Directory* directory);
+extern void      directoryClose      (Directory* directory);
 
 #endif
