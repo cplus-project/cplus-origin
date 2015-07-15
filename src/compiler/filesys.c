@@ -10,7 +10,7 @@ error directoryOpen(Directory* directory, char* dirpath) {
     directory->head = NULL;
     directory->cur  = NULL;
     directory->tail = NULL;
-    
+
 #ifdef PLATFORM_POSIX
     DIR*           dir = opendir(dirpath);
     struct dirent* dir_entry;
@@ -51,7 +51,39 @@ error directoryOpen(Directory* directory, char* dirpath) {
 #endif
 
 #ifdef PLATFORM_WINDOWS
-    
+    DirectoryFile*  dir_node;
+    WIN32_FIND_DATA file_data;
+    HANDLE          h_search = FindFirstFile(dirpath, &file_data);
+    if (h_search == INVALID_HANDLE_VALUE) {
+        return new_error("not found the directory.");
+    }
+    do {
+        dir_node = (DirectoryFile*)mem_alloc(sizeof(DirectoryFile));
+        dir_node->next = NULL;
+        dir_node->fileinfo.file_name = file_data.cFileName;
+
+             if (file_data.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY) {
+            dir_node->fileinfo.file_type = FILE_TYPE_DIR;
+        }
+        else if (file_data.dwFileAttributes & FILE_ATTRIBUTE_NORMAL) {
+            dir_node->fileinfo.file_type = FILE_TYPE_REGULAR;
+        }
+        else {
+            dir_node->fileinfo.file_type = FILE_TYPE_OTHER;
+        }
+
+        if (directory->head != NULL) {
+            directory->tail->next = dir_node;
+            directory->tail = dir_node;
+        }
+        else {
+            directory->head = dir_node;
+            directory->cur  = dir_node;
+            directory->tail = dir_node;
+        }
+    } while (FindNextFile(h_search, &file_data));
+
+    FindClose(h_search);
 #endif
 }
 
