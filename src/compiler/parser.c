@@ -618,6 +618,7 @@ static error parserParseDependModule(Parser* parser) {
     lexerNextToken(parser->lexer); // pass the keyword 'module'
 
     char*          filename = NULL;
+    bool           last_id  = false;
     DynamicArrChar darr;
     dynamicArrCharInit(&darr, 255);
 
@@ -625,22 +626,40 @@ static error parserParseDependModule(Parser* parser) {
         parserGetCurToken(parser);
         switch (parser->cur_token->token_code) {
         case TOKEN_ID:
+            if (last_id == true) {
+                return new_error("invalid modular path.");
+            }
             dynamicArrCharAppend(&darr, lexTokenGetStr(parser->cur_token), parser->cur_token->token_len);
+            dynamicArrCharAppend(&darr, ".mod", 4);
+            last_id = true;
             break;
 
         case TOKEN_OP_DIV:
+            if (last_id == false) {
+                return new_error("invalid modular path.");
+            }
             dynamicArrCharAppendc(&darr, '/');
+            last_id = false;
             break;
 
-        case TOKEN_LINEFEED:
-            // parse and compile the files in the module here...
-            // TODO: open directory here and read all files
+        case TOKEN_LINEFEED: {
+                Directory dir;
+                if (directoryOpen(&dir, dynamicArrCharGetStr(&darr)) != NULL) {
+                    return new_error("not found the modular.");
+                }
+                FileInfo* fileinfo = NULL;
+                while ((fileinfo = directoryGetNextFile(&dir)) != NULL) {
+                    //if ()
+                }
+            }
             break;
 
         default:
             break;
         }
     }
+
+    dynamicArrCharDestroy(&darr);
 }
 
 // preprocess the dependent files included by the one file. this progress

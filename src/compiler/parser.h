@@ -12,6 +12,7 @@
 #define CPLUS_PARSER_H
 
 #include "common.h"
+#include "filesys.h"
 #include "lexer.h"
 #include "imptcache.h"
 #include "ident.h"

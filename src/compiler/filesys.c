@@ -6,6 +6,40 @@
 
 #include "filesys.h"
 
+/****** methods of FileInfo ******/
+
+bool fileInfoIsCplusSrcFile(FileInfo* fileinfo) {
+    int fn_len = strlen(fileinfo->file_name);
+    if (fn_len < 6) {
+        return false;
+    }
+    if (fileinfo->file_name[fn_len-6] != '.' || 
+        fileinfo->file_name[fn_len-5] != 'c' ||
+        fileinfo->file_name[fn_len-4] != 'p' ||
+        fileinfo->file_name[fn_len-3] != 'l' ||
+        fileinfo->file_name[fn_len-2] != 'u' ||
+        fileinfo->file_name[fn_len-1] != 's' ){
+        return false;
+    }
+    return true;
+}
+
+bool fileInfoIsCplusModular(FileInfo* fileinfo) {
+    int fn_len = strlen(fileinfo->file_name);
+    if (fn_len < 4) {
+        return false;
+    }
+    if (fileinfo->file_name[fn_len-4] != '.' ||
+        fileinfo->file_name[fn_len-3] != 'm' ||
+        fileinfo->file_name[fn_len-2] != 'o' ||
+        fileinfo->file_name[fn_len-1] != 'd' ){
+        return false;
+    }
+    return true;
+}
+
+/****** methods of Directory  ******/
+
 error directoryOpen(Directory* directory, char* dirpath) {
     directory->head = NULL;
     directory->cur  = NULL;
@@ -54,9 +88,11 @@ error directoryOpen(Directory* directory, char* dirpath) {
     DirectoryFile*  dir_node;
     WIN32_FIND_DATA file_data;
     HANDLE          h_search = FindFirstFile(dirpath, &file_data);
+
     if (h_search == INVALID_HANDLE_VALUE) {
         return new_error("not found the directory.");
     }
+
     do {
         dir_node = (DirectoryFile*)mem_alloc(sizeof(DirectoryFile));
         dir_node->next = NULL;

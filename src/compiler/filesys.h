@@ -21,9 +21,9 @@
     #include <windows.h>
 #endif
 
-#define FILE_TYPE_OTHER   0
-#define FILE_TYPE_REGULAR 1
-#define FILE_TYPE_DIR     2
+#define FILE_TYPE_OTHER   0 // the file is which we don't care
+#define FILE_TYPE_REGULAR 1 // the file is a regular file (maybe another source file)
+#define FILE_TYPE_DIR     2 // the file is a directory    (maybe another moduler)
 
 // the FileInfo is used to storage a file's information in
 // a directory.
@@ -33,6 +33,33 @@ typedef struct {
     int8  file_type;
 }FileInfo;
 
+// when you want to estimate whether a file is the cplus source file or the modular,
+// you should call fileInfoIsCplusSrcFile and fileInfoIsCplusModular methods based on
+// the FileInfo objects' file_type property. write code like below:
+//    ...
+//    FileInfo* fileinfo;
+//    ...
+//    // do some operations here and now fileinfo is assigned with a valid address
+//    switch (fileinfo->file_type) {
+//    case FILE_TYPE_DIR:
+//        if (fileInfoIsCplusModular(fileinfo) == true) {
+//            // do some process for the modular
+//        }
+//        break;
+//    case FILE_TYPE_REGULAR:
+//        if (fileInfoIsCplusSrcFile(fileinfo) == true) {
+//            // do some process for the source file
+//        }
+//        break;
+//    default:
+//        // some file we don't care...
+//        break;
+//    }
+//    ...
+//
+extern bool fileInfoIsCplusSrcFile(FileInfo* fileinfo);
+extern bool fileInfoIsCplusModular(FileInfo* fileinfo);
+
 typedef struct DirectoryFile {
     FileInfo fileinfo;
     struct DirectoryFile* next;
@@ -40,6 +67,24 @@ typedef struct DirectoryFile {
 
 // the Directory represents a directory with a set of files
 // inside it.
+//
+// example:
+//    ...
+//    Directory dir;
+//    FileInfo* fileinfo;
+//    error err = directoryOpen(&dir, "/usr/include");
+//    if (err != NULL) {
+//        // maybe the directory does not exist
+//    }
+//    while ((fileinfo = directoryGetNextFile(&dir)) != NULL) {
+//        switch (fileinfo->file_type) {
+//        case FILE_TYPE_DIR:     // do the process if the file is a directory
+//        case FILE_TYPE_REGULAR: // do the process if the file is a regular file
+//        case FILE_TYPE_OTHER:   // do the process if the file is other type
+//        }
+//    }
+//    directoryClose(&dir);
+//    ...
 //
 typedef struct {
     DirectoryFile* head;
