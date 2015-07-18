@@ -219,8 +219,43 @@ static void compileCacheTreeAddFixup(CompileCacheTree* cachetree, CompileCacheTr
     cachetree->root->color = NODE_COLOR_BLACK;
 }
 
+// used to verify whether a file entry is in the cache tree no matter has it been
+// compiled already.
+//
+// return:
+//    true  -> the file entry is already in the cache tree
+//    false -> the file entry is not in the cache tree
+//
+bool compileCacheTreeExist(CompileCacheTree* cachetree, char* file_name) {
+    if (cachetree->root == NULL) {
+        return false;
+    }
+    CompileCacheTreeNode* ptr = cachetree->root;
+    for (;;) {
+        switch (compileCacheTreeCmp(file_name, ptr->file_name)) {
+        case NODE_CMP_LT:
+            if (ptr->lchild != NULL) {
+                ptr = ptr->lchild;
+                break;
+            }
+            return false;
+
+        case NODE_CMP_GT:
+            if (ptr->rchild != NULL) {
+                ptr = ptr->rchild;
+                break;
+            }
+            return false;
+
+        case NODE_CMP_EQ:
+            return true;
+        }
+    }
+}
+
 // just create a new file cache entry in the cache tree. the new entry's identifier
 // table is set to NULL.
+//
 error compileCacheTreeCacheNew(CompileCacheTree* cachetree, char* file_name) {
     if (file_name == NULL) {
         return new_error("the file name can not be NULL.");
@@ -271,6 +306,7 @@ error compileCacheTreeCacheNew(CompileCacheTree* cachetree, char* file_name) {
 // when a file is compiled over and its identifier table is exported successfully,
 // the identifier table should be assigned to the associate file entry in the cache
 // tree.
+//
 error compileCacheTreeCacheOver(CompileCacheTree* cachetree, char* file_name, IdentTable* id_table) {
     if (cachetree->root == NULL) {
         return NULL;
@@ -302,9 +338,13 @@ error compileCacheTreeCacheOver(CompileCacheTree* cachetree, char* file_name, Id
     }
 }
 
+// get the file's id table. if the file doesn't have the entry in the cache tree or
+// the file only has an entry but without compiled yet, a NULL will be returned.
+//
 // return:
 //       NULL -> the file is not compiled over
 //   NOT NULL -> the file is compiled over
+//
 IdentTable* compileCacheTreeCacheGet(CompileCacheTree* cachetree, char* file_name) {
     if (cachetree->root == NULL) {
         return NULL;

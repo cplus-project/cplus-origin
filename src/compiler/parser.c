@@ -579,37 +579,29 @@ static char* parserParseIncludeFile(Parser* parser) {
 static error parserParseDependInclude(Parser* parser) {
     lexerNextToken(parser->lexer); // pass the keyword 'include'
 
-    char*          file_name = NULL;
-    DynamicArrChar darr;
-    dynamicArrCharInit(&darr, 255);
+    char* file_name = NULL;
 
     parserGetCurToken(parser);
     switch (parser->cur_token->token_code) {
     case TOKEN_CONST_STRING:
         file_name = lexTokenGetStr(parser->cur_token);
-        if ((err = compileCacheTreeCacheNew(&parser->file_cache, file_name)) != NULL) {
-            parserReportErr(parser, err);
-            exit(EXIT_FAILURE);
-        }
-        compileWaitQueueEnqueue(&parser->file_queue, file_name);
         lexerNextToken(parser->lexer);
         break;
 
     case TOKEN_OP_LT:
         file_name = parserParseIncludeFile(parser);
-        if ((err = compileCacheTreeCacheNew(&parser->file_cache, file_name)) != NULL) {
-            parserReportErr(parser, err);
-            exit(EXIT_FAILURE);
-        }
-        compileWaitQueueEnqueue(&parser->file_queue, file_name);
         break;
 
     default:
-        dynamicArrCharDestroy(&darr);
         return new_error("not valid syntax for include statement.");
     }
 
-    dynamicArrCharDestroy(&darr);
+    if ((err = compileCacheTreeCacheNew(&parser->file_cache, file_name)) != NULL) {
+        parserReportErr(parser, err);
+        exit(EXIT_FAILURE);
+    }
+    compileWaitQueueEnqueue(&parser->file_queue, file_name);
+
     return NULL;
 }
 
@@ -649,8 +641,28 @@ static error parserParseDependModule(Parser* parser) {
                 }
                 FileInfo* fileinfo = NULL;
                 while ((fileinfo = directoryGetNextFile(&dir)) != NULL) {
-                    //if ()
+                    // we only care for cplus source files in the module directory. all
+                    // other types' file (include directories) will be ignored.
+                    //
+                    if (fileinfo->file_type != FILE_TYPE_REGULAR) {
+                        continue;
+                    }
+                    if (fileInfoIsCplusSrcFile(fileinfo) == false) {
+                        continue;
+                    }
+
+                    // if the file is already has an entry in the cache tree, it means that
+                    // the file has been compiled before(in the cache tree and the id table
+                    // is not NULL) or the file has been parsed its dependences but not
+                    // start to compile(in the cache tree and the id table is NULL). so have
+                    // no need to add the file into the wait queue.
+                    //
+                    if (compileCacheTreeExist(&parser->file_cache, fileinfo->file_name) == true) {
+                        continue;
+                    }
+                    compileWaitQueueEnqueue(&parser->file_queue, fileinfo->file_name);
                 }
+                directoryClose(&dir);
             }
             break;
 

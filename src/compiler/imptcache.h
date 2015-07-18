@@ -92,6 +92,7 @@ typedef struct {
 }CompileCacheTree;
 
 extern void        compileCacheTreeInit     (CompileCacheTree* cachetree);
+extern bool        compileCacheTreeExist    (CompileCacheTree* cachetree, char* file_name);
 extern error       compileCacheTreeCacheNew (CompileCacheTree* cachetree, char* file_name);
 extern error       compileCacheTreeCacheOver(CompileCacheTree* cachetree, char* file_name, IdentTable* id_table);
 extern IdentTable* compileCacheTreeCacheGet (CompileCacheTree* cachetree, char* file_name);

@@ -24,7 +24,7 @@ bool fileInfoIsCplusSrcFile(FileInfo* fileinfo) {
     return true;
 }
 
-bool fileInfoIsCplusModular(FileInfo* fileinfo) {
+bool fileInfoIsCplusModule(FileInfo* fileinfo) {
     int fn_len = strlen(fileinfo->file_name);
     if (fn_len < 4) {
         return false;

@@ -42,7 +42,7 @@ typedef struct {
 //    // do some operations here and now fileinfo is assigned with a valid address
 //    switch (fileinfo->file_type) {
 //    case FILE_TYPE_DIR:
-//        if (fileInfoIsCplusModular(fileinfo) == true) {
+//        if (fileInfoIsCplusModule(fileinfo) == true) {
 //            // do some process for the modular
 //        }
 //        break;
@@ -58,7 +58,7 @@ typedef struct {
 //    ...
 //
 extern bool fileInfoIsCplusSrcFile(FileInfo* fileinfo);
-extern bool fileInfoIsCplusModular(FileInfo* fileinfo);
+extern bool fileInfoIsCplusModule (FileInfo* fileinfo);
 
 typedef struct DirectoryFile {
     FileInfo fileinfo;
