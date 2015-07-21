@@ -41,105 +41,76 @@ bool fileInfoIsCplusModule(FileInfo* fileinfo) {
 /****** methods of Directory  ******/
 
 error directoryOpen(Directory* directory, char* dirpath) {
-    directory->head = NULL;
-    directory->cur  = NULL;
-    directory->tail = NULL;
-
 #ifdef PLATFORM_POSIX
-    DIR*           dir = opendir(dirpath);
-    struct dirent* dir_entry;
-    DirectoryFile* dir_node;
-
-    if (dir == NULL) {
+    if ((directory->dir = opendir(dirpath)) == NULL) {
         return new_error("not found the directory.");
     }
-
-    while ((dir_entry = readdir(dir)) != NULL) {
-        dir_node = (DirectoryFile*)mem_alloc(sizeof(DirectoryFile));
-        dir_node->next = NULL;
-        dir_node->fileinfo.file_name = dir_entry->d_name;
-
-        switch (dir_entry->d_type) {
-            case DT_REG:
-                dir_node->fileinfo.file_type = FILE_TYPE_REGULAR;
-                break;
-            case DT_DIR:
-                dir_node->fileinfo.file_type = FILE_TYPE_DIR;
-                break;
-            default:
-                dir_node->fileinfo.file_type = FILE_TYPE_OTHER;
-                break;
-        }
-
-        if (directory->head != NULL) {
-            directory->tail->next = dir_node;
-            directory->tail = dir_node;
-        }
-        else {
-            directory->head = dir_node;
-            directory->cur  = dir_node;
-            directory->tail = dir_node;
-        }
-    }
-    closedir(dir);
+    directory->dir_entry = readdir(directory->dir);
 #endif
 
 #ifdef PLATFORM_WINDOWS
-    DirectoryFile*  dir_node;
-    WIN32_FIND_DATA file_data;
-    HANDLE          h_search = FindFirstFile(dirpath, &file_data);
-
-    if (h_search == INVALID_HANDLE_VALUE) {
-        return new_error("not found the directory.");
+    directory->file_data = (WIN32_FIND_DATA*)mem_alloc(sizeof(WIN32_FIND_DATA));
+    if ((directory->h_search = FindFirstFile(dirpath, *(directory->file_data))) == INVALID_HANDLE_VALUE) {
+        return new_error("not found the directory.")
     }
-
-    do {
-        dir_node = (DirectoryFile*)mem_alloc(sizeof(DirectoryFile));
-        dir_node->next = NULL;
-        dir_node->fileinfo.file_name = file_data.cFileName;
-
-             if (file_data.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY) {
-            dir_node->fileinfo.file_type = FILE_TYPE_DIR;
-        }
-        else if (file_data.dwFileAttributes & FILE_ATTRIBUTE_NORMAL) {
-            dir_node->fileinfo.file_type = FILE_TYPE_REGULAR;
-        }
-        else {
-            dir_node->fileinfo.file_type = FILE_TYPE_OTHER;
-        }
-
-        if (directory->head != NULL) {
-            directory->tail->next = dir_node;
-            directory->tail = dir_node;
-        }
-        else {
-            directory->head = dir_node;
-            directory->cur  = dir_node;
-            directory->tail = dir_node;
-        }
-    } while (FindNextFile(h_search, &file_data));
-
-    FindClose(h_search);
 #endif
+
+    return NULL;
 }
 
-FileInfo* directoryGetNextFile(Directory* directory) {
-    DirectoryFile* dir_node = directory->cur;
-    if (dir_node == NULL) {
-        return NULL;
+error directoryGetNextFile(Directory* directory, FileInfo* fileinfo) {
+#ifdef PLATFORM_POSIX
+    if (directory->dir_entry == NULL) {
+        return new_error("all files have been visited already.");
     }
-    directory->cur = directory->cur->next;
-    return &(dir_node->fileinfo);
+    fileinfo->file_name = directory->dir_entry->d_name;
+
+    switch (directory->dir_entry->d_type) {
+    case DT_REG:
+        fileinfo->file_type = FILE_TYPE_REGULAR;
+        break;
+    case DT_DIR:
+        fileinfo->file_type = FILE_TYPE_DIR;
+        break;
+    default:
+        fileinfo->file_type = FILE_TYPE_OTHER;
+        break;
+    }
+
+    directory->dir_entry = readdir(directory->dir);
+#endif
+
+#ifdef PLATFORM_WINDOWS
+    if (directory->file_data == NULL) {
+        return new_error("all files have been visited already.");
+    }
+    fileinfo->file_name = directory->file_data->cFileName;
+
+         if (directory->file_data->dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY) {
+        fileinfo->file_type = FILE_TYPE_DIR;
+    }
+    else if (directory->file_data->dwFileAttributes & FILE_ATTRIBUTE_NORMAL) {
+        fileinfo->file_type = FILE_TYPE_REGULAR;
+    }
+    else {
+        fileinfo->file_type = FILE_TYPE_OTHER;
+    }
+
+    if (!FindNextFile(directory->h_search, *(directory->file_data))) {
+        directory->file_data = NULL;
+    }
+#endif
+
+    return NULL;
 }
 
 void directoryClose(Directory* directory) {
-    for (;;) {
-        if (directory->head == NULL) {
-            directory->tail =  NULL;
-            return;
-        }
-        directory->cur  = directory->head;
-        directory->head = directory->head->next;
-        mem_free(directory->cur);
-    }
+#ifdef PLATFORM_POSIX
+    closedir(directory->dir);
+#endif
+
+#ifdef PLATFORM_WINDOWS
+    mem_free(directory->find_data);
+    FindClose(directory->h_search);
+#endif
 }

@@ -14,7 +14,7 @@
 #include "common.h"
 #include "filesys.h"
 #include "lexer.h"
-#include "imptcache.h"
+#include "import.h"
 #include "ident.h"
 #include "ast.h"
 #include "expression.h"

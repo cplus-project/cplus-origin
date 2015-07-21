@@ -609,16 +609,22 @@ static error parserParseDependInclude(Parser* parser) {
 static error parserParseDependModule(Parser* parser) {
     lexerNextToken(parser->lexer); // pass the keyword 'module'
 
-    char*          filename = NULL;
-    bool           last_id  = false;
+    char*          filename     = NULL;
+    char*          mod_path     = NULL;
+    int64          mod_path_len = 0;
+    bool           last_id      = false;
+    FileInfo       fileinfo;
+    Directory      dir;
     DynamicArrChar darr;
     dynamicArrCharInit(&darr, 255);
 
     for (;;) {
         parserGetCurToken(parser);
+
         switch (parser->cur_token->token_code) {
         case TOKEN_ID:
             if (last_id == true) {
+                dynamicArrCharDestroy(&darr);
                 return new_error("invalid modular path.");
             }
             dynamicArrCharAppend(&darr, lexTokenGetStr(parser->cur_token), parser->cur_token->token_len);
@@ -628,50 +634,59 @@ static error parserParseDependModule(Parser* parser) {
 
         case TOKEN_OP_DIV:
             if (last_id == false) {
+                dynamicArrCharDestroy(&darr);
                 return new_error("invalid modular path.");
             }
             dynamicArrCharAppendc(&darr, '/');
             last_id = false;
             break;
 
-        case TOKEN_LINEFEED: {
-                Directory dir;
-                if (directoryOpen(&dir, dynamicArrCharGetStr(&darr)) != NULL) {
-                    return new_error("not found the modular.");
-                }
-                FileInfo* fileinfo = NULL;
-                while ((fileinfo = directoryGetNextFile(&dir)) != NULL) {
-                    // we only care for cplus source files in the module directory. all
-                    // other types' file (include directories) will be ignored.
-                    //
-                    if (fileinfo->file_type != FILE_TYPE_REGULAR) {
-                        continue;
-                    }
-                    if (fileInfoIsCplusSrcFile(fileinfo) == false) {
-                        continue;
-                    }
-
-                    // if the file is already has an entry in the cache tree, it means that
-                    // the file has been compiled before(in the cache tree and the id table
-                    // is not NULL) or the file has been parsed its dependences but not
-                    // start to compile(in the cache tree and the id table is NULL). so have
-                    // no need to add the file into the wait queue.
-                    //
-                    if (compileCacheTreeExist(&parser->file_cache, fileinfo->file_name) == true) {
-                        continue;
-                    }
-                    compileWaitQueueEnqueue(&parser->file_queue, fileinfo->file_name);
-                }
-                directoryClose(&dir);
-            }
-            break;
-
         default:
-            break;
-        }
-    }
+            if (directoryOpen(&dir, dynamicArrCharGetStr(&darr)) != NULL) {
+                dynamicArrCharDestroy(&darr);
+                return new_error("not found the modular.");
+            }
 
-    dynamicArrCharDestroy(&darr);
+            dynamicArrCharAppendc(&darr, '/');
+            mod_path     = dynamicArrCharGetStr(&darr);
+            mod_path_len = darr.used;
+
+            while ((err = directoryGetNextFile(&dir, &fileinfo)) == NULL) {
+                // we only care for cplus source files in the module directory. all
+                // other types' file (include directories) will be ignored.
+                //
+                if (fileinfo.file_type != FILE_TYPE_REGULAR) {
+                    continue;
+                }
+                if (fileInfoIsCplusSrcFile(&fileinfo) == false) {
+                    continue;
+                }
+
+                dynamicArrCharAppend(&darr, fileinfo.file_name, strlen(fileinfo.file_name));
+                filename = dynamicArrCharGetStr(&darr);
+
+                // if the file is already has an entry in the cache tree, it means that
+                // the file has been compiled before(in the cache tree and the id table
+                // is not NULL) or the file has been parsed its dependences but not
+                // start to compile(in the cache tree and the id table is NULL). so have
+                // no need to add the file into the wait queue.
+                //
+                if (compileCacheTreeExist(&parser->file_cache, filename) == true) {
+                    continue;
+                }
+
+                compileWaitQueueEnqueue(&parser->file_queue, filename);
+                dynamicArrCharClear (&darr);
+                dynamicArrCharAppend(&darr, mod_path, mod_path_len);
+            }
+
+            directoryClose(&dir);
+            dynamicArrCharDestroy(&darr);
+            return NULL;
+        }
+
+        lexerNextToken(parser->lexer);
+    }
 }
 
 // preprocess the dependent files included by the one file. this progress
@@ -731,9 +746,11 @@ error parserStart(Parser* parser, char* main_file) {
     IdentTable*      id_table = NULL;
 
     while (compileWaitQueueIsEmpty(&parser->file_queue) == false) {
+
         // GetFile function will reset the 'cur' pointer of the wait queue
         // so that new dependences can be inserted into the correct positions
         // in the queue.
+        //
         file = compileWaitQueueGetFile(&parser->file_queue);
 
         parserNewLexer(parser, file->file_name);

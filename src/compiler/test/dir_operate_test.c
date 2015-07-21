@@ -11,6 +11,7 @@
 
 int main() {
     Directory dir;
+    FileInfo  fileinfo;
 
 #ifdef PLATFORM_POSIX
     error err = directoryOpen(&dir, "/usr/include");
@@ -24,12 +25,12 @@ int main() {
         debug(err);
         return 0;
     }
-    FileInfo* fileinfo;
-    while ((fileinfo = directoryGetNextFile(&dir)) != NULL) {
-        printf("file name is:%s\t", fileinfo->file_name);
-        switch (fileinfo->file_type) {
+
+    while ((err = directoryGetNextFile(&dir, &fileinfo)) == NULL) {
+        printf("file name is:%s\t", fileinfo.file_name);
+        switch (fileinfo.file_type) {
         case FILE_TYPE_DIR:
-            if (fileInfoIsCplusModular(fileinfo) == true) {
+            if (fileInfoIsCplusModule(&fileinfo) == true) {
                 printf("file type is: cplus modular\r\n");
             }
             else {
@@ -37,7 +38,7 @@ int main() {
             }
             break;
         case FILE_TYPE_REGULAR:
-            if (fileInfoIsCplusSrcFile(fileinfo) == true) {
+            if (fileInfoIsCplusSrcFile(&fileinfo) == true) {
                 printf("file type is: cplus source file\r\n");
             }
             else {

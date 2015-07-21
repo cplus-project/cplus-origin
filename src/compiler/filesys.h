@@ -60,24 +60,19 @@ typedef struct {
 extern bool fileInfoIsCplusSrcFile(FileInfo* fileinfo);
 extern bool fileInfoIsCplusModule (FileInfo* fileinfo);
 
-typedef struct DirectoryFile {
-    FileInfo fileinfo;
-    struct DirectoryFile* next;
-}DirectoryFile;
-
 // the Directory represents a directory with a set of files
 // inside it.
 //
 // example:
 //    ...
 //    Directory dir;
-//    FileInfo* fileinfo;
+//    FileInfo  fileinfo;
 //    error err = directoryOpen(&dir, "/usr/include");
 //    if (err != NULL) {
 //        // maybe the directory does not exist
 //    }
-//    while ((fileinfo = directoryGetNextFile(&dir)) != NULL) {
-//        switch (fileinfo->file_type) {
+//    while ((err = directoryGetNextFile(&dir, &fileinfo)) == NULL) {
+//        switch (fileinfo.file_type) {
 //        case FILE_TYPE_DIR:     // do the process if the file is a directory
 //        case FILE_TYPE_REGULAR: // do the process if the file is a regular file
 //        case FILE_TYPE_OTHER:   // do the process if the file is other type
@@ -87,13 +82,19 @@ typedef struct DirectoryFile {
 //    ...
 //
 typedef struct {
-    DirectoryFile* head;
-    DirectoryFile* cur;
-    DirectoryFile* tail;
+#ifdef PLATFORM_POSIX
+    DIR*           dir;
+    struct dirent* dir_entry;
+#endif
+
+#ifdef PLATFORM_WINDOWS
+    HANDLE           h_search;
+    WIN32_FIND_DATA* file_data;
+#endif
 }Directory;
 
-extern error     directoryOpen       (Directory* directory, char* dirpath);
-extern FileInfo* directoryGetNextFile(Directory* directory);
-extern void      directoryClose      (Directory* directory);
+extern error directoryOpen       (Directory* directory, char*     dirpath);
+extern error directoryGetNextFile(Directory* directory, FileInfo* fileinfo);
+extern void  directoryClose      (Directory* directory);
 
 #endif

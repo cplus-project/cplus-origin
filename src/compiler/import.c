@@ -4,7 +4,7 @@
  * license that can be found in the LICENSE file.
  **/
 
-#include "imptcache.h"
+#include "import.h"
 
 /****** methods of CompileWaitQueue ******/
 
@@ -20,9 +20,9 @@ bool compileWaitQueueIsEmpty(CompileWaitQueue* waitqueue) {
     return waitqueue->head->next == NULL ? true : false;
 }
 
-void compileWaitQueueEnqueue(CompileWaitQueue* waitqueue, char* file) {
+void compileWaitQueueEnqueue(CompileWaitQueue* waitqueue, char* file_name) {
     CompileWaitQueueNode* create = (CompileWaitQueueNode*)mem_alloc(sizeof(CompileWaitQueueNode));
-    create->file_info.file_name     = file;
+    create->file_info.file_name     = file_name;
     create->file_info.depend_parsed = false;
 
     if (waitqueue->head->next != NULL) {
@@ -44,7 +44,7 @@ void compileWaitQueueEnqueue(CompileWaitQueue* waitqueue, char* file) {
 //
 WaitCompileFile* compileWaitQueueGetFile(CompileWaitQueue* waitqueue) {
     waitqueue->cur = waitqueue->head->next;
-    return waitqueue->cur != NULL ? &waitqueue->cur->file_info : NULL;
+    return waitqueue->cur != NULL ? &(waitqueue->cur->file_info) : NULL;
 }
 
 void compileWaitQueueDequeue(CompileWaitQueue* waitqueue) {

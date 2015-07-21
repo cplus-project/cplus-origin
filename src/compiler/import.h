@@ -3,13 +3,12 @@
  * Use of this source code is governed by a BSD-style
  * license that can be found in the LICENSE file.
  *
- *     The imptcache.h and imptcache.c implement the cache
- * system for importing operation(include and module). it
- * can improve the efficiency of dependency file processing.
+ *     The import.h and import.c implement the extern
+ * dependent files related operations.
  **/
 
-#ifndef CPLUS_IMPTCACHE_H
-#define CPLUS_IMPTCACHE_H
+#ifndef CPLUS_IMPORT_H
+#define CPLUS_IMPORT_H
 
 #include "common.h"
 #include "ident.h"
@@ -60,7 +59,7 @@ typedef struct {
 
 extern void             compileWaitQueueInit   (CompileWaitQueue* waitqueue);
 extern bool             compileWaitQueueIsEmpty(CompileWaitQueue* waitqueue);
-extern void             compileWaitQueueEnqueue(CompileWaitQueue* waitqueue, char* file);
+extern void             compileWaitQueueEnqueue(CompileWaitQueue* waitqueue, char* file_name);
 extern WaitCompileFile* compileWaitQueueGetFile(CompileWaitQueue* waitqueue);
 extern void             compileWaitQueueDequeue(CompileWaitQueue* waitqueue);
 extern void             compileWaitQueueDestroy(CompileWaitQueue* waitqueue);
