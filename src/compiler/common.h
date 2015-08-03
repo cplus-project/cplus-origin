@@ -10,12 +10,18 @@
 #ifndef CPLUS_COMMON_H
 #define CPLUS_COMMON_H
 
-#include "config.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <assert.h>
 #include <malloc.h>
+
+// setting the platform(operating system type or system call API standard).
+   #define PLATFORM_POSIX
+// #define PLATFORM_WINDOWS
+// #define PLATFORM_OSX
+// #define PLATFORM_ANDROID
+// #define PLATFORM_IOS
 
 #define true   1
 #define false -1

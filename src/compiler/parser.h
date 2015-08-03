@@ -12,9 +12,8 @@
 #define CPLUS_PARSER_H
 
 #include "common.h"
-#include "filesys.h"
 #include "lexer.h"
-#include "import.h"
+#include "module.h"
 #include "ident.h"
 #include "ast.h"
 #include "expression.h"
@@ -23,8 +22,6 @@
 // the parser is used to parse the source code based on
 // the rules of C+ programming language syntax.
 typedef struct Parser {
-    CompileWaitQueue file_queue; // files wait to be compiled
-    CompileCacheTree file_cache; // files have been compiled
     Lexer*           lexer;      // the lexer now using
     AST*             ast;        // the abstract syntax tree now building
     LexToken*        cur_token;  // the current token parsed

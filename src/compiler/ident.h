@@ -34,25 +34,30 @@
 #define NODE_CMP_EQ      0x01
 #define NODE_CMP_GT      0x02
 
-typedef struct Ident        Ident;
-typedef struct IdentConst   IdentConst;
-typedef struct IdentVar     IdentVar;
-typedef struct IdentArray   IdentArray;
-typedef struct IdentType    IdentType;
-typedef struct IdentFunc    IdentFunc;
-typedef struct IdentExpn    IdentExpn;
-typedef struct IdentInclude IdentInclude;
-typedef struct IdentModule  IdentModule;
-typedef struct IdentTable   IdentTable;
+typedef struct Ident            Ident;
+typedef struct IdentConst       IdentConst;
+typedef struct IdentVar         IdentVar;
+typedef struct IdentArray       IdentArray;
+typedef struct IdentType        IdentType;
+typedef struct IdentFunc        IdentFunc;
+typedef struct IdentExpn        IdentExpn;
+typedef struct IdentInclude     IdentInclude;
+typedef struct IdentModule      IdentModule;
+typedef struct IdentTableNode   IdentTableNode;
+typedef struct IdentTable       IdentTable;
+typedef struct DRIdentTableNode DRIdentTableNode;
+typedef struct DRIdentTable     DRIdentTable;
 
 // represent a constant's information. a constant can not be
 // assigned more than once.
+//
 struct IdentConst {
     IdentType* data_type_info;
 };
 
 // represent a variable's information. a variable is an address's
 // name, it can be used to modify the address's content frequently.
+//
 struct IdentVar {
     IdentType* data_type_info;
 };
@@ -65,6 +70,7 @@ struct IdentArray {
 // represent the member's information of a type. it is only used
 // when the type's primitive is false(means the type is a compound
 // type).
+//
 typedef struct Member {
     char* member_name;
     int8  member_access;
@@ -92,6 +98,7 @@ struct IdentType {
 
 // represent a parameter passed into or returned out by a function
 // or a expander.
+//
 typedef struct Parameter {
     IdentType* param_data_type_info;
     char*      param_name;
@@ -108,6 +115,7 @@ struct IdentFunc {
 
 // represent a expander's information. the expander is often called
 // 'micro' in other languages.
+//
 struct IdentExpn {
     Parameter* params_passin;
     // TODO: design a way to represent the expander's body
@@ -115,11 +123,13 @@ struct IdentExpn {
 
 // represent an included file's information about identified objects
 // within it.
+//
 struct IdentInclude {
     IdentTable* id_table;
 };
 
 // represent a module's information about identified objects within it.
+//
 struct IdentModule {
     IdentTable* id_table;
 };
@@ -138,6 +148,7 @@ struct IdentModule {
 //    default: ...
 //    }
 //    ...
+//
 struct Ident {
     char* id_name;
     int8  access;
@@ -154,16 +165,17 @@ struct Ident {
     }id;
 };
 
-typedef struct IdentTableNode {
-    Ident* id;
-    int8   color;
-    struct IdentTableNode* parent;
-    struct IdentTableNode* lchild;
-    struct IdentTableNode* rchild;
-}IdentTableNode;
+struct IdentTableNode {
+    Ident*          id;
+    int8            color;
+    IdentTableNode* parent;
+    IdentTableNode* lchild;
+    IdentTableNode* rchild;
+};
 
 // the IdentTable is used to storage a set of information
 // about nameable objects in C+ language.
+//
 struct IdentTable {
     IdentTableNode* root;
 };
@@ -172,5 +184,35 @@ extern void   identTableInit   (IdentTable* id_table);
 extern error  identTableAdd    (IdentTable* id_table, Ident* id);
 extern Ident* identTableSearch (IdentTable* id_table, char*  id_name);
 extern void   identTableDestroy(IdentTable* id_table);
+
+struct DRIdentTableNode {
+    char*             drid_name;
+    DRIdentTableNode* next;
+};
+
+// DRIdentTable(Delay Resolve Identifiers Table) is used to save the
+// identifiers whose declaration is not founded yet but may be founded
+// later.
+//
+// like this situation:
+//    ...
+//    say("hello") // used firstly
+//    ...
+//    func say(String content) { // declare or define later
+//        println(content)
+//    }
+//    ...
+//
+struct DRIdentTable {
+    IdentTable*       id_table;
+    DRIdentTableNode* head;
+    DRIdentTableNode* tail;
+};
+
+extern error drIdentTableInit   (DRIdentTable* drid_table, IdentTable* id_table);
+extern bool  drIdentTableIsEmpty(DRIdentTable* drid_table);
+extern void  drIdentTableAdd    (DRIdentTable* drid_table, char* drid_name);
+extern error drIdentTableResolve(DRIdentTable* drid_table);
+extern void  drIdentTableDestroy(DRIdentTable* drid_table);
 
 #endif

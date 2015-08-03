@@ -2,9 +2,9 @@ obj := cplus
 compiler := gcc
 
 cplus: common.o utf.o lexer.o dynamicarr.o convert.o ident.o scope.o closectr.o \
-	filesys.o import.o parser.o expression.o ast.o
+	module.o path.o project.o parser.o expression.o ast.o
 	${compiler} ${obj}.c common.o utf.o lexer.o dynamicarr.o convert.o ident.o \
-	scope.o closectr.o filesys.o import.o parser.o expression.o ast.o -o ${obj}
+	scope.o closectr.o module.o path.o project.o parser.o expression.o ast.o -o ${obj}
 
 common.o: common.h common.c
 	${compiler} -c common.h common.c
@@ -33,11 +33,14 @@ closectr.o: closectr.h closectr.c
 errors.o: errors.h errors.c
 	${compiler} -c errors.h errors.c
 
-filesys.o: filesys.h filesys.c
-	${compiler} -c filesys.h filesys.c
+module.o: module.h module.c
+	${compiler} -c module.h module.c
 
-import.o: import.h import.c
-	${compiler} -c import.h import.c
+path.o: path.h path.c
+	${compiler} -c path.h path.c
+
+project.o: project.h project.c
+	${compiler} -c project.h project.c
 
 parser.o: parser.h parser.c
 	${compiler} -c parser.h parser.c
@@ -50,3 +53,4 @@ ast.o: ast.h ast.c
 
 clean:
 	rm *.o *.gch
+
