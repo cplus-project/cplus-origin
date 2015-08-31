@@ -393,23 +393,24 @@ static void moduleCacheDestroy(ModuleCache* modcache) {
 
 /****** methods of DRModDependList ******/
 
-void drModDependListInit(DRModDependList* list) {
+static void drModDependListInit(DRModDependList* list) {
     list->head = NULL;
     list->tail = NULL;
 }
 
-bool drModDependListIsEmpty(DRModDependList* list) {
+static bool drModDependListIsEmpty(DRModDependList* list) {
     return list->head == NULL ? true : false;
 }
 
-void drModDependListAdd(DRModDependList* list, char* mod_name) {
+static void drModDependListAdd(DRModDependList* list, char* mod_name) {
     DRModDependListNode* create = (DRModDependListNode*)mem_alloc(sizeof(DRModDependListNode));
     create->mod_name = mod_name;
+    create->next     = NULL;
     list->head != NULL ? (list->tail->next = create) : (list->head = create);
     list->tail  = create;
 }
 
-error drModDependListDel(DRModDependList* list, char* mod_name) {
+static error drModDependListDel(DRModDependList* list, char* mod_name) {
     DRModDependListNode* pre = NULL;
     DRModDependListNode* ptr;
     for (ptr = list->head; ptr != NULL; ptr = ptr->next) {
@@ -423,7 +424,7 @@ error drModDependListDel(DRModDependList* list, char* mod_name) {
     return new_error("the module wanted to delete not in the Delay Resolve Module Dependences List.");
 }
 
-void drModDependListDestroy(DRModDependList* list) {
+static void drModDependListDestroy(DRModDependList* list) {
     DRModDependListNode* del = NULL;
     for (;;) {
         if (list->head == NULL) {
@@ -438,19 +439,20 @@ void drModDependListDestroy(DRModDependList* list) {
 
 /****** methods of DRModInformList ******/
 
-void drModInformListInit(DRModInformList* list) {
+static void drModInformListInit(DRModInformList* list) {
     list->head = NULL;
     list->tail = NULL;
 }
 
-void drModInformListAdd(DRModInformList* list, char* mod_name) {
+static void drModInformListAdd(DRModInformList* list, char* mod_name) {
     DRModInformListNode* create = (DRModInformListNode*)mem_alloc(sizeof(DRModInformList));
     create->mod_name = mod_name;
+    create->next     = NULL;
     list->head != NULL ? (list->tail->next = create) : (list->head = create);
     list->tail  = create;
 }
 
-void drModInformListDestroy(DRModInformList* list) {
+static void drModInformListDestroy(DRModInformList* list) {
     DRModInformListNode* del = NULL;
     for (;;) {
         if (list->head == NULL) {

@@ -128,11 +128,11 @@ struct DRModDependList {
     DRModDependListNode* tail;
 };
 
-extern void  drModDependListInit   (DRModDependList* list);
-extern bool  drModDependListIsEmpty(DRModDependList* list);
-extern void  drModDependListAdd    (DRModDependList* list, char* mod_name);
-extern error drModDependListDel    (DRModDependList* list, char* mod_name);
-extern void  drModDependListDestroy(DRModDependList* list);
+static void  drModDependListInit   (DRModDependList* list);
+static bool  drModDependListIsEmpty(DRModDependList* list);
+static void  drModDependListAdd    (DRModDependList* list, char* mod_name);
+static error drModDependListDel    (DRModDependList* list, char* mod_name);
+static void  drModDependListDestroy(DRModDependList* list);
 
 struct DRModInformListNode {
     char*                mod_name;
@@ -151,9 +151,9 @@ struct DRModInformList {
     DRModInformListNode* tail;
 };
 
-extern void drModInformListInit   (DRModInformList* list);
-extern void drModInformListAdd    (DRModInformList* list, char* mod_name);
-extern void drModInformListDestroy(DRModInformList* list);
+static void drModInformListInit   (DRModInformList* list);
+static void drModInformListAdd    (DRModInformList* list, char* mod_name);
+static void drModInformListDestroy(DRModInformList* list);
 
 // ModuleScheduler manages and caches all modules used by a project.
 //
