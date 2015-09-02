@@ -10,7 +10,10 @@
 #ifndef CPLUS_IMPORT_H
 #define CPLUS_IMPORT_H
 
+#include <unistd.h>
+#include <dirent.h>
 #include "common.h"
+#include "project.h"
 #include "ident.h"
 #include "lexer.h"
 
@@ -27,22 +30,19 @@ typedef struct DRModInformList     DRModInformList;
 typedef struct ModuleScheduler     ModuleScheduler;
 
 // represent a source file in one module or program directory.
-struct SourceFile {
-    char*       file_name;
-    SourceFile* next;
+struct SourceFiles {
+    char*        file_name;
+    SourceFiles* next;
 };
 
 struct Module {
-    char*       mod_name; // the path of the module. "net/http" and "test/http" are two different modules
-    SourceFile* srcfiles; // cplus source files in the module directory.
+    char*        mod_name; // the path of the module. "net/http" and "test/http" are two different modules
+    bool         chk_main; // should check that whether the main entry exists.
+    SourceFiles* srcfiles; // cplus source files in the module directory.
 };
 
 struct ModuleSetNode {
-    Module* mod;
-    // RecompileList
-    // InternalUnresolvedList
-    // ExternalUnresolvedList // extern unresolved list is not empty means that this module should be resolved
-                              // later again when dependent modules are compiled over.
+    Module*        mod;
     ModuleSetNode* prev;
     ModuleSetNode* next;
 };
@@ -92,6 +92,7 @@ static void    moduleSetDestroy(ModuleSet* modset);
 struct ModuleCacheNode {
     char*            mod_name;
     IdentTable*      id_table;
+    DRIdentTable*    drid_table;
     int8             color;
     ModuleCacheNode* parent;
     ModuleCacheNode* lchild;
@@ -157,12 +158,19 @@ static void drModInformListDestroy(DRModInformList* list);
 
 // ModuleScheduler manages and caches all modules used by a project.
 //
+// warning:
+//    must initialize the ProjectConfig(define in project.h and project.c) before
+//    using the ModuleScheduler!
+//
 struct ModuleScheduler {
+    Module*     mod_prepared;
     ModuleSet   mod_set;
     ModuleCache mod_cache;
 };
 
-extern void moduleSchedulerInit   (ModuleScheduler* modsche);
-extern void moduleSchedulerDestroy(ModuleScheduler* modsche);
+extern error moduleSchedulerInit           (ModuleScheduler* scheduler);
+extern bool  moduleSchedulerIsFinish       (ModuleScheduler* scheduler);
+extern char* moduleSchedulerGetPreparedFile(ModuleScheduler* scheduler);
+extern void  moduleSchedulerDestroy        (ModuleScheduler* scheduler);
 
 #endif

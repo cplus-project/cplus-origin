@@ -9,6 +9,7 @@
 
 #include <string.h>
 #include "common.h"
+#include "project.h"
 #include "parser.h"
 
 // command:
@@ -17,12 +18,18 @@
 //   test     test the specific C+ file or project
 //   help     display the manual
 int main(int argc, char* argv[]) {
-    error err = NULL;
+    error err = projectConfigInit(argv[0], "/home/jikai/c_projects/temp/PersonnelManagement");
+    if (err != NULL) {
+        printf("%s\r\n", err);
+        exit(EXIT_FAILURE);
+    }
+    
+    ModuleScheduler modscheduler;
+    moduleSchedulerInit(&modscheduler);
+    debug(moduleSchedulerGetPreparedFile(&modscheduler));
+    moduleSchedulerDestroy(&modscheduler);
 
-    Parser parser;
-    parserInit (&parser);
-    parserStart(&parser, "main.cplus");
-
+    projectConfigDestroy();
     return 0;
 }
 

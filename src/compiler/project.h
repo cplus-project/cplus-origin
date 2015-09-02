@@ -10,6 +10,7 @@
 #ifndef CPLUS_PROJECT_H
 #define CPLUS_PROJECT_H
 
+#include <unistd.h>
 #include "common.h"
 #include "dynamicarr.h"
 #include "path.h"

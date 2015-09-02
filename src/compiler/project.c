@@ -135,34 +135,76 @@ error projectConfigInit(char* compiler_path, char* compile_obj_path) {
     if (compiler_path == NULL || compile_obj_path == NULL) {
         return new_error("the parameters can not be NULL.");
     }
+    
+    char* path;
+    int   len = strlen(compile_obj_path);
+
+    // the path of compile_obj_path should always be an absolute path. the example which
+    // can cause some trouble will like this:
+    // 
+    // [directory struct]
+    //    /project
+    //        /bin
+    //        /src
+    //           /buffer.mod <- we are in here now
+    //              /buffer.cplus
+    //           /remote.mod
+    //              /remote.cplus
+    //                      
+    // pwd is "~/project/src/buffer.mod"
+    //
+    // the compile command like "cplus build ../remote.mod" will cause some trouble when
+    // the compiler want to find the project directory from the path which has "../" or
+    // "./" by calling path_prev(defined in path.h and path.c).
+    //
+#ifdef PLATFORM_WINDOWS
+    if (len >= 3 && (('a' <= compile_obj_path[0] && compile_obj_path[0] <= 'z') || ('A' <= compile_obj_path[0] && compile_obj_path[0] <= 'Z')) && compile_obj_path[1] == ':' && compile_obj_path[2] == '\\') {
+        path = compile_obj_path;
+    }
+#else
+    if (len >= 1 && compile_obj_path[0] == '/') {
+        path = compile_obj_path;
+    }
+#endif
+    else {
+        if ((path = getcwd(NULL, 0)) == NULL) {
+            return new_error("get current directory path failed.");
+        }
+        DynamicArrChar darr;
+        dynamicArrCharInit   (&darr, 255);
+        dynamicArrCharAppend (&darr, path, strlen(path));
+        dynamicArrCharAppendc(&darr, '/');
+        dynamicArrCharAppend (&darr, compile_obj_path, len);
+        mem_free(path);
+        path = dynamicArrCharGetStr(&darr);
+        len  = darr.used;
+        dynamicArrCharDestroy(&darr);
+    }
 
     ProjectConfig.path_compiler    = compiler_path;
     ProjectConfig.path_stdmod      = NULL;
     ProjectConfig.path_project     = NULL;
     ProjectConfig.path_source      = NULL;
     ProjectConfig.path_binary      = NULL;
-    ProjectConfig.path_compile_obj = compile_obj_path;
+    ProjectConfig.path_compile_obj = path;
 
-    char* path     = compile_obj_path;
-    int   path_len = strlen(path);
-
-    if (is_cplus_project(path, path_len) == true) {
+    if (is_cplus_project(path, len) == true) {
         ProjectConfig.compile_obj_type = COMPILE_OBJ_TYPE_PROJ;
-        set_project_dir(path, path_len);
+        set_project_dir(path, len);
     }
-    else if (is_cplus_program(path, path_len) == true) {
+    else if (is_cplus_program(path, len) == true) {
         ProjectConfig.compile_obj_type = COMPILE_OBJ_TYPE_PROG;
-        if (find_and_set_project_dir(path, path_len) != NULL) {
+        if (find_and_set_project_dir(path, len) != NULL) {
             return new_error("the .prog file is not in an valid cplus project directory.");
         }
     }
-    else if (is_cplus_module(path, path_len) == true) {
+    else if (is_cplus_module(path, len) == true) {
         ProjectConfig.compile_obj_type = COMPILE_OBJ_TYPE_MOD;
-        if (find_and_set_project_dir(path, path_len) != NULL) {
+        if (find_and_set_project_dir(path, len) != NULL) {
             return new_error("the .mod file is not in an valid cplus project directory.");
         }
     }
-    else if (is_cplus_source(path, path_len) == true) {
+    else if (is_cplus_source(path, len) == true) {
         ProjectConfig.compile_obj_type = COMPILE_OBJ_TYPE_SRC;
     }
     else
@@ -175,7 +217,7 @@ void projectConfigDestroy() {
 //  mem_free(ProjectConfig.path_compiler);
 //  mem_free(ProjectConfig.path_compile_obj);
     mem_free(ProjectConfig.path_stdmod);
-    mem_free(ProjectConfig.path_project);
-    mem_free(ProjectConfig.path_source);
-    mem_free(ProjectConfig.path_binary);
+//  mem_free(ProjectConfig.path_project);
+//  mem_free(ProjectConfig.path_source);
+//  mem_free(ProjectConfig.path_binary);
 }

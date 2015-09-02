@@ -14,7 +14,6 @@ static void moduleSetInit(ModuleSet* modset) {
     modset->head->mod  = NULL;
     modset->head->prev = NULL;
     modset->head->next = NULL;
-    // TODO: some members still should be set...
 }
 
 // return true if the set is empty.
@@ -262,12 +261,13 @@ static error moduleCacheNewCache(ModuleCache* modcache, char* mod_name) {
         return new_error("the module name can not be NULL.");
     }
     ModuleCacheNode* create = (ModuleCacheNode*)mem_alloc(sizeof(ModuleCacheNode));
-    create->mod_name = mod_name;
-    create->id_table = NULL;
-    create->color    = NODE_COLOR_RED;
-    create->parent   = NULL;
-    create->lchild   = NULL;
-    create->rchild   = NULL;
+    create->mod_name   = mod_name;
+    create->id_table   = NULL;
+    create->drid_table = NULL;
+    create->color      = NODE_COLOR_RED;
+    create->parent     = NULL;
+    create->lchild     = NULL;
+    create->rchild     = NULL;
     if (modcache->root != NULL) {
         ModuleCacheNode* ptr = modcache->root;
         for (;;) {
@@ -463,4 +463,220 @@ static void drModInformListDestroy(DRModInformList* list) {
         list->head = list->head->next;
         mem_free(del);
     }
+}
+
+/****** methods of ModuleScheduler ******/
+
+// save the length of ProjectConfig.path_source because its often uses.
+//
+static int src_path_len;
+
+// example:
+//    if the source path is "/home/user/project/src".
+//    the module name "net/http" will return "/home/user/project/src/net.mod/http.mod".
+//                                                                   ^^^^^^^^^^^^^^^^
+//
+static char* moduleSchedulerGetModPathByName(const char* const mod_name) {
+    char* mod_path;
+    int   i;
+    int   len = strlen(mod_name);
+    DynamicArrChar darr;
+    dynamicArrCharInit   (&darr, 255);
+    dynamicArrCharAppend (&darr, ProjectConfig.path_source, src_path_len);
+    dynamicArrCharAppendc(&darr, '/');
+    for (i = 0; i < len; i++) {
+        if (mod_name[i] != '/') {
+            dynamicArrCharAppendc(&darr, mod_name[i]);
+        }
+        else {
+            dynamicArrCharAppend (&darr, ".mod", 4);
+            dynamicArrCharAppendc(&darr, '/');
+        }
+    }
+    dynamicArrCharAppend (&darr, ".mod", 4);
+    mod_path = dynamicArrCharGetStr(&darr);
+    dynamicArrCharDestroy(&darr);
+    return mod_path;
+}
+
+// example:
+//    if the source path is "/home/user/project/src".
+//    the path "/home/user/project/src/net.mod/http.mod" will return "net/http".
+//                                     ^^^^^^^^^^^^^^^^
+//
+static char* moduleSchedulerGetModNameByPath(const char* const mod_path) {
+    char* mod_name;
+    int   i;
+    int   len = strlen(mod_path);
+    DynamicArrChar darr;
+    dynamicArrCharInit(&darr, 255);
+    for (i = src_path_len+1; i < len;) {
+        if (mod_path[i]   == '.' &&
+            mod_path[i+1] == 'm' &&
+            mod_path[i+2] == 'o' &&
+            mod_path[i+3] == 'd' ){
+            i += 4;
+        } else {
+            dynamicArrCharAppendc(&darr, mod_path[i]);
+            i++;
+        }
+    }
+    mod_name = dynamicArrCharGetStr(&darr);
+    dynamicArrCharDestroy(&darr);
+    return mod_name;
+}
+
+// check whether a directory is the program directory(which is suffixed with '.prog'). this
+// function is more efficient than using the is_cplus_program(defined in project.h and
+// project.c) here.
+//
+static bool moduleSchedulerIsProgDir(char* dir_name, int len) {
+    if (len > 5 &&
+        dir_name[len-5] == '.' &&
+        dir_name[len-4] == 'p' &&
+        dir_name[len-3] == 'r' &&
+        dir_name[len-2] == 'o' &&
+        dir_name[len-1] == 'g' ){
+        return true;
+    }
+    return false;
+}
+
+// check whether a file is the cplus source file(which is suffixed with '.cplus'). this
+// function is more efficient than using the is_cplus_source(defined in project.h and
+// project.c) here.
+//
+static bool moduleSchedulerIsSrcFile(char* file_name, int len) {
+    if (len > 6 &&
+        file_name[len-6] == '.' &&
+        file_name[len-5] == 'c' &&
+        file_name[len-4] == 'p' &&
+        file_name[len-3] == 'l' &&
+        file_name[len-2] == 'u' &&
+        file_name[len-1] == 's' ){
+        return true;
+    }
+    return false;
+}
+
+static SourceFiles* moduleSchedulerGetSrcFileList(char* dir_path, int path_len) {
+    SourceFiles*   head = NULL;
+    SourceFiles*   tail = NULL;
+    SourceFiles*   create;
+    DIR*           dir;
+    struct dirent* dir_entry;
+    int            len;
+    DynamicArrChar darr;
+    dynamicArrCharInit(&darr, 255);
+
+    if ((dir = opendir(dir_path)) == NULL) {
+        return NULL;
+    }
+    while ((dir_entry = readdir(dir)) != NULL) {
+        len = strlen(dir_entry->d_name);
+        if (dir_entry->d_type == DT_REG && moduleSchedulerIsSrcFile(dir_entry->d_name, len) == true) {
+            dynamicArrCharAppend (&darr, dir_path, path_len);
+            dynamicArrCharAppendc(&darr, '/');
+            dynamicArrCharAppend (&darr, dir_entry->d_name, len);
+
+            create = (SourceFiles*)mem_alloc(sizeof(SourceFiles));
+            create->file_name = dynamicArrCharGetStr(&darr);
+            create->next      = NULL;
+
+            head != NULL ? tail->next = create : head = create;
+            tail  = create;
+            dynamicArrCharClear(&darr);
+        }
+    }
+    dynamicArrCharDestroy(&darr);
+    return head;
+}
+
+error moduleSchedulerInit(ModuleScheduler* scheduler) {
+    scheduler->mod_prepared = NULL;
+    moduleSetInit  (&scheduler->mod_set);
+    moduleCacheInit(&scheduler->mod_cache);
+    src_path_len = strlen(ProjectConfig.path_source);
+
+    switch (ProjectConfig.compile_obj_type) {
+    case COMPILE_OBJ_TYPE_PROJ: {
+            Module*        mod;
+            DIR*           dir;
+            struct dirent* dir_entry;
+            int            len;
+            DynamicArrChar darr;
+            dynamicArrCharInit(&darr, 255);
+            // trival the 'project/src' directory and add all xxx.prog directories into the
+            // module set.
+            //
+            if ((dir = opendir(ProjectConfig.path_source)) == NULL) {
+                return new_error("open project source directory failed.");
+            }
+            while ((dir_entry = readdir(dir)) != NULL) {
+                len = strlen(dir_entry->d_name);
+                if (dir_entry->d_type == DT_DIR && moduleSchedulerIsProgDir(dir_entry->d_name, len) == true) {
+                    dynamicArrCharAppend (&darr, ProjectConfig.path_source, src_path_len);
+                    dynamicArrCharAppendc(&darr, '/');
+                    dynamicArrCharAppend (&darr, dir_entry->d_name, len);
+
+                    mod = (Module*)mem_alloc(sizeof(Module));
+                    mod->mod_name = dir_entry->d_name;
+                    mod->chk_main = true;
+                    mod->srcfiles = moduleSchedulerGetSrcFileList(dynamicArrCharGetStr(&darr), src_path_len+len+1);
+
+                    moduleSetAdd(&scheduler->mod_set, mod);
+                    dynamicArrCharClear(&darr);
+                }
+            }
+            closedir(dir);
+            dynamicArrCharDestroy(&darr);
+            return NULL;
+        }
+
+    case COMPILE_OBJ_TYPE_PROG: {
+            Module* mod = (Module*)mem_alloc(sizeof(Module));
+            mod->mod_name = path_last(ProjectConfig.path_compile_obj, strlen(ProjectConfig.path_compile_obj));
+            mod->chk_main = true;
+            mod->srcfiles = moduleSchedulerGetSrcFileList(ProjectConfig.path_compile_obj, strlen(ProjectConfig.path_compile_obj));
+            moduleSetAdd(&scheduler->mod_set, mod);
+            return NULL;
+        }
+
+    case COMPILE_OBJ_TYPE_MOD: {
+            Module* mod = (Module*)mem_alloc(sizeof(Module));
+            mod->mod_name = moduleSchedulerGetModNameByPath(ProjectConfig.path_compile_obj);
+            mod->chk_main = false;
+            mod->srcfiles = moduleSchedulerGetSrcFileList(ProjectConfig.path_compile_obj, strlen(ProjectConfig.path_compile_obj));
+            moduleSetAdd(&scheduler->mod_set, mod);
+            return NULL;
+        }
+
+    case COMPILE_OBJ_TYPE_SRC: {
+            Module* mod = (Module*)mem_alloc(sizeof(Module));
+            mod->mod_name = path_last(ProjectConfig.path_compile_obj, strlen(ProjectConfig.path_compile_obj));
+            mod->chk_main = true;
+            mod->srcfiles = (SourceFile*)mem_alloc(sizeof(SourceFile));
+            mod->srcfiles->file_name = ProjectConfig.path_compile_obj;
+            mod->srcfiles->next      = NULL;
+            return NULL;
+        }
+
+    default:
+        return new_error("maybe you are not initialize the ProjectConfig.");
+    }
+}
+
+// return true if all modules are compiled over.
+//
+bool moduleSchedulerIsFinish(ModuleScheduler* scheduler) {
+    return moduleSetIsEmpty(&scheduler->mod_set);
+}
+
+char* moduleSchedulerGetPreparedFile(ModuleScheduler* scheduler) {
+
+}
+
+void moduleSchedulerDestroy(ModuleScheduler* scheduler) {
+    moduleSetDestroy  (&scheduler->mod_set);
+    moduleCacheDestroy(&scheduler->mod_cache);
 }
