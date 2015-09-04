@@ -17,17 +17,20 @@
 #include "ident.h"
 #include "lexer.h"
 
-typedef struct SourceFile          SourceFile;
+typedef struct SourceFiles         SourceFiles;
 typedef struct Module              Module;
 typedef struct ModuleSetNode       ModuleSetNode;
 typedef struct ModuleSet           ModuleSet;
 typedef struct ModuleCacheNode     ModuleCacheNode;
 typedef struct ModuleCache         ModuleCache;
+typedef struct Program             Program;
+typedef struct ProgramQueueNode    ProgramQueueNode;
+typedef struct ProgramQueue        ProgramQueue;
 typedef struct DRModDependListNode DRModDependListNode;
 typedef struct DRModDependList     DRModDependList;
 typedef struct DRModInformListNode DRModInformListNode;
 typedef struct DRModInformList     DRModInformList;
-typedef struct ModuleScheduler     ModuleScheduler;
+typedef struct CompileScheduler    CompileScheduler;
 
 // represent a source file in one module or program directory.
 struct SourceFiles {
@@ -37,7 +40,6 @@ struct SourceFiles {
 
 struct Module {
     char*        mod_name; // the path of the module. "net/http" and "test/http" are two different modules
-    bool         chk_main; // should check that whether the main entry exists.
     SourceFiles* srcfiles; // cplus source files in the module directory.
 };
 
@@ -113,6 +115,31 @@ static error       moduleCacheSetCache(ModuleCache* modcache, char* mod_name, Id
 static IdentTable* moduleCacheGetCache(ModuleCache* modcache, char* mod_name);
 static void        moduleCacheDestroy (ModuleCache* modcache);
 
+struct Program {
+    char*         prog_name;
+    SourceFiles*  srcfiles;
+    IdentTable*   id_table;
+    DRIdentTable* drid_table;
+};
+
+struct ProgramQueueNode {
+    Program*          prog;
+    ProgramQueueNode* next;
+};
+
+// the ProgramQueue is used to save the program directories of the project.
+//
+struct ProgramQueue {
+    ProgramQueueNode* head;
+    ProgramQueueNode* tail;
+};
+
+static void     programQueueInit   (ProgramQueue* queue);
+static void     programQueueEnqueue(ProgramQueue* queue, Program* prog);
+static Program* programQueueGet    (ProgramQueue* queue);
+static void     programQueueDequeue(ProgramQueue* queue);
+static void     programQueueDestroy(ProgramQueue* queue);
+
 struct DRModDependListNode {
     char*                mod_name;
     DRModDependListNode* next;
@@ -156,21 +183,19 @@ static void drModInformListInit   (DRModInformList* list);
 static void drModInformListAdd    (DRModInformList* list, char* mod_name);
 static void drModInformListDestroy(DRModInformList* list);
 
-// ModuleScheduler manages and caches all modules used by a project.
-//
 // warning:
 //    must initialize the ProjectConfig(define in project.h and project.c) before
-//    using the ModuleScheduler!
+//    using the CompileScheduler!!!
 //
-struct ModuleScheduler {
+struct CompileScheduler {
     Module*     mod_prepared;
     ModuleSet   mod_set;
     ModuleCache mod_cache;
 };
 
-extern error moduleSchedulerInit           (ModuleScheduler* scheduler);
-extern bool  moduleSchedulerIsFinish       (ModuleScheduler* scheduler);
-extern char* moduleSchedulerGetPreparedFile(ModuleScheduler* scheduler);
-extern void  moduleSchedulerDestroy        (ModuleScheduler* scheduler);
+extern error compileSchedulerInit           (CompileScheduler* scheduler);
+extern bool  compileSchedulerIsFinish       (CompileScheduler* scheduler);
+extern char* compileSchedulerGetPreparedFile(CompileScheduler* scheduler);
+extern void  compileSchedulerDestroy        (CompileScheduler* scheduler);
 
 #endif

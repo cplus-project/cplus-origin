@@ -23,11 +23,11 @@ int main(int argc, char* argv[]) {
         printf("%s\r\n", err);
         exit(EXIT_FAILURE);
     }
-    
-    ModuleScheduler modscheduler;
-    moduleSchedulerInit(&modscheduler);
-    debug(moduleSchedulerGetPreparedFile(&modscheduler));
-    moduleSchedulerDestroy(&modscheduler);
+
+    CompileScheduler modscheduler;
+    compileSchedulerInit(&modscheduler);
+    debug(compileSchedulerGetPreparedFile(&modscheduler));
+    compileSchedulerDestroy(&modscheduler);
 
     projectConfigDestroy();
     return 0;

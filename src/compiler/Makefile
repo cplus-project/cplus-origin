@@ -2,9 +2,9 @@ obj := cplus
 compiler := gcc
 
 cplus: common.o utf.o lexer.o dynamicarr.o convert.o ident.o scope.o closectr.o \
-	module.o path.o project.o parser.o expression.o ast.o
+	scheduler.o path.o project.o parser.o expression.o ast.o
 	${compiler} ${obj}.c common.o utf.o lexer.o dynamicarr.o convert.o ident.o \
-	scope.o closectr.o module.o path.o project.o parser.o expression.o ast.o -o ${obj}
+	scope.o closectr.o scheduler.o path.o project.o parser.o expression.o ast.o -o ${obj}
 
 common.o: common.h common.c
 	${compiler} -c common.h common.c
@@ -33,8 +33,8 @@ closectr.o: closectr.h closectr.c
 errors.o: errors.h errors.c
 	${compiler} -c errors.h errors.c
 
-module.o: module.h module.c
-	${compiler} -c module.h module.c
+scheduler.o: scheduler.h scheduler.c
+	${compiler} -c scheduler.h scheduler.c
 
 path.o: path.h path.c
 	${compiler} -c path.h path.c
