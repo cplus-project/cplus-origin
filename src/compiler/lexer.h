@@ -118,6 +118,7 @@
 //        // process the token here
 //    }
 //    ...
+//
 #define tokenIsID(token_code)       (token_code == 100)
 #define tokenIsKeywords(token_code) (200 <= token_code && token_code < 300)
 #define tokenIsConstLit(token_code) (300 <= token_code && token_code < 400)
@@ -148,9 +149,11 @@ extern void  lexTokenDestroy(LexToken* lextkn);
 
 // if want to change the lexical analyzer's buffer size and file
 // read rate, just modify the under micro definition.
+//
 // node:
 //   the LEX_BUFF_SIZE should not exceed 32767(is 2^16/2-1), because
 //   the index 'i' and 'buff_end_index' are 16bits numbers.
+//
 #define LEX_BUFF_SIZE 4096
 typedef struct{
     FILE*    srcfile;               // source file descriptor
@@ -188,6 +191,7 @@ typedef struct{
 //       lexerNextToken(&lexer);
 //   }
 //   ...
+//
 extern error     lexerInit        (Lexer* lexer);
 extern error     lexerOpenSrcFile (Lexer* lexer, char* file);
 extern void      lexerCloseSrcFile(Lexer* lexer);

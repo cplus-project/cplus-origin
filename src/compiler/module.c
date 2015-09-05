@@ -96,6 +96,7 @@ static void moduleCacheInit(ModuleCache* modcache) {
 // (1) if the name1's length is longer , return NODE_CMP_GT.
 // (2) if the name1's length is shorter, return NODE_CMP_LT.
 // (3) if tow names'  length are equal , return NODE_CMP_EQ.
+//
 static int moduleCacheCmp(char* name1, char* name2) {
     int64 i;
     for (i = 0; ; i++) {
@@ -124,6 +125,7 @@ static int moduleCacheCmp(char* name1, char* name2) {
 //  a   rchild   ----/    node      c
 //     /      \          /    \
 //    b        c        a      b
+//
 static error moduleCacheLeftRotate(ModuleCache* modcache, ModuleCacheNode* node) {
     if (node == modcache->root) {
         modcache->root = node->rchild;
@@ -150,6 +152,7 @@ static error moduleCacheLeftRotate(ModuleCache* modcache, ModuleCacheNode* node)
 //   lchild   c ----/  a      node
 //  /      \                 /    \
 // a        b               b      c
+//
 static error moduleCacheRightRotate(ModuleCache* modcache, ModuleCacheNode* node) {
     if (node == modcache->root) {
         modcache->root = node->lchild;
@@ -171,6 +174,7 @@ static error moduleCacheRightRotate(ModuleCache* modcache, ModuleCacheNode* node
 
 // fix the balance of the tree and try to keep the properties
 // of the red black tree.
+//
 static void moduleCacheAddFixup(ModuleCache* modcache, ModuleCacheNode* added) {
     ModuleCacheNode* uncle = NULL;
     for (;;) {
@@ -262,6 +266,7 @@ static error moduleCacheNewCache(ModuleCache* modcache, char* mod_name) {
     }
     ModuleCacheNode* create = (ModuleCacheNode*)mem_alloc(sizeof(ModuleCacheNode));
     create->mod_name   = mod_name;
+    create->cpl_over   = false;
     create->id_table   = NULL;
     create->drid_table = NULL;
     create->color      = NODE_COLOR_RED;
@@ -640,6 +645,7 @@ error moduleSchedulerInit(ModuleScheduler* scheduler) {
                     mod->depd_parsed = false;
                     mod->is_main     = true;
                     mod->srcfiles    = moduleSchedulerGetSrcFileList(dynamicArrCharGetStr(&darr), src_path_len+len+1);
+                    mod->fiterate    = mod->srcfiles;
 
                     moduleSetAdd(&scheduler->mod_set, mod);
                     moduleSetGet(&scheduler->mod_set);
@@ -660,6 +666,7 @@ error moduleSchedulerInit(ModuleScheduler* scheduler) {
             mod->depd_parsed = false;
             mod->is_main     = true;
             mod->srcfiles    = moduleSchedulerGetSrcFileList(ProjectConfig.path_compile_obj, len);
+            mod->fiterate    = mod->srcfiles;
             moduleSetAdd(&scheduler->mod_set, mod);
             return NULL;
         }
@@ -673,6 +680,7 @@ error moduleSchedulerInit(ModuleScheduler* scheduler) {
             mod->depd_parsed = false;
             mod->is_main     = false;
             mod->srcfiles    = moduleSchedulerGetSrcFileList(ProjectConfig.path_compile_obj, strlen(ProjectConfig.path_compile_obj));
+            mod->fiterate    = mod->srcfiles;
             moduleSetAdd(&scheduler->mod_set, mod);
             return NULL;
         }
@@ -680,14 +688,15 @@ error moduleSchedulerInit(ModuleScheduler* scheduler) {
     case COMPILE_OBJ_TYPE_SRC: {
             int     len = strlen(ProjectConfig.path_compile_obj);
             Module* mod = (Module*)mem_alloc(sizeof(Module));
-            mod->mod_name    = path_last(ProjectConfig.path_compile_obj, len);
-            mod->mod_path    = ProjectConfig.path_source;
-            mod->path_len    = strlen(mod->mod_path);
-            mod->depd_parsed = false;
-            mod->is_main     = true;
-            mod->srcfiles    = (SourceFiles*)mem_alloc(sizeof(SourceFiles));
+            mod->mod_name            = path_last(ProjectConfig.path_compile_obj, len);
+            mod->mod_path            = ProjectConfig.path_source;
+            mod->path_len            = strlen(mod->mod_path);
+            mod->depd_parsed         = false;
+            mod->is_main             = true;
+            mod->srcfiles            = (SourceFiles*)mem_alloc(sizeof(SourceFiles));
             mod->srcfiles->file_name = path_last(ProjectConfig.path_compile_obj, len);
             mod->srcfiles->next      = NULL;
+            mod->fiterate            = mod->srcfiles;
             moduleSetAdd(&scheduler->mod_set, mod);
             return NULL;
         }
@@ -705,22 +714,117 @@ bool moduleSchedulerIsFinish(ModuleScheduler* scheduler) {
 
 static char* moduleSchedulerGetOneFileFromMod(Module* module) {
     char*          path;
-    SourceFiles*   del = module->srcfiles;
     DynamicArrChar darr;
     dynamicArrCharInit   (&darr, 255);
     dynamicArrCharAppend (&darr, module->mod_path, module->path_len);
     dynamicArrCharAppendc(&darr, '/');
-    dynamicArrCharAppend (&darr, module->srcfiles->file_name, module->srcfiles->name_len);
+    dynamicArrCharAppend (&darr, module->fiterate->file_name, module->fiterate->name_len);
     path = dynamicArrCharGetStr(&darr);
+    module->fiterate = module->fiterate->next;
     dynamicArrCharDestroy(&darr);
-    module->srcfiles = module->srcfiles->next;
-    mem_free(del);
 
     return path;
 }
 
-static char* moduleSchedulerParseDependences(Module* module) {
-    
+// this function will add all modules needed by the current module into the ModuleSet.
+//
+// for example:
+// 1. the ModuleSet is: [module]
+//
+//                                         file1.cplus: module fmt
+//                                       /              module net/http
+//                                      /
+// 2. now parse the module: module.mod {-- file2.cplus: module net/http
+//                                      \               module os
+//                                       \
+//                                         file3.cplus: module io
+//
+// 3. now ModuleSet is: [fmt net/http os io module]
+//                       ^^^ ^^^^^^^^ ^^ ^^
+//    the modules underlined with '^' are added after parse the dependences.
+//   
+static error moduleSchedulerParseDependences(ModuleScheduler* scheduler) {
+    error          err;
+    char*          tkncontent;
+    char*          mod_name;
+    char*          file;
+    LexToken*      lextkn;
+    bool           last_isid;
+    Module*        mod;
+    DynamicArrChar darr;
+    dynamicArrCharInit(&darr, 255);
+
+    while (scheduler->cur_mod->fiterate != NULL) {
+        file = moduleSchedulerGetOneFileFromMod(scheduler->cur_mod);
+        Lexer     lexer;
+        LexToken* lextkn;
+        if ((err = lexerInit(&lexer)) != NULL) {
+            return err;
+        }
+        if ((err = lexerOpenSrcFile(&lexer, file)) != NULL) {
+            return err;
+        }
+        for (;;) {
+            // check module keywork.
+            //
+            if ((err = lexerParseToken(&lexer)) != NULL) {
+                break;
+            }
+            lextkn = lexerReadToken(&lexer);
+            if (lextkn->token_code != TOKEN_KEYWORD_MODULE) {
+                break;
+            }
+            lexerNextToken(&lexer);
+
+            // check the module name and add the module into the ModuleSet if it is finded first time.
+            //
+            last_isid = false;
+            for (;;) {
+                if ((err = lexerParseToken(&lexer)) != NULL) {
+                    break;
+                }
+                lextkn = lexerReadToken(&lexer);
+
+                if (lextkn->token_code == TOKEN_ID && last_isid == false) {
+                    tkncontent = lexTokenGetStr(lextkn);
+                    dynamicArrCharAppend(&darr, tkncontent, lextkn->token_len);
+                    mem_free(tkncontent);
+                    continue;
+                }
+                else if (lextkn->token_code == TOKEN_OP_DIV && last_isid == true) {
+                    dynamicArrCharAppendc(&darr, '/');
+                    continue;
+                }
+                else if (lextkn->token_code == TOKEN_LINEFEED && last_isid == true) {
+                    mod_name = dynamicArrCharGetStr(&darr);
+                    dynamicArrCharClear(&darr);
+                    if (moduleCacheExist(&scheduler->mod_cache, mod_name) == true) {
+                        break;
+                    }
+                    mod = (Module*)mem_alloc(sizeof(Module));
+                    mod->mod_name    = mod_name;
+                    mod->mod_path    = moduleSchedulerGetModPathByName(mod_name);
+                    mod->path_len    = darr.used;
+                    mod->depd_parsed = false;
+                    mod->is_main     = false;
+                    mod->srcfiles    = moduleSchedulerGetSrcFileList(mod->mod_path, mod->path_len);
+                    mod->fiterate    = mod->srcfiles;
+                    moduleSetAdd(&scheduler->mod_set, mod);
+                    moduleCacheNewCache(&scheduler->mod_cache, mod_name);
+                    break;
+                }
+                else
+                    return new_error("invalid module name.");
+            }
+        }
+        lexerCloseSrcFile(&lexer);
+        lexerDestroy(&lexer);
+    }
+
+    scheduler->cur_mod->depd_parsed = true;
+    scheduler->cur_mod->fiterate    = scheduler->cur_mod->srcfiles;
+    dynamicArrCharDestroy(&darr);
+    return NULL;
 }
 
 char* moduleSchedulerGetPreparedFile(ModuleScheduler* scheduler) {
@@ -728,7 +832,7 @@ char* moduleSchedulerGetPreparedFile(ModuleScheduler* scheduler) {
     DynamicArrChar darr;
     dynamicArrCharInit(&darr, 255);
 
-    if (scheduler->cur_mod->srcfiles != NULL) {
+    if (scheduler->cur_mod->fiterate != NULL) {
         return moduleSchedulerGetOneFileFromMod(scheduler->cur_mod);
     }
     else {
@@ -739,9 +843,8 @@ char* moduleSchedulerGetPreparedFile(ModuleScheduler* scheduler) {
             }
             scheduler->cur_mod = moduleSetGet(&scheduler->mod_set);
             if (scheduler->cur_mod->depd_parsed == false) {
-                // TODO: parse dependences...
-            }
-            else {
+                moduleSchedulerParseDependences(scheduler);
+            } else {
                 return moduleSchedulerGetOneFileFromMod(scheduler->cur_mod);
             }
         }
