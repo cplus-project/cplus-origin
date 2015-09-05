@@ -24,10 +24,10 @@ int main(int argc, char* argv[]) {
         exit(EXIT_FAILURE);
     }
 
-    CompileScheduler modscheduler;
-    compileSchedulerInit(&modscheduler);
-    debug(compileSchedulerGetPreparedFile(&modscheduler));
-    compileSchedulerDestroy(&modscheduler);
+    ModuleScheduler modscheduler;
+    moduleSchedulerInit(&modscheduler);
+    debug(moduleSchedulerGetPreparedFile(&modscheduler));
+    moduleSchedulerDestroy(&modscheduler);
 
     projectConfigDestroy();
     return 0;

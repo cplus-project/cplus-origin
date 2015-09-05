@@ -13,7 +13,7 @@
 
 #include "common.h"
 #include "lexer.h"
-#include "scheduler.h"
+#include "module.h"
 #include "ident.h"
 #include "ast.h"
 #include "expression.h"

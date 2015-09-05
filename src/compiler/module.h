@@ -23,14 +23,11 @@ typedef struct ModuleSetNode       ModuleSetNode;
 typedef struct ModuleSet           ModuleSet;
 typedef struct ModuleCacheNode     ModuleCacheNode;
 typedef struct ModuleCache         ModuleCache;
-typedef struct Program             Program;
-typedef struct ProgramQueueNode    ProgramQueueNode;
-typedef struct ProgramQueue        ProgramQueue;
 typedef struct DRModDependListNode DRModDependListNode;
 typedef struct DRModDependList     DRModDependList;
 typedef struct DRModInformListNode DRModInformListNode;
 typedef struct DRModInformList     DRModInformList;
-typedef struct CompileScheduler    CompileScheduler;
+typedef struct ModuleScheduler     ModuleScheduler;
 
 // represent a source file in one module or program directory.
 struct SourceFiles {
@@ -115,31 +112,6 @@ static error       moduleCacheSetCache(ModuleCache* modcache, char* mod_name, Id
 static IdentTable* moduleCacheGetCache(ModuleCache* modcache, char* mod_name);
 static void        moduleCacheDestroy (ModuleCache* modcache);
 
-struct Program {
-    char*         prog_name;
-    SourceFiles*  srcfiles;
-    IdentTable*   id_table;
-    DRIdentTable* drid_table;
-};
-
-struct ProgramQueueNode {
-    Program*          prog;
-    ProgramQueueNode* next;
-};
-
-// the ProgramQueue is used to save the program directories of the project.
-//
-struct ProgramQueue {
-    ProgramQueueNode* head;
-    ProgramQueueNode* tail;
-};
-
-static void     programQueueInit   (ProgramQueue* queue);
-static void     programQueueEnqueue(ProgramQueue* queue, Program* prog);
-static Program* programQueueGet    (ProgramQueue* queue);
-static void     programQueueDequeue(ProgramQueue* queue);
-static void     programQueueDestroy(ProgramQueue* queue);
-
 struct DRModDependListNode {
     char*                mod_name;
     DRModDependListNode* next;
@@ -187,15 +159,15 @@ static void drModInformListDestroy(DRModInformList* list);
 //    must initialize the ProjectConfig(define in project.h and project.c) before
 //    using the CompileScheduler!!!
 //
-struct CompileScheduler {
+struct ModuleScheduler {
     Module*     mod_prepared;
     ModuleSet   mod_set;
     ModuleCache mod_cache;
 };
 
-extern error compileSchedulerInit           (CompileScheduler* scheduler);
-extern bool  compileSchedulerIsFinish       (CompileScheduler* scheduler);
-extern char* compileSchedulerGetPreparedFile(CompileScheduler* scheduler);
-extern void  compileSchedulerDestroy        (CompileScheduler* scheduler);
+extern error moduleSchedulerInit           (ModuleScheduler* scheduler);
+extern bool  moduleSchedulerIsFinish       (ModuleScheduler* scheduler);
+extern char* moduleSchedulerGetPreparedFile(ModuleScheduler* scheduler);
+extern void  moduleSchedulerDestroy        (ModuleScheduler* scheduler);
 
 #endif

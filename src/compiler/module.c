@@ -4,7 +4,7 @@
  * license that can be found in the LICENSE file.
  **/
 
-#include "scheduler.h"
+#include "module.h"
 
 /****** methods of ModuleSet ******/
 
@@ -391,28 +391,6 @@ static void moduleCacheDestroy(ModuleCache* modcache) {
     moduleCacheDestroyNode(modcache->root);
 }
 
-/****** methods of ProgramQueue ******/
-
-static void programQueueInit(ProgramQueue* queue) {
-
-}
-
-static void programQueueEnqueue(ProgramQueue* queue, Program* prog) {
-
-}
-
-static Program* programQueueGet(ProgramQueue* queue) {
-
-}
-
-static void programQueueDequeue(ProgramQueue* queue) {
-
-}
-
-static void programQueueDestroy(ProgramQueue* queue) {
-
-}
-
 /****** methods of DRModDependList ******/
 
 static void drModDependListInit(DRModDependList* list) {
@@ -498,7 +476,7 @@ static int src_path_len;
 //    the module name "net/http" will return "/home/user/project/src/net.mod/http.mod".
 //                                                                   ^^^^^^^^^^^^^^^^
 //
-static char* compileSchedulerGetModPathByName(const char* const mod_name) {
+static char* moduleSchedulerGetModPathByName(const char* const mod_name) {
     char* mod_path;
     int   i;
     int   len = strlen(mod_name);
@@ -526,7 +504,7 @@ static char* compileSchedulerGetModPathByName(const char* const mod_name) {
 //    the path "/home/user/project/src/net.mod/http.mod" will return "net/http".
 //                                     ^^^^^^^^^^^^^^^^
 //
-static char* compileSchedulerGetModNameByPath(const char* const mod_path) {
+static char* moduleSchedulerGetModNameByPath(const char* const mod_path) {
     char* mod_name;
     int   i;
     int   len = strlen(mod_path);
@@ -552,7 +530,7 @@ static char* compileSchedulerGetModNameByPath(const char* const mod_path) {
 // function is more efficient than using the is_cplus_program(defined in project.h and
 // project.c) here.
 //
-static bool compileSchedulerIsProgDir(char* dir_name, int len) {
+static bool moduleSchedulerIsProgDir(char* dir_name, int len) {
     if (len > 5 &&
         dir_name[len-5] == '.' &&
         dir_name[len-4] == 'p' &&
@@ -568,7 +546,7 @@ static bool compileSchedulerIsProgDir(char* dir_name, int len) {
 // function is more efficient than using the is_cplus_source(defined in project.h and
 // project.c) here.
 //
-static bool compileSchedulerIsSrcFile(char* file_name, int len) {
+static bool moduleSchedulerIsSrcFile(char* file_name, int len) {
     if (len > 6 &&
         file_name[len-6] == '.' &&
         file_name[len-5] == 'c' &&
@@ -581,7 +559,7 @@ static bool compileSchedulerIsSrcFile(char* file_name, int len) {
     return false;
 }
 
-static SourceFiles* compileSchedulerGetSrcFileList(char* dir_path, int path_len) {
+static SourceFiles* moduleSchedulerGetSrcFileList(char* dir_path, int path_len) {
     SourceFiles*   head = NULL;
     SourceFiles*   tail = NULL;
     SourceFiles*   create;
@@ -596,7 +574,7 @@ static SourceFiles* compileSchedulerGetSrcFileList(char* dir_path, int path_len)
     }
     while ((dir_entry = readdir(dir)) != NULL) {
         len = strlen(dir_entry->d_name);
-        if (dir_entry->d_type == DT_REG && compileSchedulerIsSrcFile(dir_entry->d_name, len) == true) {
+        if (dir_entry->d_type == DT_REG && moduleSchedulerIsSrcFile(dir_entry->d_name, len) == true) {
             dynamicArrCharAppend (&darr, dir_path, path_len);
             dynamicArrCharAppendc(&darr, '/');
             dynamicArrCharAppend (&darr, dir_entry->d_name, len);
@@ -614,7 +592,7 @@ static SourceFiles* compileSchedulerGetSrcFileList(char* dir_path, int path_len)
     return head;
 }
 
-error moduleSchedulerInit(CompileScheduler* scheduler) {
+error moduleSchedulerInit(ModuleScheduler* scheduler) {
     scheduler->mod_prepared = NULL;
     moduleSetInit  (&scheduler->mod_set);
     moduleCacheInit(&scheduler->mod_cache);
@@ -690,19 +668,19 @@ error moduleSchedulerInit(CompileScheduler* scheduler) {
 
 // return true if all modules are compiled over.
 //
-bool moduleSchedulerIsFinish(CompileScheduler* scheduler) {
+bool moduleSchedulerIsFinish(ModuleScheduler* scheduler) {
     return moduleSetIsEmpty(&scheduler->mod_set);
 }
 
-char* moduleSchedulerGetPreparedFile(CompileScheduler* scheduler) {
+char* moduleSchedulerGetPreparedFile(ModuleScheduler* scheduler) {
     char* path = "/home/jikai/c_projects/temp/PersonnelManagement/src/logger.prog";
-    SourceFiles* srcfile = compileSchedulerGetSrcFileList(path, strlen(path));
+    SourceFiles* srcfile = moduleSchedulerGetSrcFileList(path, strlen(path));
     for (; srcfile != NULL; srcfile = srcfile->next) {
         printf("%s\r\n", srcfile->file_name);
     }
 }
 
-void moduleSchedulerDestroy(CompileScheduler* scheduler) {
+void moduleSchedulerDestroy(ModuleScheduler* scheduler) {
     moduleSetDestroy  (&scheduler->mod_set);
     moduleCacheDestroy(&scheduler->mod_cache);
 }
