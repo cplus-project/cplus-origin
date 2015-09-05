@@ -92,11 +92,11 @@ bool is_cplus_project(char* path, int path_len) {
 static void set_project_dir(char* path, int path_len) {
     ProjectConfig.path_project = path;
     DynamicArrChar darr;
-    dynamicArrCharInit(&darr, 255);
+    dynamicArrCharInit  (&darr, 255);
     dynamicArrCharAppend(&darr, path, path_len);
     dynamicArrCharAppend(&darr, "/src", 4);
     ProjectConfig.path_source = dynamicArrCharGetStr(&darr);
-    dynamicArrCharClear(&darr);
+    dynamicArrCharClear (&darr);
     dynamicArrCharAppend(&darr, path, path_len);
     dynamicArrCharAppend(&darr, "/bin", 4);
     ProjectConfig.path_binary = dynamicArrCharGetStr(&darr);
@@ -206,6 +206,8 @@ error projectConfigInit(char* compiler_path, char* compile_obj_path) {
     }
     else if (is_cplus_source(path, len) == true) {
         ProjectConfig.compile_obj_type = COMPILE_OBJ_TYPE_SRC;
+        ProjectConfig.path_source = path_prev(path, len);
+        ProjectConfig.path_binary = path_prev(path, len);
     }
     else
         return new_error("invalid compile unit.");

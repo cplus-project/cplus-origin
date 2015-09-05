@@ -566,8 +566,6 @@ static SourceFiles* moduleSchedulerGetSrcFileList(char* dir_path, int path_len) 
     DIR*           dir;
     struct dirent* dir_entry;
     int            len;
-    DynamicArrChar darr;
-    dynamicArrCharInit(&darr, 255);
 
     if ((dir = opendir(dir_path)) == NULL) {
         return NULL;
@@ -575,29 +573,45 @@ static SourceFiles* moduleSchedulerGetSrcFileList(char* dir_path, int path_len) 
     while ((dir_entry = readdir(dir)) != NULL) {
         len = strlen(dir_entry->d_name);
         if (dir_entry->d_type == DT_REG && moduleSchedulerIsSrcFile(dir_entry->d_name, len) == true) {
-            dynamicArrCharAppend (&darr, dir_path, path_len);
-            dynamicArrCharAppendc(&darr, '/');
-            dynamicArrCharAppend (&darr, dir_entry->d_name, len);
-
             create = (SourceFiles*)mem_alloc(sizeof(SourceFiles));
-            create->file_name = dynamicArrCharGetStr(&darr);
+            create->file_name = dir_entry->d_name;
+            create->name_len  = len;
             create->next      = NULL;
 
             head != NULL ? (tail->next = create) : (head = create);
             tail  = create;
-            dynamicArrCharClear(&darr);
         }
     }
-    dynamicArrCharDestroy(&darr);
     return head;
 }
 
+// TODO: just used for debug, should delete later...
+static void showModule(Module* mod) {
+    printf("mod_name   : %s\r\n", mod->mod_name);
+    printf("mod_path   : %s\r\n", mod->mod_path);
+    printf("depd_parsed: ");
+    mod->depd_parsed == false ? printf("false\r\n") : printf("true\r\n");
+    printf("is_main    : ");
+    mod->is_main == true ? printf("true\r\n") : printf("false\r\n");
+    printf("files      : ");
+    SourceFiles* ptr;
+    for (ptr = mod->srcfiles; ptr != NULL; ptr = ptr->next) {
+        printf("%s ", ptr->file_name);
+    }
+    printf("\r\n\r\n");
+}
+
 error moduleSchedulerInit(ModuleScheduler* scheduler) {
-    scheduler->mod_prepared = NULL;
+    scheduler->cur_mod = NULL;
     moduleSetInit  (&scheduler->mod_set);
     moduleCacheInit(&scheduler->mod_cache);
     src_path_len = strlen(ProjectConfig.path_source);
-/*
+
+    // in the switch the compile object will be added into the ModSet. the compile object
+    // may be a cplus source file, some program directories or a module. because the process
+    // for the source file and the program directories is the some with the modules, so they
+    // will be treated as a module.
+    //
     switch (ProjectConfig.compile_obj_type) {
     case COMPILE_OBJ_TYPE_PROJ: {
             Module*        mod;
@@ -620,11 +634,15 @@ error moduleSchedulerInit(ModuleScheduler* scheduler) {
                     dynamicArrCharAppend (&darr, dir_entry->d_name, len);
 
                     mod = (Module*)mem_alloc(sizeof(Module));
-                    mod->mod_name = dir_entry->d_name;
-                    mod->chk_main = true;
-                    mod->srcfiles = moduleSchedulerGetSrcFileList(dynamicArrCharGetStr(&darr), src_path_len+len+1);
+                    mod->mod_name    = dir_entry->d_name;
+                    mod->mod_path    = dynamicArrCharGetStr(&darr);
+                    mod->path_len    = darr.used;
+                    mod->depd_parsed = false;
+                    mod->is_main     = true;
+                    mod->srcfiles    = moduleSchedulerGetSrcFileList(dynamicArrCharGetStr(&darr), src_path_len+len+1);
 
                     moduleSetAdd(&scheduler->mod_set, mod);
+                    moduleSetGet(&scheduler->mod_set);
                     dynamicArrCharClear(&darr);
                 }
             }
@@ -634,36 +652,49 @@ error moduleSchedulerInit(ModuleScheduler* scheduler) {
         }
 
     case COMPILE_OBJ_TYPE_PROG: {
+            int     len = strlen(ProjectConfig.path_compile_obj);
             Module* mod = (Module*)mem_alloc(sizeof(Module));
-            mod->mod_name = path_last(ProjectConfig.path_compile_obj, strlen(ProjectConfig.path_compile_obj));
-            mod->chk_main = true;
-            mod->srcfiles = moduleSchedulerGetSrcFileList(ProjectConfig.path_compile_obj, strlen(ProjectConfig.path_compile_obj));
+            mod->mod_name    = path_last(ProjectConfig.path_compile_obj, len);
+            mod->mod_path    = ProjectConfig.path_compile_obj;
+            mod->path_len    = len;
+            mod->depd_parsed = false;
+            mod->is_main     = true;
+            mod->srcfiles    = moduleSchedulerGetSrcFileList(ProjectConfig.path_compile_obj, len);
             moduleSetAdd(&scheduler->mod_set, mod);
             return NULL;
         }
 
     case COMPILE_OBJ_TYPE_MOD: {
+            int     len = strlen(ProjectConfig.path_compile_obj);
             Module* mod = (Module*)mem_alloc(sizeof(Module));
-            mod->mod_name = moduleSchedulerGetModNameByPath(ProjectConfig.path_compile_obj);
-            mod->chk_main = false;
-            mod->srcfiles = moduleSchedulerGetSrcFileList(ProjectConfig.path_compile_obj, strlen(ProjectConfig.path_compile_obj));
+            mod->mod_name    = moduleSchedulerGetModNameByPath(ProjectConfig.path_compile_obj);
+            mod->mod_path    = ProjectConfig.path_compile_obj;
+            mod->path_len    = len;
+            mod->depd_parsed = false;
+            mod->is_main     = false;
+            mod->srcfiles    = moduleSchedulerGetSrcFileList(ProjectConfig.path_compile_obj, strlen(ProjectConfig.path_compile_obj));
             moduleSetAdd(&scheduler->mod_set, mod);
             return NULL;
         }
 
     case COMPILE_OBJ_TYPE_SRC: {
+            int     len = strlen(ProjectConfig.path_compile_obj);
             Module* mod = (Module*)mem_alloc(sizeof(Module));
-            mod->mod_name = path_last(ProjectConfig.path_compile_obj, strlen(ProjectConfig.path_compile_obj));
-            mod->chk_main = true;
-            mod->srcfiles = (SourceFiles*)mem_alloc(sizeof(SourceFiles));
-            mod->srcfiles->file_name = ProjectConfig.path_compile_obj;
+            mod->mod_name    = path_last(ProjectConfig.path_compile_obj, len);
+            mod->mod_path    = ProjectConfig.path_source;
+            mod->path_len    = strlen(mod->mod_path);
+            mod->depd_parsed = false;
+            mod->is_main     = true;
+            mod->srcfiles    = (SourceFiles*)mem_alloc(sizeof(SourceFiles));
+            mod->srcfiles->file_name = path_last(ProjectConfig.path_compile_obj, len);
             mod->srcfiles->next      = NULL;
+            moduleSetAdd(&scheduler->mod_set, mod);
             return NULL;
         }
 
     default:
         return new_error("maybe you are not initialize the ProjectConfig.");
-    }*/
+    }
 }
 
 // return true if all modules are compiled over.
@@ -672,11 +703,48 @@ bool moduleSchedulerIsFinish(ModuleScheduler* scheduler) {
     return moduleSetIsEmpty(&scheduler->mod_set);
 }
 
+static char* moduleSchedulerGetOneFileFromMod(Module* module) {
+    char*          path;
+    SourceFiles*   del = module->srcfiles;
+    DynamicArrChar darr;
+    dynamicArrCharInit   (&darr, 255);
+    dynamicArrCharAppend (&darr, module->mod_path, module->path_len);
+    dynamicArrCharAppendc(&darr, '/');
+    dynamicArrCharAppend (&darr, module->srcfiles->file_name, module->srcfiles->name_len);
+    path = dynamicArrCharGetStr(&darr);
+    dynamicArrCharDestroy(&darr);
+    module->srcfiles = module->srcfiles->next;
+    mem_free(del);
+
+    return path;
+}
+
+static char* moduleSchedulerParseDependences(Module* module) {
+    
+}
+
 char* moduleSchedulerGetPreparedFile(ModuleScheduler* scheduler) {
-    char* path = "/home/jikai/c_projects/temp/PersonnelManagement/src/logger.prog";
-    SourceFiles* srcfile = moduleSchedulerGetSrcFileList(path, strlen(path));
-    for (; srcfile != NULL; srcfile = srcfile->next) {
-        printf("%s\r\n", srcfile->file_name);
+    char*          file_prepared;
+    DynamicArrChar darr;
+    dynamicArrCharInit(&darr, 255);
+
+    if (scheduler->cur_mod->srcfiles != NULL) {
+        return moduleSchedulerGetOneFileFromMod(scheduler->cur_mod);
+    }
+    else {
+        moduleSetDel(&scheduler->mod_set);
+        for (;;) {
+            if (moduleSetIsEmpty(&scheduler->mod_set) == true) {
+                return NULL;
+            }
+            scheduler->cur_mod = moduleSetGet(&scheduler->mod_set);
+            if (scheduler->cur_mod->depd_parsed == false) {
+                // TODO: parse dependences...
+            }
+            else {
+                return moduleSchedulerGetOneFileFromMod(scheduler->cur_mod);
+            }
+        }
     }
 }
 

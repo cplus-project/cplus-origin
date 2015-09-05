@@ -26,7 +26,7 @@ int main(int argc, char* argv[]) {
 
     ModuleScheduler modscheduler;
     moduleSchedulerInit(&modscheduler);
-    debug(moduleSchedulerGetPreparedFile(&modscheduler));
+    moduleSchedulerGetPreparedFile(&modscheduler);
     moduleSchedulerDestroy(&modscheduler);
 
     projectConfigDestroy();
