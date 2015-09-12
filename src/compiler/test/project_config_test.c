@@ -21,14 +21,14 @@ void delete_temp_project_dir() {
     system("rm -rf /tmp/cplus_project");
 }
 
-void show_project_config() {
-    printf("compiler path           : %s\r\n", ProjectConfig.path_compiler);
-    printf("standard module path    : %s\r\n", ProjectConfig.path_stdmod);
-    printf("project directory path  : %s\r\n", ProjectConfig.path_project);
-    printf("project source directory: %s\r\n", ProjectConfig.path_source);
-    printf("project binary directory: %s\r\n", ProjectConfig.path_binary);
-    printf("compile target path     : %s\r\n", ProjectConfig.path_compile_obj);
-    switch (ProjectConfig.compile_obj_type) {
+void show_project_config(ProjectConfig* projconf) {
+    printf("compiler path           : %s\r\n", projconf->path_compiler);
+    printf("standard module path    : %s\r\n", projconf->path_stdmod);
+    printf("project directory path  : %s\r\n", projconf->path_project);
+    printf("project source directory: %s\r\n", projconf->path_source);
+    printf("project binary directory: %s\r\n", projconf->path_binary);
+    printf("compile target path     : %s\r\n", projconf->path_compile_obj);
+    switch (projconf->compile_obj_type) {
     case COMPILE_OBJ_TYPE_PROJ:
         printf("compile target type     : project\r\n");
         break;
@@ -49,31 +49,38 @@ void show_project_config() {
 
 int main() {
     create_temp_project_dir();
-    
+
     printf("when the compile target is a source file:\r\n");
-    projectConfigInit("/usr/local/cplus-1.0/bin/cplus", "/tmp/cplus_project/src/test.prog/main.cplus");
-    show_project_config();
-    
+    ProjectConfig projconf_src;
+    projectConfigInit   (&projconf_src, "/usr/local/cplus-1.0/bin/cplus", "/tmp/cplus_project/src/test.prog/main.cplus");
+    show_project_config (&projconf_src);
+    projectConfigDestroy(&projconf_src);
+
     printf("\r\nwhen the compile target is a program directory:\r\n");
-    projectConfigInit("/usr/local/cplus-1.0/bin/cplus", "/tmp/cplus_project/src/test.prog");
-    show_project_config();
-    
+    ProjectConfig projconf_prog;
+    projectConfigInit   (&projconf_prog, "/usr/local/cplus-1.0/bin/cplus", "/tmp/cplus_project/src/test.prog");
+    show_project_config (&projconf_prog);
+    projectConfigDestroy(&projconf_prog);
+
     printf("\r\nwhen the compile target is a module directory:\r\n");
-    projectConfigInit("/usr/local/cplus-1.0/bin/cplus", "/tmp/cplus_project/src/test.mod");
-    show_project_config();
-    
+    ProjectConfig projconf_mod;
+    projectConfigInit   (&projconf_mod, "/usr/local/cplus-1.0/bin/cplus", "/tmp/cplus_project/src/test.mod");
+    show_project_config (&projconf_mod);
+    projectConfigDestroy(&projconf_mod);
+
     printf("\r\nwhen the compile target is a project directory:\r\n");
-    projectConfigInit("/usr/local/cplus-1.0/bin/cplus", "/tmp/cplus_project");
-    show_project_config();
-    
+    ProjectConfig projconf_proj;
+    projectConfigInit   (&projconf_proj, "/usr/local/cplus-1.0/bin/cplus", "/tmp/cplus_project");
+    show_project_config (&projconf_proj);
+    projectConfigDestroy(&projconf_proj);
+
     printf("\r\ntest the bad situation: ");
-    if (projectConfigInit("/usr/local/cplus-1.0/bin/cplus", "/tmp") != NULL) {
-        debug("the path \"/tmp\" not valid cplus project structure.");
+    ProjectConfig projconf_bad;
+    if (projectConfigInit(&projconf_bad, "/usr/local/cplus-1.0/bin/cplus", "/tmp") != NULL) {
+        debug("the path \"/tmp\" is invalid cplus project structure.");
     }
-    
-    projectConfigDestroy();
+
     delete_temp_project_dir();
-    
     debug("\r\ntest over\r\n");
     return 0;
 }

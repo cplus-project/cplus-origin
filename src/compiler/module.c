@@ -6,34 +6,35 @@
 
 #include "module.h"
 
-/****** methods of ModuleSet ******/
+/****** methods of ModuleScheduleQueue ******/
 
-static void moduleSetInit(ModuleSet* modset) {
-    modset->cur  = NULL;
-    modset->head = (ModuleSetNode*)mem_alloc(sizeof(ModuleSetNode));
-    modset->head->mod  = NULL;
-    modset->head->prev = NULL;
-    modset->head->next = NULL;
+void moduleScheduleQueueInit(ModuleScheduleQueue* queue) {
+    queue->cur  = NULL;
+    queue->head = (ModuleScheduleQueueNode*)mem_alloc(sizeof(ModuleScheduleQueueNode));
+    queue->head->mod  = NULL;
+    queue->head->prev = NULL;
+    queue->head->next = NULL;
 }
 
-// return true if the set is empty.
-static bool moduleSetIsEmpty(ModuleSet* modset) {
-    return modset->head->next == NULL ? true : false;
+// return true if the queue is empty.
+//
+bool moduleScheduleQueueIsEmpty(ModuleScheduleQueue* queue) {
+    return queue->head->next == NULL ? true : false;
 }
 
-static void moduleSetAdd(ModuleSet* modset, Module* mod) {
-    ModuleSetNode* create = (ModuleSetNode*)mem_alloc(sizeof(ModuleSetNode));
+void moduleScheduleQueueAddMod(ModuleScheduleQueue* queue, Module* mod) {
+    ModuleScheduleQueueNode* create = (ModuleScheduleQueueNode*)mem_alloc(sizeof(ModuleScheduleQueueNode));
     create->mod = mod;
-    if (modset->head->next != NULL) {
-        create->prev = modset->cur->prev;
-        create->next = modset->cur;
-        modset->cur->prev->next = create;
-        modset->cur->prev = create;
+    if (queue->head->next != NULL) {
+        create->prev = queue->cur->prev;
+        create->next = queue->cur;
+        queue->cur->prev->next = create;
+        queue->cur->prev = create;
     }
     else {
         create->next = NULL;
-        create->prev = modset->head;
-        modset->head->next = create;
+        create->prev = queue->head;
+        queue->head->next = create;
     }
 }
 
@@ -41,35 +42,35 @@ static void moduleSetAdd(ModuleSet* modset, Module* mod) {
 // to the 'cur' position. all new dependency nodes will be inserted into the previous
 // position of the 'cur' position.
 //
-static Module* moduleSetGet(ModuleSet* modset) {
-    modset->cur = modset->head->next;
-    return modset->cur != NULL ? modset->cur->mod : NULL;
+Module* moduleScheduleQueueGetHeadMod(ModuleScheduleQueue* queue) {
+    queue->cur = queue->head->next;
+    return queue->cur != NULL ? queue->cur->mod : NULL;
 }
 
-static void moduleSetDel(ModuleSet* modset) {
-    ModuleSetNode* del = modset->head->next;
+void moduleScheduleQueueDelHeadMod(ModuleScheduleQueue* queue) {
+    ModuleScheduleQueueNode* del = queue->head->next;
     if (del != NULL) {
         if (del->next != NULL) {
-            modset->head->next = del->next;
-            del->next->prev = modset->head;
+            queue->head->next = del->next;
+            del->next->prev = queue->head;
             del->prev = NULL;
             del->next = NULL;
         }
         else {
-            modset->head->next = NULL;
+            queue->head->next = NULL;
             del->prev = NULL;
         }
         mem_free(del);
     }
 }
 
-static void moduleSetDestroy(ModuleSet* modset) {
-    ModuleSetNode* del = NULL;
-    ModuleSetNode* ptr = modset->head;
+void moduleScheduleQueueDestroy(ModuleScheduleQueue* queue) {
+    ModuleScheduleQueueNode* del = NULL;
+    ModuleScheduleQueueNode* ptr = queue->head;
     for (;;) {
         if (ptr == NULL) {
-            modset->head = NULL;
-            modset->cur  = NULL;
+            queue->head = NULL;
+            queue->cur  = NULL;
             return;
         }
         del = ptr;
@@ -82,10 +83,10 @@ static void moduleSetDestroy(ModuleSet* modset) {
     }
 }
 
-/****** methods of ModuleCache ******/
+/****** methods of ModuleInfoDatabase ******/
 
-static void moduleCacheInit(ModuleCache* modcache) {
-    modcache->root = NULL;
+void moduleInfoDatabaseInit(ModuleInfoDatabase* infodb) {
+    infodb->root = NULL;
 }
 
 // firstly compare every character of the two name from index 0:
@@ -97,7 +98,7 @@ static void moduleCacheInit(ModuleCache* modcache) {
 // (2) if the name1's length is shorter, return NODE_CMP_LT.
 // (3) if tow names'  length are equal , return NODE_CMP_EQ.
 //
-static int moduleCacheCmp(char* name1, char* name2) {
+static int moduleInfoDatabaseCmp(char* name1, char* name2) {
     int64 i;
     for (i = 0; ; i++) {
         if (name1[i] < name2[i]) {
@@ -126,9 +127,9 @@ static int moduleCacheCmp(char* name1, char* name2) {
 //     /      \          /    \
 //    b        c        a      b
 //
-static error moduleCacheLeftRotate(ModuleCache* modcache, ModuleCacheNode* node) {
-    if (node == modcache->root) {
-        modcache->root = node->rchild;
+static error moduleInfoDatabaseLeftRotate(ModuleInfoDatabase* infodb, ModuleInfoDatabaseNode* node) {
+    if (node == infodb->root) {
+        infodb->root = node->rchild;
         node->rchild->parent = NULL;
     }
     else {
@@ -153,9 +154,9 @@ static error moduleCacheLeftRotate(ModuleCache* modcache, ModuleCacheNode* node)
 //  /      \                 /    \
 // a        b               b      c
 //
-static error moduleCacheRightRotate(ModuleCache* modcache, ModuleCacheNode* node) {
-    if (node == modcache->root) {
-        modcache->root = node->lchild;
+static error moduleInfoDatabaseRightRotate(ModuleInfoDatabase* infodb, ModuleInfoDatabaseNode* node) {
+    if (node == infodb->root) {
+        infodb->root = node->lchild;
         node->lchild->parent = NULL;
     }
     else {
@@ -175,8 +176,8 @@ static error moduleCacheRightRotate(ModuleCache* modcache, ModuleCacheNode* node
 // fix the balance of the tree and try to keep the properties
 // of the red black tree.
 //
-static void moduleCacheAddFixup(ModuleCache* modcache, ModuleCacheNode* added) {
-    ModuleCacheNode* uncle = NULL;
+static void moduleInfoDatabaseAddFixup(ModuleInfoDatabase* infodb, ModuleInfoDatabaseNode* added) {
+    ModuleInfoDatabaseNode* uncle = NULL;
     for (;;) {
         if (added->parent == NULL || added->parent->parent == NULL)
             break;
@@ -188,11 +189,11 @@ static void moduleCacheAddFixup(ModuleCache* modcache, ModuleCacheNode* added) {
                 if (uncle == NULL || uncle->color == NODE_COLOR_BLACK) {
                     if (added == added->parent->rchild) {
                         added =  added->parent;
-                        moduleCacheLeftRotate(modcache, added);
+                        moduleInfoDatabaseLeftRotate(infodb, added);
                     }
                     added->parent->color         = NODE_COLOR_BLACK;
                     added->parent->parent->color = NODE_COLOR_RED;
-                    moduleCacheRightRotate(modcache, added->parent->parent);
+                    moduleInfoDatabaseRightRotate(infodb, added->parent->parent);
                     break;
                 }
             }
@@ -201,11 +202,11 @@ static void moduleCacheAddFixup(ModuleCache* modcache, ModuleCacheNode* added) {
                 if (uncle == NULL || uncle->color == NODE_COLOR_BLACK) {
                     if (added == added->parent->lchild) {
                         added =  added->parent;
-                        moduleCacheRightRotate(modcache, added);
+                        moduleInfoDatabaseRightRotate(infodb, added);
                     }
                     added->parent->color         = NODE_COLOR_BLACK;
                     added->parent->parent->color = NODE_COLOR_RED;
-                    moduleCacheLeftRotate(modcache, added->parent->parent);
+                    moduleInfoDatabaseLeftRotate(infodb, added->parent->parent);
                     break;
                 }
             }
@@ -220,7 +221,7 @@ static void moduleCacheAddFixup(ModuleCache* modcache, ModuleCacheNode* added) {
             break;
         }
     }
-    modcache->root->color = NODE_COLOR_BLACK;
+    infodb->root->color = NODE_COLOR_BLACK;
 }
 
 // used to verify whether a cache entry is in the cache tree no matter has it been
@@ -230,13 +231,13 @@ static void moduleCacheAddFixup(ModuleCache* modcache, ModuleCacheNode* added) {
 //    true  -> the cache entry is already in the cache tree
 //    false -> the cache entry is not in the cache tree
 //
-static bool moduleCacheExist(ModuleCache* modcache, char* mod_name) {
-    if (modcache->root == NULL) {
+bool moduleInfoDatabaseExist(ModuleInfoDatabase* infodb, char* mod_name) {
+    if (infodb->root == NULL) {
         return false;
     }
-    ModuleCacheNode* ptr = modcache->root;
+    ModuleInfoDatabaseNode* ptr = infodb->root;
     for (;;) {
-        switch (moduleCacheCmp(mod_name, ptr->mod_name)) {
+        switch (moduleInfoDatabaseCmp(mod_name, ptr->mod_info->mod_name)) {
         case NODE_CMP_LT:
             if (ptr->lchild != NULL) {
                 ptr = ptr->lchild;
@@ -257,31 +258,28 @@ static bool moduleCacheExist(ModuleCache* modcache, char* mod_name) {
     }
 }
 
-// just create a new cache entry in the cache tree. the new cache entry's identifier
-// table is set to NULL.
-//
-static error moduleCacheNewCache(ModuleCache* modcache, char* mod_name) {
-    if (mod_name == NULL) {
+error moduleInfoDatabaseAdd(ModuleInfoDatabase* infodb, ModuleInfo* mod_info) {
+    if (mod_info == NULL) {
+        return new_error("the module info can not be NULL.");
+    }
+    if (mod_info->mod_name == NULL) {
         return new_error("the module name can not be NULL.");
     }
-    ModuleCacheNode* create = (ModuleCacheNode*)mem_alloc(sizeof(ModuleCacheNode));
-    create->mod_name   = mod_name;
-    create->cpl_over   = false;
-    create->id_table   = NULL;
-    create->drid_table = NULL;
-    create->color      = NODE_COLOR_RED;
-    create->parent     = NULL;
-    create->lchild     = NULL;
-    create->rchild     = NULL;
-    if (modcache->root != NULL) {
-        ModuleCacheNode* ptr = modcache->root;
+    ModuleInfoDatabaseNode* create = (ModuleInfoDatabaseNode*)mem_alloc(sizeof(ModuleInfoDatabaseNode));
+    create->mod_info  = mod_info;
+    create->color     = NODE_COLOR_RED;
+    create->parent    = NULL;
+    create->lchild    = NULL;
+    create->rchild    = NULL;
+    if (infodb->root != NULL) {
+        ModuleInfoDatabaseNode* ptr = infodb->root;
         for (;;) {
-            switch (moduleCacheCmp(mod_name, ptr->mod_name)) {
+            switch (moduleInfoDatabaseCmp(mod_info->mod_name, ptr->mod_info->mod_name)) {
             case NODE_CMP_LT:
                 if (ptr->lchild == NULL) {
                     ptr->lchild = create;
                     create->parent = ptr;
-                    moduleCacheAddFixup(modcache, create);
+                    moduleInfoDatabaseAddFixup(infodb, create);
                     return NULL;
                 }
                 ptr = ptr->lchild;
@@ -291,76 +289,31 @@ static error moduleCacheNewCache(ModuleCache* modcache, char* mod_name) {
                 if (ptr->rchild == NULL) {
                     ptr->rchild = create;
                     create->parent = ptr;
-                    moduleCacheAddFixup(modcache, create);
+                    moduleInfoDatabaseAddFixup(infodb, create);
                     return NULL;
                 }
                 ptr = ptr->rchild;
                 break;
 
             case NODE_CMP_EQ:
-                return new_error("the module's cache entry has been already in the cache tree.");
+                return new_error("the module information is already in the database.");
             }
         }
     }
     else {
         create->color = NODE_COLOR_BLACK;
-        modcache->root = create;
+        infodb->root = create;
         return NULL;
     }
 }
 
-// when a module is compiled over and its identifier table is exported successfully,
-// the identifier table should be assigned to the associate cache entry in the cache
-// tree.
-//
-static error moduleCacheSetCache(ModuleCache* modcache, char* mod_name, IdentTable* id_table) {
-    if (modcache->root == NULL) {
+ModuleInfo* moduleInfoDatabaseGet(ModuleInfoDatabase* infodb, char* mod_name) {
+    if (infodb->root == NULL) {
         return NULL;
     }
-    if (id_table == NULL) {
-        return new_error("can not set the identifier table to NULL.");
-    }
-    ModuleCacheNode* ptr = modcache->root;
+    ModuleInfoDatabaseNode* ptr = infodb->root;
     for (;;) {
-        switch (moduleCacheCmp(mod_name, ptr->mod_name)) {
-        case NODE_CMP_LT:
-            if (ptr->lchild != NULL) {
-                ptr = ptr->lchild;
-                break;
-            }
-            return new_error("not found the module's cache entry in cache tree.");
-
-        case NODE_CMP_GT:
-            if (ptr->rchild != NULL) {
-                ptr = ptr->rchild;
-                break;
-            }
-            return new_error("not found the module's cache entry in cache tree.");
-
-        case NODE_CMP_EQ:
-            if (id_table != NULL) {
-                ptr->id_table = id_table;
-                return NULL;
-            }
-            return new_error("assign a NULL identifier table to the module cache entry.");
-        }
-    }
-}
-
-// get the module's id table. if the module doesn't have the entry in the cache tree
-// or the module only has an entry but without compiled yet, a NULL will be returned.
-//
-// return:
-//       NULL -> the module is not in the cache tree or the module is not compiled over
-//   NOT NULL -> the module is compiled over
-//
-static IdentTable* moduleCacheGetCache(ModuleCache* modcache, char* mod_name) {
-    if (modcache->root == NULL) {
-        return NULL;
-    }
-    ModuleCacheNode* ptr = modcache->root;
-    for (;;) {
-        switch (moduleCacheCmp(mod_name, ptr->mod_name)) {
+        switch (moduleInfoDatabaseCmp(mod_name, ptr->mod_info->mod_name)) {
         case NODE_CMP_LT:
             if (ptr->lchild != NULL) {
                 ptr = ptr->lchild;
@@ -376,118 +329,40 @@ static IdentTable* moduleCacheGetCache(ModuleCache* modcache, char* mod_name) {
             return NULL;
 
         case NODE_CMP_EQ:
-            return ptr->id_table;
+            return ptr->mod_info;
         }
     }
 }
 
-static void moduleCacheDestroyNode(ModuleCacheNode* node) {
+static void moduleInfoDatabaseDestroyNode(ModuleInfoDatabaseNode* node) {
     if (node != NULL) {
-        if (node->lchild != NULL) moduleCacheDestroyNode(node->lchild);
-        if (node->rchild != NULL) moduleCacheDestroyNode(node->rchild);
-        if (node->id_table != NULL) {
-            identTableDestroy(node->id_table);
+        if (node->lchild != NULL) moduleInfoDatabaseDestroyNode(node->lchild);
+        if (node->rchild != NULL) moduleInfoDatabaseDestroyNode(node->rchild);
+        if (node->mod_info->id_table != NULL) {
+            identTableDestroy(node->mod_info->id_table);
         }
         mem_free(node);
     }
 }
 
-static void moduleCacheDestroy(ModuleCache* modcache) {
-    moduleCacheDestroyNode(modcache->root);
-}
-
-/****** methods of DRModDependList ******/
-
-static void drModDependListInit(DRModDependList* list) {
-    list->head = NULL;
-    list->tail = NULL;
-}
-
-static bool drModDependListIsEmpty(DRModDependList* list) {
-    return list->head == NULL ? true : false;
-}
-
-static void drModDependListAdd(DRModDependList* list, char* mod_name) {
-    DRModDependListNode* create = (DRModDependListNode*)mem_alloc(sizeof(DRModDependListNode));
-    create->mod_name = mod_name;
-    create->next     = NULL;
-    list->head != NULL ? (list->tail->next = create) : (list->head = create);
-    list->tail  = create;
-}
-
-static error drModDependListDel(DRModDependList* list, char* mod_name) {
-    DRModDependListNode* pre = NULL;
-    DRModDependListNode* ptr;
-    for (ptr = list->head; ptr != NULL; ptr = ptr->next) {
-        if (strcmp(ptr->mod_name, mod_name) == 0) {
-            pre != NULL ? (pre->next = ptr->next) : (list->head = ptr->next);
-            mem_free(ptr);
-            return NULL;
-        }
-        pre = ptr;
-    }
-    return new_error("the module wanted to delete not in the Delay Resolve Module Dependences List.");
-}
-
-static void drModDependListDestroy(DRModDependList* list) {
-    DRModDependListNode* del = NULL;
-    for (;;) {
-        if (list->head == NULL) {
-            list->tail  = NULL;
-            return;
-        }
-        del = list->head;
-        list->head = list->head->next;
-        mem_free(del);
-    }
-}
-
-/****** methods of DRModInformList ******/
-
-static void drModInformListInit(DRModInformList* list) {
-    list->head = NULL;
-    list->tail = NULL;
-}
-
-static void drModInformListAdd(DRModInformList* list, char* mod_name) {
-    DRModInformListNode* create = (DRModInformListNode*)mem_alloc(sizeof(DRModInformList));
-    create->mod_name = mod_name;
-    create->next     = NULL;
-    list->head != NULL ? (list->tail->next = create) : (list->head = create);
-    list->tail  = create;
-}
-
-static void drModInformListDestroy(DRModInformList* list) {
-    DRModInformListNode* del = NULL;
-    for (;;) {
-        if (list->head == NULL) {
-            list->tail  = NULL;
-            return;
-        }
-        del = list->head;
-        list->head = list->head->next;
-        mem_free(del);
-    }
+void moduleInfoDatabaseDestroy(ModuleInfoDatabase* infodb) {
+    moduleInfoDatabaseDestroyNode(infodb->root);
 }
 
 /****** methods of ModuleScheduler ******/
-
-// save the length of ProjectConfig.path_source because its often uses.
-//
-static int src_path_len;
-
-// example:
+/*
+ * // example:
 //    if the source path is "/home/user/project/src".
 //    the module name "net/http" will return "/home/user/project/src/net.mod/http.mod".
 //                                                                   ^^^^^^^^^^^^^^^^
 //
-static char* moduleSchedulerGetModPathByName(const char* const mod_name) {
+static char* get_modpath_by_name(const char* const mod_name, ProjectConfig* projconf) {
     char* mod_path;
     int   i;
     int   len = strlen(mod_name);
     DynamicArrChar darr;
     dynamicArrCharInit   (&darr, 255);
-    dynamicArrCharAppend (&darr, ProjectConfig.path_source, src_path_len);
+    dynamicArrCharAppend (&darr, projconf->path_source, projconf->);
     dynamicArrCharAppendc(&darr, '/');
     for (i = 0; i < len; i++) {
         if (mod_name[i] != '/') {
@@ -509,7 +384,7 @@ static char* moduleSchedulerGetModPathByName(const char* const mod_name) {
 //    the path "/home/user/project/src/net.mod/http.mod" will return "net/http".
 //                                     ^^^^^^^^^^^^^^^^
 //
-static char* moduleSchedulerGetModNameByPath(const char* const mod_path) {
+static char* get_modname_by_path(const char* const mod_path) {
     char* mod_name;
     int   i;
     int   len = strlen(mod_path);
@@ -589,23 +464,7 @@ static SourceFiles* moduleSchedulerGetSrcFileList(char* dir_path, int path_len) 
     }
     return head;
 }
-
-// TODO: just used for debug, should delete later...
-static void showModule(Module* mod) {
-    printf("mod_name   : %s\r\n", mod->mod_name);
-    printf("mod_path   : %s\r\n", mod->mod_path);
-    printf("depd_parsed: ");
-    mod->depd_parsed == false ? printf("false\r\n") : printf("true\r\n");
-    printf("is_main    : ");
-    mod->is_main == true ? printf("true\r\n") : printf("false\r\n");
-    printf("files      : ");
-    SourceFiles* ptr;
-    for (ptr = mod->srcfiles; ptr != NULL; ptr = ptr->next) {
-        printf("%s ", ptr->file_name);
-    }
-    printf("\r\n\r\n");
-}
-
+ * 
 error moduleSchedulerInit(ModuleScheduler* scheduler) {
     scheduler->cur_mod = NULL;
     moduleSetInit  (&scheduler->mod_set);
@@ -855,3 +714,4 @@ void moduleSchedulerDestroy(ModuleScheduler* scheduler) {
     moduleSetDestroy  (&scheduler->mod_set);
     moduleCacheDestroy(&scheduler->mod_cache);
 }
+*/

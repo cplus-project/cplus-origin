@@ -45,8 +45,6 @@ typedef struct IdentInclude     IdentInclude;
 typedef struct IdentModule      IdentModule;
 typedef struct IdentTableNode   IdentTableNode;
 typedef struct IdentTable       IdentTable;
-typedef struct DRIdentTableNode DRIdentTableNode;
-typedef struct DRIdentTable     DRIdentTable;
 
 // represent a constant's information. a constant can not be
 // assigned more than once.
@@ -184,35 +182,5 @@ extern void   identTableInit   (IdentTable* id_table);
 extern error  identTableAdd    (IdentTable* id_table, Ident* id);
 extern Ident* identTableSearch (IdentTable* id_table, char*  id_name);
 extern void   identTableDestroy(IdentTable* id_table);
-
-struct DRIdentTableNode {
-    char*             drid_name;
-    DRIdentTableNode* next;
-};
-
-// DRIdentTable(Delay Resolve Identifiers Table) is used to save the
-// identifiers whose declaration is not founded yet but may be founded
-// later.
-//
-// like this situation:
-//    ...
-//    say("hello") // used firstly
-//    ...
-//    func say(String content) { // declare or define later
-//        println(content)
-//    }
-//    ...
-//
-struct DRIdentTable {
-    IdentTable*       id_table;
-    DRIdentTableNode* head;
-    DRIdentTableNode* tail;
-};
-
-extern error drIdentTableInit   (DRIdentTable* drid_table, IdentTable* id_table);
-extern bool  drIdentTableIsEmpty(DRIdentTable* drid_table);
-extern void  drIdentTableAdd    (DRIdentTable* drid_table, char* drid_name);
-extern error drIdentTableResolve(DRIdentTable* drid_table);
-extern void  drIdentTableDestroy(DRIdentTable* drid_table);
 
 #endif

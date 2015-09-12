@@ -2,9 +2,10 @@ obj := cplus
 compiler := gcc
 
 cplus: common.o utf.o lexer.o dynamicarr.o convert.o ident.o scope.o closectr.o \
-	module.o path.o project.o parser.o expression.o ast.o
+	module.o path.o project.o parser.o expression.o ast.o delayresolve.o compiler.o
 	${compiler} ${obj}.c common.o utf.o lexer.o dynamicarr.o convert.o ident.o \
-	scope.o closectr.o module.o path.o project.o parser.o expression.o ast.o -o ${obj}
+	scope.o closectr.o module.o path.o project.o parser.o expression.o ast.o delayresolve.o \
+	compiler.o -o ${obj}
 
 common.o: common.h common.c
 	${compiler} -c common.h common.c
@@ -50,6 +51,9 @@ expression.o: expression.h expression.c
 
 ast.o: ast.h ast.c
 	${compiler} -c ast.h ast.c
+
+delayresolve.o: delayresolve.h delayresolve.c
+	${compiler} -c delayresolve.h delayresolve.c
 
 clean:
 	rm *.o *.gch

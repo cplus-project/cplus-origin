@@ -89,21 +89,22 @@ bool is_cplus_project(char* path, int path_len) {
     return true;
 }
 
-static void set_project_dir(char* path, int path_len) {
-    ProjectConfig.path_project = path;
+static void set_project_dir(ProjectConfig* projconf, char* path, int path_len) {
+    projconf->path_project = path;
     DynamicArrChar darr;
-    dynamicArrCharInit  (&darr, 255);
-    dynamicArrCharAppend(&darr, path, path_len);
-    dynamicArrCharAppend(&darr, "/src", 4);
-    ProjectConfig.path_source = dynamicArrCharGetStr(&darr);
-    dynamicArrCharClear (&darr);
-    dynamicArrCharAppend(&darr, path, path_len);
-    dynamicArrCharAppend(&darr, "/bin", 4);
-    ProjectConfig.path_binary = dynamicArrCharGetStr(&darr);
+    dynamicArrCharInit   (&darr, 255);
+    dynamicArrCharAppend (&darr, path, path_len);
+    dynamicArrCharAppend (&darr, "/src", 4);
+    projconf->path_source     = dynamicArrCharGetStr(&darr);
+    projconf->srcdir_path_len = darr.used;
+    dynamicArrCharClear  (&darr);
+    dynamicArrCharAppend (&darr, path, path_len);
+    dynamicArrCharAppend (&darr, "/bin", 4);
+    projconf->path_binary = dynamicArrCharGetStr(&darr);
     dynamicArrCharDestroy(&darr);
 }
 
-static error find_and_set_project_dir(char* path, int path_len) {
+static error find_and_set_project_dir(ProjectConfig* projconf, char* path, int path_len) {
     // because the compile object like .mod or .prog files must be away from
     // the project directory with at least 2 level. so we get the path's
     // parent path firstly to avoid the situation like:
@@ -114,7 +115,7 @@ static error find_and_set_project_dir(char* path, int path_len) {
     //
     char* path_cur = path_prev(path, path_len);
     int   len      = strlen(path_cur);
-    
+
     char* path_del;
     for (;;) {
         path_del = path_cur;
@@ -125,17 +126,17 @@ static error find_and_set_project_dir(char* path, int path_len) {
         }
         len = strlen(path_cur);
         if (is_cplus_project(path_cur, len) == true) {
-            set_project_dir(path_cur, len);
+            set_project_dir(projconf, path_cur, len);
             return NULL;
         }
     }
 }
 
-error projectConfigInit(char* compiler_path, char* compile_obj_path) {
+error projectConfigInit(ProjectConfig* projconf, char* compiler_path, char* compile_obj_path) {
     if (compiler_path == NULL || compile_obj_path == NULL) {
         return new_error("the parameters can not be NULL.");
     }
-    
+
     char* path;
     int   len = strlen(compile_obj_path);
 
@@ -181,33 +182,34 @@ error projectConfigInit(char* compiler_path, char* compile_obj_path) {
         dynamicArrCharDestroy(&darr);
     }
 
-    ProjectConfig.path_compiler    = compiler_path;
-    ProjectConfig.path_stdmod      = NULL;
-    ProjectConfig.path_project     = NULL;
-    ProjectConfig.path_source      = NULL;
-    ProjectConfig.path_binary      = NULL;
-    ProjectConfig.path_compile_obj = path;
+    projconf->path_compiler    = compiler_path;
+    projconf->path_stdmod      = NULL;
+    projconf->path_project     = NULL;
+    projconf->path_source      = NULL;
+    projconf->path_binary      = NULL;
+    projconf->path_compile_obj = path;
+    projconf->cplobj_path_len  = strlen(path);
 
     if (is_cplus_project(path, len) == true) {
-        ProjectConfig.compile_obj_type = COMPILE_OBJ_TYPE_PROJ;
-        set_project_dir(path, len);
+        projconf->compile_obj_type = COMPILE_OBJ_TYPE_PROJ;
+        set_project_dir(projconf, path, len);
     }
     else if (is_cplus_program(path, len) == true) {
-        ProjectConfig.compile_obj_type = COMPILE_OBJ_TYPE_PROG;
-        if (find_and_set_project_dir(path, len) != NULL) {
+        projconf->compile_obj_type = COMPILE_OBJ_TYPE_PROG;
+        if (find_and_set_project_dir(projconf, path, len) != NULL) {
             return new_error("the .prog file is not in an valid cplus project directory.");
         }
     }
     else if (is_cplus_module(path, len) == true) {
-        ProjectConfig.compile_obj_type = COMPILE_OBJ_TYPE_MOD;
-        if (find_and_set_project_dir(path, len) != NULL) {
+        projconf->compile_obj_type = COMPILE_OBJ_TYPE_MOD;
+        if (find_and_set_project_dir(projconf, path, len) != NULL) {
             return new_error("the .mod file is not in an valid cplus project directory.");
         }
     }
     else if (is_cplus_source(path, len) == true) {
-        ProjectConfig.compile_obj_type = COMPILE_OBJ_TYPE_SRC;
-        ProjectConfig.path_source = path_prev(path, len);
-        ProjectConfig.path_binary = path_prev(path, len);
+        projconf->compile_obj_type = COMPILE_OBJ_TYPE_SRC;
+        projconf->path_source = path_prev(path, len);
+        projconf->path_binary = path_prev(path, len);
     }
     else
         return new_error("invalid compile unit.");
@@ -215,11 +217,11 @@ error projectConfigInit(char* compiler_path, char* compile_obj_path) {
     return NULL;
 }
 
-void projectConfigDestroy() {
-//  mem_free(ProjectConfig.path_compiler);
-//  mem_free(ProjectConfig.path_compile_obj);
-    mem_free(ProjectConfig.path_stdmod);
-//  mem_free(ProjectConfig.path_project);
-//  mem_free(ProjectConfig.path_source);
-//  mem_free(ProjectConfig.path_binary);
+void projectConfigDestroy(ProjectConfig* projconf) {
+//  mem_free(projconf->path_compiler);
+//  mem_free(projconf->path_compile_obj);
+    mem_free(projconf->path_stdmod);
+//  mem_free(projconf->path_project);
+//  mem_free(projconf->path_source);
+//  mem_free(projconf->path_binary);
 }

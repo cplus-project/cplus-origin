@@ -28,12 +28,11 @@ extern bool is_cplus_project(char* path, int path_len);
 #define COMPILE_OBJ_TYPE_MOD  2
 #define COMPILE_OBJ_TYPE_SRC  3
 
-// you can use the ProjectConfig just like a global static class.
+// The ProjectConfig is used to save some information about the project.
 //
-// note:
-//    the ProjectConfig should be the unique global variable.
-//
-struct {
+typedef struct {
+    int8  compile_obj_type; // one of the file types in .cplus/.prog/.mod/project
+
     char* path_compiler;    // the path of the cplus compiler program.
     char* path_stdmod;      // the path of the standard modules.
     char* path_project;     // the path of the current building project's directory.
@@ -41,10 +40,12 @@ struct {
     char* path_source;      // the path of the current building project's source files.
     char* path_compile_obj; // the path of the compile object(which is passed to the compiler as a parameter)
 
-    int8  compile_obj_type; // one of the file types in .cplus/.prog/.mod/project
+    int   stdmod_path_len;  // the length of path_stdmod
+    int   srcdir_path_len;  // the length of path_source
+    int   cplobj_path_len;  // the length of path_compile_obj
 }ProjectConfig;
 
-extern error projectConfigInit   (char* compiler_path, char* compile_obj_path);
-extern void  projectConfigDestroy();
+extern error projectConfigInit   (ProjectConfig* projconf, char* compiler_path, char* compile_obj_path);
+extern void  projectConfigDestroy(ProjectConfig* projconf);
 
 #endif

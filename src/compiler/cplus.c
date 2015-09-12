@@ -9,6 +9,7 @@
 
 #include <string.h>
 #include "common.h"
+#include "compiler.h"
 #include "project.h"
 #include "parser.h"
 
@@ -16,20 +17,15 @@
 //   build    build the specific C+ project
 //   run      build and run the specific C+ project
 //   test     test the specific C+ file or project
+//   format   adjust the indent of the program
 //   help     display the manual
+//
 int main(int argc, char* argv[]) {
-    error err = projectConfigInit(argv[0], "/home/jikai/c_projects/temp/PersonnelManagement");
-    if (err != NULL) {
-        printf("%s\r\n", err);
-        exit(EXIT_FAILURE);
-    }
-
-    ModuleScheduler modscheduler;
-    moduleSchedulerInit(&modscheduler);
-    moduleSchedulerGetPreparedFile(&modscheduler);
-    moduleSchedulerDestroy(&modscheduler);
-
-    projectConfigDestroy();
+    ProjectConfig projconf;
+    projectConfigInit(&projconf, argv[0], argv[1]);
+    
+    
+    projectConfigDestroy(&projconf);
     return 0;
 }
 
