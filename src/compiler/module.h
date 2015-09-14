@@ -29,7 +29,7 @@ typedef struct ModuleInfoDatabase      ModuleInfoDatabase;
 //
 struct SourceFile {
     char*       file_name;
-    int         name_len;
+    int         file_name_len;
     SourceFile* next;
 };
 
