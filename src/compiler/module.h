@@ -40,7 +40,15 @@ struct Module {
     bool        is_main;
     bool        dependences_parsed;
     SourceFile* srcfiles;
+    SourceFile* iterator;
 };
+
+extern error moduleInitByName    (Module* mod, char* mod_name, int mod_name_len, ProjectConfig* projconf);
+extern error moduleInitByPath    (Module* mod, char* mod_path, int mod_path_len, ProjectConfig* projconf);
+extern char* moduleGetNextSrcFile(Module* mod);
+extern void  moduleRewind        (Module* mod);
+extern void  moduleDisplayDetails(Module* mod);
+extern void  moduleDestroy       (Module* mod);
 
 struct ModuleScheduleQueueNode {
     Module*                  mod;
@@ -69,7 +77,6 @@ struct ModuleScheduleQueueNode {
 // the queue.
 //
 struct ModuleScheduleQueue {
-    ProjectConfig*           projconf;
     ModuleScheduleQueueNode* head;
     ModuleScheduleQueueNode* cur;
 };

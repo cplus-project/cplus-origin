@@ -14,16 +14,26 @@
 #include "parser.h"
 
 // command:
-//   build    build the specific C+ project
-//   run      build and run the specific C+ project
-//   test     test the specific C+ file or project
+//   build    build the specific cplus project
+//   run      build and run the specific cplus project
+//   test     test the specific cplus file or project
 //   format   adjust the indent of the program
 //   help     display the manual
 //
 int main(int argc, char* argv[]) {
+    error err;
     ProjectConfig projconf;
-    projectConfigInit(&projconf, argv[0], argv[1]);
-    
+    err = projectConfigInit(&projconf, argv[0], "/home/jikai/c_projects/test/CplusProject");
+    if (err != NULL) {
+        debug(err);
+    }
+    Compiler compiler;
+    err = compilerInit(&compiler, &projconf);
+    if (err != NULL) {
+        debug(err);
+    }
+    compilerBuild  (&compiler);
+    compilerDestroy(&compiler);
     
     projectConfigDestroy(&projconf);
     return 0;

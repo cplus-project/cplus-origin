@@ -6,6 +6,238 @@
 
 #include "module.h"
 
+/****** methods of Module ******/
+
+// example:
+//    if the source path is "/home/user/project/src".
+//    the module name "net/http" will return "/home/user/project/src/net.mod/http.mod".
+//                                                                   ^^^^^^^^^^^^^^^^
+static char* moduleGetModPathByName(const char* const mod_name, int mod_name_len, ProjectConfig* projconf) {
+    char* mod_path;
+    int   i;
+    DynamicArrChar darr;
+    dynamicArrCharInit   (&darr, 255);
+    dynamicArrCharAppend (&darr, projconf->path_source, projconf->srcdir_path_len);
+    dynamicArrCharAppendc(&darr, '/');
+    for (i = 0; i < mod_name_len; i++) {
+        if (mod_name[i] != '/') {
+            dynamicArrCharAppendc(&darr, mod_name[i]);
+        }
+        else {
+            dynamicArrCharAppend (&darr, ".mod", 4);
+            dynamicArrCharAppendc(&darr, '/');
+        }
+    }
+    dynamicArrCharAppend (&darr, ".mod", 4);
+    mod_path = dynamicArrCharGetStr(&darr);
+    dynamicArrCharDestroy(&darr);
+    return mod_path;
+}
+
+// example:
+//    if the source path is "/home/user/project/src".
+//    the path "/home/user/project/src/net.mod/http.mod" will return "net/http".
+//                                     ^^^^^^^^^^^^^^^^
+static char* moduleGetModNameByPath(const char* const mod_path, int mod_path_len, ProjectConfig* projconf) {
+    char* mod_name;
+    int   i;
+    DynamicArrChar darr;
+    dynamicArrCharInit(&darr, 255);
+    for (i = projconf->srcdir_path_len+1; i < mod_path_len;) {
+        if (mod_path[i]   == '.' &&
+            mod_path[i+1] == 'm' &&
+            mod_path[i+2] == 'o' &&
+            mod_path[i+3] == 'd' ){
+            i += 4;
+        } else {
+            dynamicArrCharAppendc(&darr, mod_path[i]);
+            i++;
+        }
+    }
+    mod_name = dynamicArrCharGetStr(&darr);
+    dynamicArrCharDestroy(&darr);
+    return mod_name;
+}
+
+// check whether a directory is the program directory(which is suffixed with '.prog'). this
+// function is more efficient than using the is_cplus_program(defined in project.h and
+// project.c) here.
+//
+static bool moduleIsProgDir(char* dir_name, int len) {
+    if (len > 5 &&
+        dir_name[len-5] == '.' &&
+        dir_name[len-4] == 'p' &&
+        dir_name[len-3] == 'r' &&
+        dir_name[len-2] == 'o' &&
+        dir_name[len-1] == 'g' ){
+        return true;
+    }
+    return false;
+}
+
+// check whether a file is the cplus source file(which is suffixed with '.cplus'). this
+// function is more efficient than using the is_cplus_source(defined in project.h and
+// project.c) here.
+//
+static bool moduleIsSrcFile(char* file_name, int len) {
+    if (len > 6 &&
+        file_name[len-6] == '.' &&
+        file_name[len-5] == 'c' &&
+        file_name[len-4] == 'p' &&
+        file_name[len-3] == 'l' &&
+        file_name[len-2] == 'u' &&
+        file_name[len-1] == 's' ){
+        return true;
+    }
+    return false;
+}
+
+static SourceFile* moduleGetSrcFileList(char* dir_path, int path_len) {
+    SourceFile*    head = NULL;
+    SourceFile*    tail = NULL;
+    SourceFile*    create;
+    DIR*           dir;
+    struct dirent* dir_entry;
+    int            len;
+
+    if ((dir = opendir(dir_path)) == NULL) {
+        return NULL;
+    }
+    while ((dir_entry = readdir(dir)) != NULL) {
+        len = strlen(dir_entry->d_name);
+        if (dir_entry->d_type == DT_REG && moduleIsSrcFile(dir_entry->d_name, len) == true) {
+            // warning:
+            //    care about the dir_entry->d_name, it may cause the wild pointer. if it happened,
+            //    just copy every dir_entry->d_name to the create->file_name with a new memory.
+            //
+            create = (SourceFile*)mem_alloc(sizeof(SourceFile));
+            create->file_name     = dir_entry->d_name;
+            create->file_name_len = len;
+            create->next          = NULL;
+
+            head != NULL ? (tail->next = create) : (head = create);
+            tail  = create;
+        }
+    }
+    closedir(dir);
+    return head;
+}
+
+error moduleInitByName(Module* mod, char* mod_name, int mod_name_len, ProjectConfig* projconf) {
+    mod->mod_info = (ModuleInfo*)mem_alloc(sizeof(ModuleInfo));
+    mod->mod_info->mod_name     = mod_name;
+    mod->mod_info->compile_over = false;
+    mod->mod_info->id_table     = NULL;
+    mod->mod_path               = moduleGetModPathByName(mod_name, mod_name_len, projconf);
+    mod->mod_path_len           = strlen(mod->mod_path);
+    mod->is_main                = false;
+    mod->dependences_parsed     = false;
+    mod->srcfiles               = moduleGetSrcFileList(mod->mod_path, mod->mod_path_len);
+
+    return NULL;
+}
+
+error moduleInitByPath(Module* mod, char* mod_path, int mod_path_len, ProjectConfig* projconf) {
+    if (is_cplus_program(mod_path, mod_path_len) == true) {
+        mod->mod_info                = (ModuleInfo*)mem_alloc(sizeof(ModuleInfo));
+        mod->mod_info->mod_name      = path_last(mod_path, mod_path_len);
+        mod->mod_info->compile_over  = false;
+        mod->mod_info->id_table      = NULL;
+        mod->mod_path                = mod_path;
+        mod->mod_path_len            = mod_path_len;
+        mod->is_main                 = true;
+        mod->dependences_parsed      = false;
+        mod->srcfiles                = moduleGetSrcFileList(mod_path, mod_path_len);
+    }
+    else if (is_cplus_module(mod_path, mod_path_len) == true) {
+        mod->mod_info                = (ModuleInfo*)mem_alloc(sizeof(ModuleInfo));
+        mod->mod_info->mod_name      = moduleGetModNameByPath(mod_path, mod_path_len, projconf);
+        mod->mod_info->compile_over  = false;
+        mod->mod_info->id_table      = NULL;
+        mod->mod_path                = mod_path;
+        mod->mod_path_len            = mod_path_len;
+        mod->is_main                 = false;
+        mod->dependences_parsed      = false;
+        mod->srcfiles                = moduleGetSrcFileList(mod_path, mod_path_len);
+    }
+    else if (is_cplus_source(mod_path, mod_path_len) == true) {
+        mod->mod_info                = (ModuleInfo*)mem_alloc(sizeof(ModuleInfo));
+        mod->mod_info->mod_name      = path_last(mod_path, mod_path_len);
+        mod->mod_info->compile_over  = false;
+        mod->mod_info->id_table      = NULL;
+        mod->mod_path                = path_prev(mod_path, mod_path_len);
+        mod->mod_path_len            = mod_path_len;
+        mod->is_main                 = true;
+        mod->dependences_parsed      = false;
+        mod->srcfiles                = (SourceFile*)mem_alloc(sizeof(ModuleInfo));
+        mod->srcfiles->file_name     = mod->mod_info->mod_name;
+        mod->srcfiles->file_name_len = strlen(mod->srcfiles->file_name);
+        mod->srcfiles->next          = NULL;
+    }
+    else {
+        return new_error("invalid module path.");
+    }
+
+    return NULL;
+}
+
+char* moduleGetNextSrcFile(Module* mod) {
+    if (mod->srcfiles == NULL) {
+        return NULL;
+    }
+    char*          file;
+    DynamicArrChar darr;
+    dynamicArrCharInit   (&darr, 255);
+    dynamicArrCharAppend (&darr, mod->mod_path, mod->mod_path_len);
+    dynamicArrCharAppendc(&darr, '/');
+    dynamicArrCharAppend (&darr, mod->srcfiles->file_name, mod->srcfiles->file_name_len);
+    file = dynamicArrCharGetStr(&darr);
+    dynamicArrCharDestroy(&darr);
+
+    mod->srcfiles = mod->srcfiles->next;
+    return file;
+}
+
+void moduleRewind(Module* mod) {
+    mod->iterator = mod->srcfiles;
+}
+
+void moduleDisplayDetails(Module* mod) {
+    printf("[MODULE INFORMATION]\r\n");
+    printf("\tmodule name: %s\r\n", mod->mod_info->mod_name);
+    printf("\tmodule path: %s\r\n", mod->mod_path);
+    printf("\tis main mod: ");
+    mod->is_main == true ? printf("yes\r\n") : printf("no\r\n");
+    printf("\tdependences: ");
+    mod->dependences_parsed == true ? printf("parsed\r\n") : printf("not parsed\r\n");
+    printf("\tsource file: ");
+    SourceFile* ptr;
+    for (ptr = mod->srcfiles; ptr != NULL; ptr = ptr->next) {
+        ptr == mod->srcfiles?
+        printf("%s\r\n", ptr->file_name):
+        printf("\t\t    %s\r\n", ptr->file_name);
+    }
+}
+
+void moduleDestroy(Module* mod) {
+    mem_free(mod->mod_info->mod_name);
+    if (mod->mod_info->id_table != NULL) {
+        identTableDestroy(mod->mod_info->id_table);
+    }
+    mem_free(mod->mod_info);
+//  mem_free(mod->mod_path);
+    SourceFile* del;
+    for (;;) {
+        if (mod->srcfiles == NULL) {
+            return;
+        }
+        del = mod->srcfiles;
+        mod->srcfiles = mod->srcfiles->next;
+//      mem_free(del->file_name);
+        mem_free(del);
+    }
+}
+
 /****** methods of ModuleScheduleQueue ******/
 
 void moduleScheduleQueueInit(ModuleScheduleQueue* queue) {
@@ -41,6 +273,16 @@ void moduleScheduleQueueAddMod(ModuleScheduleQueue* queue, Module* mod) {
 // return the module which is prepared to be compiled and set the corresponding node
 // to the 'cur' position. all new dependency nodes will be inserted into the previous
 // position of the 'cur' position.
+//
+// example:
+//    now state:
+//       [m1.mod m2.mod m3.mod m4.mod]
+//                        ^
+//                       cur
+//    ater call GetHeadMod:
+//       [m1.mod m2.mod m3.mod m4.mod]
+//          ^
+//         cur
 //
 Module* moduleScheduleQueueGetHeadMod(ModuleScheduleQueue* queue) {
     queue->cur = queue->head->next;
@@ -351,119 +593,8 @@ void moduleInfoDatabaseDestroy(ModuleInfoDatabase* infodb) {
 
 /****** methods of ModuleScheduler ******/
 /*
- * // example:
-//    if the source path is "/home/user/project/src".
-//    the module name "net/http" will return "/home/user/project/src/net.mod/http.mod".
-//                                                                   ^^^^^^^^^^^^^^^^
-//
-static char* get_modpath_by_name(const char* const mod_name, ProjectConfig* projconf) {
-    char* mod_path;
-    int   i;
-    int   len = strlen(mod_name);
-    DynamicArrChar darr;
-    dynamicArrCharInit   (&darr, 255);
-    dynamicArrCharAppend (&darr, projconf->path_source, projconf->);
-    dynamicArrCharAppendc(&darr, '/');
-    for (i = 0; i < len; i++) {
-        if (mod_name[i] != '/') {
-            dynamicArrCharAppendc(&darr, mod_name[i]);
-        }
-        else {
-            dynamicArrCharAppend (&darr, ".mod", 4);
-            dynamicArrCharAppendc(&darr, '/');
-        }
-    }
-    dynamicArrCharAppend (&darr, ".mod", 4);
-    mod_path = dynamicArrCharGetStr(&darr);
-    dynamicArrCharDestroy(&darr);
-    return mod_path;
-}
 
-// example:
-//    if the source path is "/home/user/project/src".
-//    the path "/home/user/project/src/net.mod/http.mod" will return "net/http".
-//                                     ^^^^^^^^^^^^^^^^
-//
-static char* get_modname_by_path(const char* const mod_path) {
-    char* mod_name;
-    int   i;
-    int   len = strlen(mod_path);
-    DynamicArrChar darr;
-    dynamicArrCharInit(&darr, 255);
-    for (i = src_path_len+1; i < len;) {
-        if (mod_path[i]   == '.' &&
-            mod_path[i+1] == 'm' &&
-            mod_path[i+2] == 'o' &&
-            mod_path[i+3] == 'd' ){
-            i += 4;
-        } else {
-            dynamicArrCharAppendc(&darr, mod_path[i]);
-            i++;
-        }
-    }
-    mod_name = dynamicArrCharGetStr(&darr);
-    dynamicArrCharDestroy(&darr);
-    return mod_name;
-}
 
-// check whether a directory is the program directory(which is suffixed with '.prog'). this
-// function is more efficient than using the is_cplus_program(defined in project.h and
-// project.c) here.
-//
-static bool moduleSchedulerIsProgDir(char* dir_name, int len) {
-    if (len > 5 &&
-        dir_name[len-5] == '.' &&
-        dir_name[len-4] == 'p' &&
-        dir_name[len-3] == 'r' &&
-        dir_name[len-2] == 'o' &&
-        dir_name[len-1] == 'g' ){
-        return true;
-    }
-    return false;
-}
-
-// check whether a file is the cplus source file(which is suffixed with '.cplus'). this
-// function is more efficient than using the is_cplus_source(defined in project.h and
-// project.c) here.
-//
-static bool moduleSchedulerIsSrcFile(char* file_name, int len) {
-    if (len > 6 &&
-        file_name[len-6] == '.' &&
-        file_name[len-5] == 'c' &&
-        file_name[len-4] == 'p' &&
-        file_name[len-3] == 'l' &&
-        file_name[len-2] == 'u' &&
-        file_name[len-1] == 's' ){
-        return true;
-    }
-    return false;
-}
-
-static SourceFiles* moduleSchedulerGetSrcFileList(char* dir_path, int path_len) {
-    SourceFiles*   head = NULL;
-    SourceFiles*   tail = NULL;
-    SourceFiles*   create;
-    DIR*           dir;
-    struct dirent* dir_entry;
-    int            len;
-
-    if ((dir = opendir(dir_path)) == NULL) {
-        return NULL;
-    }
-    while ((dir_entry = readdir(dir)) != NULL) {
-        len = strlen(dir_entry->d_name);
-        if (dir_entry->d_type == DT_REG && moduleSchedulerIsSrcFile(dir_entry->d_name, len) == true) {
-            create = (SourceFiles*)mem_alloc(sizeof(SourceFiles));
-            create->file_name = dir_entry->d_name;
-            create->name_len  = len;
-            create->next      = NULL;
-
-            head != NULL ? (tail->next = create) : (head = create);
-            tail  = create;
-        }
-    }
-    return head;
-}
  * 
 
 // return true if all modules are compiled over.
