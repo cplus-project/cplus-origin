@@ -16,9 +16,8 @@
 #include "module.h"
 
 typedef struct {
-    ProjectConfig*      projconf;
-    ModuleScheduleQueue mod_schd_queue;
-    ModuleInfoDatabase  mod_info_db;
+    ProjectConfig*  project_config;
+    ModuleScheduler mod_scheduler;
 }Compiler;
 
 extern error compilerInit   (Compiler* compiler, ProjectConfig* projconf);

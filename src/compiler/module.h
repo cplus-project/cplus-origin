@@ -24,6 +24,7 @@ typedef struct ModuleScheduleQueue     ModuleScheduleQueue;
 typedef struct ModuleInfo              ModuleInfo;
 typedef struct ModuleInfoDatabaseNode  ModuleInfoDatabaseNode;
 typedef struct ModuleInfoDatabase      ModuleInfoDatabase;
+typedef struct ModuleScheduler         ModuleScheduler;
 
 // represent a source file in one module or program directory.
 //
@@ -43,12 +44,14 @@ struct Module {
     SourceFile* iterator;
 };
 
-extern error moduleInitByName    (Module* mod, char* mod_name, int mod_name_len, ProjectConfig* projconf);
-extern error moduleInitByPath    (Module* mod, char* mod_path, int mod_path_len, ProjectConfig* projconf);
+// note： the Module's memory will be allocated and released automatically by ModuleScheduler. so
+//        you will never have necessity to call moduleInitXXXX and moduleDestroy.
+//
+static void  moduleInitByName    (Module* mod, char* mod_name, int mod_name_len, ProjectConfig* projconf);
+static void  moduleInitByPath    (Module* mod, char* mod_path, int mod_path_len, ProjectConfig* projconf);
 extern char* moduleGetNextSrcFile(Module* mod);
 extern void  moduleRewind        (Module* mod);
-extern void  moduleDisplayDetails(Module* mod);
-extern void  moduleDestroy       (Module* mod);
+static void  moduleDestroy       (Module* mod);
 
 struct ModuleScheduleQueueNode {
     Module*                  mod;
@@ -81,12 +84,12 @@ struct ModuleScheduleQueue {
     ModuleScheduleQueueNode* cur;
 };
 
-extern void    moduleScheduleQueueInit      (ModuleScheduleQueue* queue);
-extern bool    moduleScheduleQueueIsEmpty   (ModuleScheduleQueue* queue);
-extern void    moduleScheduleQueueAddMod    (ModuleScheduleQueue* queue, Module* mod);
-extern Module* moduleScheduleQueueGetHeadMod(ModuleScheduleQueue* queue);
-extern void    moduleScheduleQueueDelHeadMod(ModuleScheduleQueue* queue);
-extern void    moduleScheduleQueueDestroy   (ModuleScheduleQueue* queue);
+static void    moduleScheduleQueueInit      (ModuleScheduleQueue* queue);
+static bool    moduleScheduleQueueIsEmpty   (ModuleScheduleQueue* queue);
+static void    moduleScheduleQueueAddMod    (ModuleScheduleQueue* queue, Module* mod);
+static Module* moduleScheduleQueueGetHeadMod(ModuleScheduleQueue* queue);
+static void    moduleScheduleQueueDelHeadMod(ModuleScheduleQueue* queue);
+static void    moduleScheduleQueueDestroy   (ModuleScheduleQueue* queue);
 
 #define NODE_COLOR_RED   0x00
 #define NODE_COLOR_BLACK 0x01
@@ -117,23 +120,29 @@ struct ModuleInfoDatabase {
     ModuleInfoDatabaseNode* root;
 };
 
-extern void        moduleInfoDatabaseInit   (ModuleInfoDatabase* infodb);
-extern bool        moduleInfoDatabaseExist  (ModuleInfoDatabase* infodb, char*       mod_name);
-extern error       moduleInfoDatabaseAdd    (ModuleInfoDatabase* infodb, ModuleInfo* mod_info);
-extern ModuleInfo* moduleInfoDatabaseGet    (ModuleInfoDatabase* infodb, char*       mod_name);
-extern void        moduleInfoDatabaseDestroy(ModuleInfoDatabase* infodb);
+static void        moduleInfoDatabaseInit   (ModuleInfoDatabase* infodb);
+static bool        moduleInfoDatabaseExist  (ModuleInfoDatabase* infodb, char*       mod_name);
+static error       moduleInfoDatabaseAdd    (ModuleInfoDatabase* infodb, ModuleInfo* mod_info);
+static ModuleInfo* moduleInfoDatabaseGet    (ModuleInfoDatabase* infodb, char*       mod_name);
+static void        moduleInfoDatabaseDestroy(ModuleInfoDatabase* infodb);
 
-//////////////////////////////////////
-/*
+// ModuleScheduler can manage all modules needed by a cplus project. it will analyze these
+// modules' relation and parse their dependences. it will always return a module which
+// need fewest other modules of the current state.
+//
+// example:
+//    TODO: make the doc here...
+//
 struct ModuleScheduler {
-    Module*      cur_mod;
-    ModuleSet    mod_set;
-    ModuleCache  mod_cache;
+    ProjectConfig*      projconf;
+    Module*             mod_cur;
+    ModuleScheduleQueue mod_schd_queue;
+    ModuleInfoDatabase  mod_info_db;
 };
 
-extern error moduleSchedulerInit           (ModuleScheduler* scheduler);
-extern bool  moduleSchedulerIsFinish       (ModuleScheduler* scheduler);
-extern char* moduleSchedulerGetPreparedFile(ModuleScheduler* scheduler);
-extern void  moduleSchedulerDestroy        (ModuleScheduler* scheduler);*/
+extern error   moduleSchedulerInit             (ModuleScheduler* modschdr, ProjectConfig* const projconf);
+extern bool    moduleSchedulerIsFinish         (ModuleScheduler* modschdr);
+extern Module* moduleSchedulerGetPreparedModule(ModuleScheduler* modschdr);
+extern void    moduleSchedulerDestroy          (ModuleScheduler* modschdr);
 
 #endif

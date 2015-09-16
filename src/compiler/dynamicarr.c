@@ -30,8 +30,9 @@ error dynamicArrCharInit(DynamicArrChar* darr, int64 capacity) {
 }
 
 void dynamicArrCharAppend(DynamicArrChar* darr, char* str, int64 len) {
-    int64 j = 0;
+    int64 j    = 0;
     int64 need = darr->used + len;
+
     if (need <= darr->total_cap) {
         for (j = 0; j < len; j++) {
             darr->cur->arr[darr->cur->i] = str[j];
@@ -40,37 +41,35 @@ void dynamicArrCharAppend(DynamicArrChar* darr, char* str, int64 len) {
         }
     }
     else {
-        // if the total size of now used space of dynamic char array and
-        // the append string is more than darr->total_size. then extend
-        // the total capacity of the dynamic array. we create a new buffer
-        // with twice size of current total capacity every time until it
-        // can contain the requirement size of the string.
+        int cur_left_cap = darr->total_cap - darr->used;
+        int new_node_cap = darr->total_cap;
+        
+        // like most of the dynamic array, when the capacity needed is more than the space
+        // left of the current array, a new node will be created and its size will be expanded
+        // as twice of its current size(its size is equal to the array's total capacity
+        // at first) every time.
         //
-        DynamicArrCharNode* _cur = darr->cur;
-        for(;;) {
-            if (darr->total_cap < need) {
-                _cur->next = mem_alloc(sizeof(DynamicArrCharNode));
-                _cur->next->cap  = darr->total_cap;
-                _cur->next->i    = 0;
-                _cur->next->arr  = (char*)mem_alloc(sizeof(char) * darr->total_cap);
-                _cur->next->next = NULL;
-                _cur = _cur->next;
-                darr->total_cap *= 2;
-            }
-            else {
-                for (j = 0; j < len;) {
-                    if (darr->cur->i < darr->cur->cap) {
-                        darr->cur->arr[darr->cur->i] = str[j];
-                        darr->cur->i++;
-                        darr->used++;
-                        j++;
-                    }
-                    else {
-                        darr->cur = darr->cur->next;
-                    }
-                }
-                return;
-            }
+        while (new_node_cap + darr->total_cap < need) {
+            new_node_cap *= 2;
+        }
+
+        darr->cur->next = (DynamicArrCharNode*)mem_alloc(sizeof(DynamicArrCharNode));
+        darr->cur->next->cap  = new_node_cap;
+        darr->cur->next->i    = 0;
+        darr->cur->next->arr  = (char*)mem_alloc(sizeof(char) * new_node_cap);
+        darr->cur->next->next = NULL;
+        darr->total_cap += new_node_cap;
+
+        for (j = 0; j < cur_left_cap; j++) {
+            darr->cur->arr[darr->cur->i] = str[j];
+            darr->cur->i++;
+            darr->used++;
+        }
+        darr->cur = darr->cur->next;
+        for (; j < len; j++) {
+            darr->cur->arr[darr->cur->i] = str[j];
+            darr->cur->i++;
+            darr->used++;
         }
     }
 }
@@ -88,6 +87,52 @@ void dynamicArrCharAppendc(DynamicArrChar* darr, char ch) {
     darr->cur->arr[darr->cur->i] = ch;
     darr->cur->i++;
     darr->used++;
+}
+
+void dynamicArrCharAppendDarr(DynamicArrChar* darr, DynamicArrChar* darr_src) {
+    int64               j    = 0;
+    int64               need = darr->used + darr_src->used;
+    DynamicArrCharNode* node = NULL;
+
+    if (need <= darr->total_cap) {
+        for (node = darr_src->first; node != NULL; node = node->next) {
+            for (j = 0; j < node->i; j++) {
+                darr->cur->arr[darr->cur->i] = node->arr[j];
+                darr->cur->i++;
+                darr->used++;
+            }
+        }
+    }
+    else {
+        int new_node_cap = darr->total_cap;
+
+        // like most of the dynamic array, when the capacity needed is more than the space
+        // left of the current array, a new node will be created and its size will be expanded
+        // as twice of its current size(its size is equal to the array's total capacity
+        // at first) every time.
+        //
+        while (new_node_cap + darr->total_cap < need) {
+            new_node_cap *= 2;
+        }
+
+        darr->cur->next = (DynamicArrCharNode*)mem_alloc(sizeof(DynamicArrCharNode));
+        darr->cur->next->cap  = new_node_cap;
+        darr->cur->next->i    = 0;
+        darr->cur->next->arr  = (char*)mem_alloc(sizeof(char) * new_node_cap);
+        darr->cur->next->next = NULL;
+        darr->total_cap += new_node_cap;
+
+        for (node = darr_src->first; node != NULL; node = node->next) {
+            for (j = 0; j < node->i; j++) {
+                darr->cur->arr[darr->cur->i] = node->arr[j];
+                darr->cur->i++;
+                darr->used++;
+                if (darr->cur->i >= darr->cur->cap) {
+                    darr->cur = darr->cur->next;
+                }
+            }
+        }
+    }
 }
 
 // return true if the given string is equal to the content
