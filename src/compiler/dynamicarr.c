@@ -14,11 +14,11 @@ error dynamicArrCharInit(DynamicArrChar* darr, int64 capacity) {
     darr->total_cap = capacity;
     darr->used      = 0;
 
-    // the darr->first is the first buffer of the dynamic char
-    // array. this buffer's capacity is the same as the parameter
-    // passed as 'capacity'. if requirement of size is bigger
-    // than the darr->total_cap, then a new buffer will created
-    // and be linked with the darr->next pointer.
+    // the darr->first is the first buffer of the dynamic char array. this buffer's
+    // capacity is the same as the parameter passed as 'capacity'. if requirement of
+    // size is bigger than the darr->total_cap, then a new buffer will created and
+    // be linked with the darr->next pointer.
+    //
     darr->first       = (DynamicArrCharNode*)mem_alloc(sizeof(DynamicArrCharNode));
     darr->first->cap  = capacity;
     darr->first->i    = 0;
@@ -167,75 +167,61 @@ bool dynamicArrCharEqual(DynamicArrChar* darr, char* str, int64 len) {
 //
 char* dynamicArrCharGetStr(DynamicArrChar* darr) {
     int64 i;
-    int64 j   = 0;
-    int64 len = darr->used;
+    int64 j = 0;
     // alloc an extra byte to add an '\0'. because when the string is using
     // outside the dynamic array, it will be used to do some operation like
     // strcmp or strcpy, and they all think the '\0' is the end of a string.
     //
-    char* str = (char*)mem_alloc(sizeof(char)*len + 1);
-    DynamicArrCharNode* ptr = darr->first;
-    for (i = 0; i < len;) {
-        if (j < ptr->cap) {
-            str[i] = ptr->arr[j];
-            j++; i++;
-        }
-        else {
-            ptr = ptr->next;
-            j = 0;
+    char* str = (char*)mem_alloc((sizeof(char)*darr->used) + 1);
+    DynamicArrCharNode* node;
+    for (node = darr->first; node != NULL; node = node->next) {
+        for (i = 0; i < node->i; i++) {
+            str[j] = node->arr[i];
+            j++;
         }
     }
-    str[len] = '\0';
+    str[darr->used] = '\0';
     return str;
 }
 
-// DynamicArrCharClear is used to clear the content in the dynamic
-// char array. DynamicArrCharDestroy is used to destroy the whole
-// array (including the memory occupied by the array).
+// DynamicArrCharClear is used to clear the content in the dynamic char array.
+// DynamicArrCharDestroy is used to destroy the whole array (including the memory
+// occupied by the array).
 //
 void dynamicArrCharClear(DynamicArrChar* darr) {
-    if (darr->first != NULL) {
-        darr->first->i  = 0;
-        darr->used      = 0;
-        darr->total_cap = darr->first->cap;
+    if (darr->first == NULL) {
+        return;
     }
-    if (darr->first->next != NULL) {
-        DynamicArrCharNode* ptr  = darr->first->next;
-        DynamicArrCharNode* temp = NULL;
-        for (;;) {
-            temp = (DynamicArrCharNode*)ptr->next;
-            if (ptr != NULL) {
-                mem_free(ptr);
-            }
-            if (temp == NULL) {
-                break;
-            }
-            else {
-                ptr = temp;
-            }
+    DynamicArrCharNode* node = darr->first->next;
+    DynamicArrCharNode* del;
+    for (;;) {
+        if (node == NULL) {
+            darr->first->i    = 0;
+            darr->first->next = NULL;
+            darr->used        = 0;
+            darr->total_cap   = darr->first->cap;
+            darr->cur         = darr->first;
+            return;
         }
-        darr->first->next = NULL;
+        del  = node;
+        node = node->next;
+        mem_free(del->arr);
+        mem_free(del);
     }
-    darr->cur = darr->first;
 }
 
 void dynamicArrCharDestroy(DynamicArrChar* darr) {
-    if (darr->first != NULL) {
-        DynamicArrCharNode* ptr  = darr->first;
-        DynamicArrCharNode* temp = NULL;
-        for (;;) {
-            temp = (DynamicArrCharNode*)ptr->next;
-            if (ptr != NULL) {
-                mem_free(ptr);
-            }
-            if (temp == NULL) {
-                break;
-            }
-            else {
-                ptr = temp;
-            }
+    DynamicArrCharNode* node = darr->first;
+    DynamicArrCharNode* del;
+    for (;;) {
+        if (node == NULL) {
+            darr->first = NULL;
+            darr->cur   = NULL;
+            return;
         }
-        darr->first = NULL;
-        darr->cur   = NULL;
+        del  = node;
+        node = node->next;
+        mem_free(del->arr);
+        mem_free(del);
     }
 }
