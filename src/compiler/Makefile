@@ -1,11 +1,15 @@
-obj := cplus
+# [mainfile] is the main file you want to begin the compiling.
+# [compiler] is the c compiler used to compile the project.
+#
+# you can type command like "make compiler=clang" to assigned other values to the variable.
+#
+mainfile := cplus.c
 compiler := gcc
-
-cplus: common.o utf.o lexer.o dynamicarr.o convert.o ident.o scope.o closectr.o \
+objfiles := common.o utf.o lexer.o dynamicarr.o convert.o ident.o scope.o closectr.o \
 	module.o path.o project.o parser.o expression.o ast.o delayresolve.o compiler.o
-	${compiler} ${obj}.c common.o utf.o lexer.o dynamicarr.o convert.o ident.o \
-	scope.o closectr.o module.o path.o project.o parser.o expression.o ast.o delayresolve.o \
-	compiler.o -o ${obj}
+
+cplus: ${objfiles}
+	${compiler} ${mainfile} ${objfiles} -o ${patsubst %.c, %, ${mainfile}};
 
 common.o: common.h common.c
 	${compiler} -c common.h common.c

@@ -508,6 +508,8 @@ static error moduleInfoDatabaseAdd(ModuleInfoDatabase* infodb, ModuleInfo* mod_i
     }
 }
 
+// return NULL if the information of the module is not in the database.
+//
 static ModuleInfo* moduleInfoDatabaseGet(ModuleInfoDatabase* infodb, char* mod_name) {
     if (infodb->root == NULL) {
         return NULL;
@@ -675,6 +677,7 @@ static error moduleSchedulerParseDependences(ModuleScheduler* modschdr) {
     LexToken*      lextkn;
     bool           last_isid;
     Module*        mod;
+    ModuleInfo*    mod_info;
     DynamicArrChar darr;
     dynamicArrCharInit(&darr, 255);
 
@@ -699,8 +702,8 @@ static error moduleSchedulerParseDependences(ModuleScheduler* modschdr) {
             }
             lexerNextToken(&lexer);
 
-            // check the module name and add the module into the ModuleScheduleQueue if it is finded
-            // first time.
+            // check the module name and do some processes based on its module information(which can be searched in
+            // one instance of ModuleInfoDatabase).
             //
             last_isid    = false;
             mod_name_len = 0;
@@ -713,23 +716,31 @@ static error moduleSchedulerParseDependences(ModuleScheduler* modschdr) {
                 if (lextkn->token_code == TOKEN_ID && last_isid == false) {
                     dynamicArrCharAppendDarr(&darr, &lextkn->token);
                     mod_name_len += lextkn->token_len;
+                    lexerNextToken(&lexer);
                 }
                 else if (lextkn->token_code == TOKEN_OP_DIV && last_isid == true) {
                     dynamicArrCharAppendc(&darr, '/');
                     mod_name_len += 1;
+                    lexerNextToken(&lexer);
                 }
                 else if (lextkn->token_code == TOKEN_LINEFEED && last_isid == true) {
                     mod_name = dynamicArrCharGetStr(&darr);
                     dynamicArrCharClear(&darr);
 
-                    if (moduleInfoDatabaseExist(&modschdr->mod_info_db, mod_name) == true) {
-                        // TODO: cycle import may happen...
-                    }
-                    else {
+                    // if the module is not in the ModuleInfoDatabase, it means the module is used firstly during
+                    // compiling. so just add it into the ModScheduleQueue and it will be compiled later.
+                    //
+                    if ((mod_info = moduleInfoDatabaseGet(&modschdr->mod_info_db, mod_name)) == NULL) {
                         mod = (Module*)mem_alloc(sizeof(Module));
                         moduleInitByName(mod, mod_name, mod_name_len, modschdr->projconf);
                         moduleInfoDatabaseAdd    (&modschdr->mod_info_db   , mod->mod_info);
                         moduleScheduleQueueAddMod(&modschdr->mod_schd_queue, mod);
+                    }
+                    // if the module is already in the ModuleInfoDatabase and it has not been compiled yet means
+                    // that the cycle-import happened.
+                    //
+                    else if (mod_info != NULL && mod_info->compile_over == false) {
+                        // TODO: process the delay resolved struct
                     }
                     break;
                 }
@@ -747,6 +758,13 @@ static error moduleSchedulerParseDependences(ModuleScheduler* modschdr) {
     return NULL;
 }
 
+// note:
+//    the instance of Module returned will be destroyed when call the next GetPreparedModule, but the mod_info
+//    member of it will not be destroyed because there are some data structs like identifier table and cycle
+//    import related delay resolved lists will be used later. there is a more intuitive explanation:
+//
+//    GetPreparedModule -> trigger to destroy the previous returned module -> release the module without module->mod_info
+//                                                                                               ^^^^^^^^^^^^^^^^^^^^^^^^
 Module* moduleSchedulerGetPreparedModule(ModuleScheduler* modschdr) {
     if (modschdr->mod_cur != NULL) {
         moduleDestroy(modschdr->mod_cur);

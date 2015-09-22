@@ -25,6 +25,7 @@ typedef struct DRModuleInformListNode DRModuleInformListNode;
 typedef struct DRModuleInformList     DRModuleInformList;
 typedef struct DRASTListNode          DRASTListNode;
 typedef struct DRASTList              DRASTList;
+typedef struct DelayResolve           DelayResolve;
 
 struct DRIdentListNode {
     char*            drid_name;
@@ -110,5 +111,14 @@ struct DRASTList {
 extern void drASTListInit   (DRASTList* drast_list);
 extern void drASTListAdd    (DRASTList* drast_list, AST* ast);
 extern void drASTListDestroy(DRASTList* drast_list);
+
+// DelayResolve struct packs up all data structs about solving delay resolve problem.
+//
+struct DelayResolve {
+    DRIdentList*        drid_list;
+    DRModuleDependList* drmod_depd_list;
+    DRModuleInformList* drmod_infm_list;
+    DRASTList*          drast_list;
+};
 
 #endif
