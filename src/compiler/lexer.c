@@ -59,6 +59,9 @@ void lexTokenDebug(LexToken* lextkn) {
     }
     else if (200 <= code && code < 300) {
         switch (code) {
+        case TOKEN_KEYWORD_CONST:
+            printf("keyword: const\r\n");
+            return;
         case TOKEN_KEYWORD_IF:
             printf("keyword: if\r\n");
             return;
@@ -80,6 +83,9 @@ void lexTokenDebug(LexToken* lextkn) {
         case TOKEN_KEYWORD_FUNC:
             printf("keyword: func\r\n");
             return;
+        case TOKEN_KEYWORD_EXPN:
+            printf("keyword: expn\r\n");
+            return;
         case TOKEN_KEYWORD_RETURN:
             printf("keyword: return\r\n");
             return;
@@ -94,12 +100,6 @@ void lexTokenDebug(LexToken* lextkn) {
             return;
         case TOKEN_KEYWORD_TYPE:
             printf("keyword: type\r\n");
-            return;
-        case TOKEN_KEYWORD_IN:
-            printf("keyword: in\r\n");
-            return;
-        case TOKEN_KEYWORD_OT:
-            printf("keyword: ot\r\n");
             return;
         case TOKEN_KEYWORD_INCLUDE:
             printf("keyword: include\r\n");
@@ -299,77 +299,77 @@ error lexerParseToken(Lexer* lexer) {
             else {
                 char* token_content = lexTokenGetStr(&lexer->lextkn);
                 if ('A' <= token_content[0] && token_content[0] <= 'Z') {
-                    if (lexer->lextkn.token_len == 4 && strcmp(token_content, "Int8") == 0) {
+                    if (lexer->lextkn.token_len == 4 && strcmp(token_content, "int8") == 0) {
                         lexer->lextkn.token_code = TOKEN_TYPE_INT8;
                         lexer->parse_lock = true;
                         return NULL;
                     }
-                    else if (lexer->lextkn.token_len == 5 && strcmp(token_content, "Int16") == 0) {
+                    else if (lexer->lextkn.token_len == 5 && strcmp(token_content, "int16") == 0) {
                         lexer->lextkn.token_code = TOKEN_TYPE_INT16;
                         lexer->parse_lock = true;
                         return NULL;
                     }
-                    else if (lexer->lextkn.token_len == 5 && strcmp(token_content, "Int32") == 0) {
+                    else if (lexer->lextkn.token_len == 5 && strcmp(token_content, "int32") == 0) {
                         lexer->lextkn.token_code = TOKEN_TYPE_INT32;
                         lexer->parse_lock = true;
                         return NULL;
                     }
-                    else if (lexer->lextkn.token_len == 5 && strcmp(token_content, "Int64") == 0) {
+                    else if (lexer->lextkn.token_len == 5 && strcmp(token_content, "int64") == 0) {
                         lexer->lextkn.token_code = TOKEN_TYPE_INT64;
                         lexer->parse_lock = true;
                         return NULL;
                     }
-                    else if (lexer->lextkn.token_len == 6 && strcmp(token_content, "String") == 0) {
+                    else if (lexer->lextkn.token_len == 6 && strcmp(token_content, "string") == 0) {
                         lexer->lextkn.token_code = TOKEN_TYPE_STRING;
                         lexer->parse_lock = true;
                         return NULL;
                     }
-                    else if (lexer->lextkn.token_len == 4 && strcmp(token_content, "Char") == 0) {
+                    else if (lexer->lextkn.token_len == 4 && strcmp(token_content, "char") == 0) {
                         lexer->lextkn.token_code = TOKEN_TYPE_CHAR;
                         lexer->parse_lock = true;
                         return NULL;
                     }
-                    else if (lexer->lextkn.token_len == 7 && strcmp(token_content, "Float64") == 0) {
+                    else if (lexer->lextkn.token_len == 7 && strcmp(token_content, "float64") == 0) {
                         lexer->lextkn.token_code = TOKEN_TYPE_FLOAT64;
                         lexer->parse_lock = true;
                         return NULL;
                     }
-                    else if (lexer->lextkn.token_len == 7 && strcmp(token_content, "Float32") == 0) {
+                    else if (lexer->lextkn.token_len == 7 && strcmp(token_content, "float32") == 0) {
                         lexer->lextkn.token_code = TOKEN_TYPE_FLOAT32;
                         lexer->parse_lock = true;
                         return NULL;
                     }
-                    else if (lexer->lextkn.token_len == 5 && strcmp(token_content, "Uint8") == 0) {
+                    else if (lexer->lextkn.token_len == 5 && strcmp(token_content, "uint8") == 0) {
                         lexer->lextkn.token_code = TOKEN_TYPE_UINT8;
                         lexer->parse_lock = true;
                         return NULL;
                     }
-                    else if (lexer->lextkn.token_len == 6 && strcmp(token_content, "Uint16") == 0) {
+                    else if (lexer->lextkn.token_len == 6 && strcmp(token_content, "uint16") == 0) {
                         lexer->lextkn.token_code = TOKEN_TYPE_UINT16;
                         lexer->parse_lock = true;
                         return NULL;
                     }
-                    else if (lexer->lextkn.token_len == 6 && strcmp(token_content, "Uint32") == 0) {
+                    else if (lexer->lextkn.token_len == 6 && strcmp(token_content, "uint32") == 0) {
                         lexer->lextkn.token_code = TOKEN_TYPE_UINT32;
                         lexer->parse_lock = true;
                         return NULL;
                     }
-                    else if (lexer->lextkn.token_len == 6 && strcmp(token_content, "Uint64") == 0) {
+                    else if (lexer->lextkn.token_len == 6 && strcmp(token_content, "uint64") == 0) {
                         lexer->lextkn.token_code = TOKEN_TYPE_UINT64;
                         lexer->parse_lock = true;
                         return NULL;
                     }
-                    else if (lexer->lextkn.token_len == 4 && strcmp(token_content, "Byte") == 0) {
+                    else if (lexer->lextkn.token_len == 4 && strcmp(token_content, "byte") == 0) {
                         lexer->lextkn.token_code = TOKEN_TYPE_BYTE;
                         lexer->parse_lock = true;
                         return NULL;
                     }
-                    else if (lexer->lextkn.token_len == 9 && strcmp(token_content, "Complex64") == 0) {
+                    else if (lexer->lextkn.token_len == 9 && strcmp(token_content, "complex64") == 0) {
                         lexer->lextkn.token_code = TOKEN_TYPE_COMPLEX64;
                         lexer->parse_lock = true;
                         return NULL;
                     }
-                    else if (lexer->lextkn.token_len == 10 && strcmp(token_content, "Complex128") == 0) {
+                    else if (lexer->lextkn.token_len == 10 && strcmp(token_content, "complex128") == 0) {
                         lexer->lextkn.token_code = TOKEN_TYPE_COMPLEX128;
                         lexer->parse_lock = true;
                         return NULL;
@@ -392,7 +392,7 @@ error lexerParseToken(Lexer* lexer) {
                         lexer->parse_lock = true;
                         return NULL;
                     }
-                    // ef else
+                    // ef else error expn
                     if (lexer->lextkn.token_len == 2 && strcmp(token_content, "ef") == 0) {
                         lexer->lextkn.token_code = TOKEN_KEYWORD_EF;
                         lexer->parse_lock = true;
@@ -408,13 +408,18 @@ error lexerParseToken(Lexer* lexer) {
                         lexer->parse_lock = true;
                         return NULL;
                     }
+                    else if (lexer->lextkn.token_len == 4 && strcmp(token_content, "expn") == 0) {
+                        lexer->lextkn.token_code = TOKEN_KEYWORD_EXPN;
+                        lexer->parse_lock = true;
+                        return NULL;
+                    }
                     // break
                     if (lexer->lextkn.token_len == 5 && strcmp(token_content, "break") == 0) {
                         lexer->lextkn.token_code = TOKEN_KEYWORD_BREAK;
                         lexer->parse_lock = true;
                         return NULL;
                     }
-                    // deal
+                    // deal default
                     if (lexer->lextkn.token_len == 4 && strcmp(token_content, "deal") == 0) {
                         lexer->lextkn.token_code = TOKEN_KEYWORD_DEAL;
                         lexer->parse_lock = true;
@@ -425,9 +430,14 @@ error lexerParseToken(Lexer* lexer) {
                         lexer->parse_lock = true;
                         return NULL;
                     }
-                    // case continue
+                    // case const continue
                     if (lexer->lextkn.token_len == 4 && strcmp(token_content, "case") == 0) {
                         lexer->lextkn.token_code = TOKEN_KEYWORD_CASE;
+                        lexer->parse_lock = true;
+                        return NULL;
+                    }
+                    else if (lexer->lextkn.token_len == 5 && strcmp(token_content, "const") == 0) {
+                        lexer->lextkn.token_code = TOKEN_KEYWORD_CONST;
                         lexer->parse_lock = true;
                         return NULL;
                     }
@@ -441,11 +451,6 @@ error lexerParseToken(Lexer* lexer) {
                 case 'i': // if in
                     if (lexer->lextkn.token_len == 2 && strcmp(token_content, "if") == 0) {
                         lexer->lextkn.token_code = TOKEN_KEYWORD_IF;
-                        lexer->parse_lock = true;
-                        return NULL;
-                    }
-                    else if (lexer->lextkn.token_len == 2 && strcmp(token_content, "in") == 0) {
-                        lexer->lextkn.token_code = TOKEN_KEYWORD_IN;
                         lexer->parse_lock = true;
                         return NULL;
                     }
@@ -463,12 +468,6 @@ error lexerParseToken(Lexer* lexer) {
                 case 'r': // return
                     if (lexer->lextkn.token_len == 6 && strcmp(token_content, "return") == 0) {
                         lexer->lextkn.token_code = TOKEN_KEYWORD_RETURN;
-                        lexer->parse_lock = true;
-                        return NULL;
-                    }
-                case 'o': // ot
-                    if (lexer->lextkn.token_len == 2 && strcmp(token_content, "ot") == 0) {
-                        lexer->lextkn.token_code = TOKEN_KEYWORD_OT;
                         lexer->parse_lock = true;
                         return NULL;
                     }

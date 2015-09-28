@@ -15,15 +15,14 @@
 #include "common.h"
 #include "project.h"
 #include "lexer.h"
-#include "delayresolve.h"
+#include "ident.h"
 
 typedef struct SourceFile              SourceFile;
 typedef struct Module                  Module;
 typedef struct ModuleScheduleQueueNode ModuleScheduleQueueNode;
 typedef struct ModuleScheduleQueue     ModuleScheduleQueue;
-typedef struct ModuleInfo              ModuleInfo;
-typedef struct ModuleInfoDatabaseNode  ModuleInfoDatabaseNode;
-typedef struct ModuleInfoDatabase      ModuleInfoDatabase;
+typedef struct ModuleCacheTableNode    ModuleCacheTableNode;
+typedef struct ModuleCacheTable        ModuleCacheTable;
 typedef struct ModuleScheduler         ModuleScheduler;
 
 // represent a source file in one module or program directory.
@@ -35,11 +34,11 @@ struct SourceFile {
 };
 
 struct Module {
-    ModuleInfo* mod_info;
+    char*       mod_name;
     char*       mod_path;
     int         mod_path_len;
-    bool        is_main;
-    bool        dependences_parsed;
+    bool        mod_ismain;
+    bool        preprocessed;
     SourceFile* srcfiles;
     SourceFile* iterator;
 };
@@ -47,8 +46,8 @@ struct Module {
 // note： the Module's memory will be allocated and released automatically by ModuleScheduler. so
 //        you will never have necessity to call moduleInitXXXX and moduleDestroy.
 //
-static void  moduleInitByName    (Module* mod, char* mod_name, int mod_name_len, ProjectConfig* projconf);
-static void  moduleInitByPath    (Module* mod, char* mod_path, int mod_path_len, ProjectConfig* projconf);
+static void  moduleInitByName    (Module* mod, char* mod_name, int mod_name_len, const ProjectConfig* projconf);
+static void  moduleInitByPath    (Module* mod, char* mod_path, int mod_path_len, const ProjectConfig* projconf);
 extern char* moduleGetNextSrcFile(Module* mod);
 extern void  moduleRewind        (Module* mod);
 static void  moduleDestroy       (Module* mod);
@@ -98,33 +97,26 @@ static void    moduleScheduleQueueDestroy   (ModuleScheduleQueue* queue);
 #define NODE_CMP_EQ      0x01
 #define NODE_CMP_GT      0x02
 
-struct ModuleInfo {
-    char*       mod_name;
-    bool        compile_over;
-    IdentTable* id_table;
-    // TODO: delay resolve related ...
+struct ModuleCacheTableNode {
+    char*                 mod_name;
+    IdentTable*           id_table;
+    int8                  color;
+    ModuleCacheTableNode* parent;
+    ModuleCacheTableNode* lchild;
+    ModuleCacheTableNode* rchild;
 };
 
-struct ModuleInfoDatabaseNode {
-    ModuleInfo*             mod_info;
-    int8                    color;
-    ModuleInfoDatabaseNode* parent;
-    ModuleInfoDatabaseNode* lchild;
-    ModuleInfoDatabaseNode* rchild;
-};
-
-// the ModuleInfoDatabase is used to save some information and the states of all modules
+// the ModuleCache is used to save some information and the states of all modules
 // in a cplus project.
 //
-struct ModuleInfoDatabase {
-    ModuleInfoDatabaseNode* root;
+struct ModuleCacheTable {
+    ModuleCacheTableNode* root;
 };
 
-static void        moduleInfoDatabaseInit   (ModuleInfoDatabase* infodb);
-static bool        moduleInfoDatabaseExist  (ModuleInfoDatabase* infodb, char*       mod_name);
-static error       moduleInfoDatabaseAdd    (ModuleInfoDatabase* infodb, ModuleInfo* mod_info);
-static ModuleInfo* moduleInfoDatabaseGet    (ModuleInfoDatabase* infodb, char*       mod_name);
-static void        moduleInfoDatabaseDestroy(ModuleInfoDatabase* infodb);
+static void        moduleCacheTableInit   (ModuleCacheTable* cachetable);
+static error       moduleCacheTableAdd    (ModuleCacheTable* cachetable, char* mod_name, IdentTable* id_table);
+static IdentTable* moduleCacheTableGet    (ModuleCacheTable* cachetable, char* mod_name);
+static void        moduleCacheTableDestroy(ModuleCacheTable* cachetable);
 
 // ModuleScheduler can manage all modules needed by a cplus project. it will analyze these
 // modules' relation and parse their dependences. it will always return a module which
@@ -134,15 +126,15 @@ static void        moduleInfoDatabaseDestroy(ModuleInfoDatabase* infodb);
 //    TODO: make the doc here...
 //
 struct ModuleScheduler {
-    ProjectConfig*      projconf;
-    Module*             mod_cur;
-    ModuleScheduleQueue mod_schd_queue;
-    ModuleInfoDatabase  mod_info_db;
+    const ProjectConfig* projconf;
+    Module*              mod_cur;
+    ModuleScheduleQueue  mod_sched_queue;
+    ModuleCacheTable     mod_cache_table;
 };
 
-extern error   moduleSchedulerInit             (ModuleScheduler* modschdr, ProjectConfig* const projconf);
-extern bool    moduleSchedulerIsFinish         (ModuleScheduler* modschdr);
-extern Module* moduleSchedulerGetPreparedModule(ModuleScheduler* modschdr);
-extern void    moduleSchedulerDestroy          (ModuleScheduler* modschdr);
+extern error   moduleSchedulerInit             (ModuleScheduler* modsched, const ProjectConfig* projconf);
+extern bool    moduleSchedulerIsFinish         (ModuleScheduler* modsched);
+extern Module* moduleSchedulerGetPreparedModule(ModuleScheduler* modsched);
+extern void    moduleSchedulerDestroy          (ModuleScheduler* modsched);
 
 #endif

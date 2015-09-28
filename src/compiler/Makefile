@@ -6,7 +6,7 @@
 mainfile := cplus.c
 compiler := gcc
 objfiles := common.o utf.o lexer.o dynamicarr.o convert.o ident.o scope.o closectr.o \
-	module.o path.o project.o parser.o expression.o ast.o delayresolve.o compiler.o
+	module.o path.o project.o parser.o expression.o ast.o compiler.o
 
 cplus: ${objfiles}
 	${compiler} ${mainfile} ${objfiles} -o ${patsubst %.c, %, ${mainfile}};
@@ -55,9 +55,6 @@ expression.o: expression.h expression.c
 
 ast.o: ast.h ast.c
 	${compiler} -c ast.h ast.c
-
-delayresolve.o: delayresolve.h delayresolve.c
-	${compiler} -c delayresolve.h delayresolve.c
 
 clean:
 	rm *.o *.gch

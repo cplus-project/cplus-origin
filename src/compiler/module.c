@@ -6,13 +6,15 @@
 
 #include "module.h"
 
+static error err = NULL;
+
 /****** methods of Module ******/
 
 // example:
 //    if the source path is "/home/user/project/src".
 //    the module name "net/http" will return "/home/user/project/src/net.mod/http.mod".
 //                                                                   ^^^^^^^^^^^^^^^^
-static char* moduleGetModPathByName(const char* const mod_name, int mod_name_len, ProjectConfig* projconf) {
+static char* moduleGetModPathByName(const char* const mod_name, int mod_name_len, const ProjectConfig* projconf) {
     char* mod_path;
     int   i;
     DynamicArrChar darr;
@@ -38,7 +40,7 @@ static char* moduleGetModPathByName(const char* const mod_name, int mod_name_len
 //    if the source path is "/home/user/project/src".
 //    the path "/home/user/project/src/net.mod/http.mod" will return "net/http".
 //                                     ^^^^^^^^^^^^^^^^
-static char* moduleGetModNameByPath(const char* const mod_path, int mod_path_len, ProjectConfig* projconf) {
+static char* moduleGetModNameByPath(const char* const mod_path, int mod_path_len, const ProjectConfig* projconf) {
     char* mod_name;
     int   i;
     DynamicArrChar darr;
@@ -107,57 +109,51 @@ static SourceFile* moduleGetSrcFileList(char* dir_path, int path_len) {
     return head;
 }
 
-static void moduleInitByName(Module* mod, char* mod_name, int mod_name_len, ProjectConfig* projconf) {
-    mod->mod_info               = (ModuleInfo*)mem_alloc(sizeof(ModuleInfo));
-    mod->mod_info->mod_name     = mod_name;
-    mod->mod_info->compile_over = false;
-    mod->mod_info->id_table     = NULL;
-    mod->mod_path               = moduleGetModPathByName(mod_name, mod_name_len, projconf);
-    mod->mod_path_len           = strlen(mod->mod_path);
-    mod->is_main                = false;
-    mod->dependences_parsed     = false;
-    mod->srcfiles               = moduleGetSrcFileList(mod->mod_path, mod->mod_path_len);
+static void moduleInitByName(Module* mod, char* mod_name, int mod_name_len, const ProjectConfig* projconf) {
+    mod->mod_name     = mod_name;
+    mod->mod_path     = moduleGetModPathByName(mod_name, mod_name_len, projconf);
+    mod->mod_path_len = strlen(mod->mod_path);
+    mod->mod_ismain   = false;
+    mod->preprocessed = false;
+    mod->srcfiles     = moduleGetSrcFileList(mod->mod_path, mod->mod_path_len);
+    mod->iterator     = mod->srcfiles;
 }
 
-static void moduleInitByPath(Module* mod, char* mod_path, int mod_path_len, ProjectConfig* projconf) {
+static void moduleInitByPath(Module* mod, char* mod_path, int mod_path_len, const ProjectConfig* projconf) {
     if (is_cplus_program(mod_path, mod_path_len) == true) {
-        mod->mod_info                = (ModuleInfo*)mem_alloc(sizeof(ModuleInfo));
-        mod->mod_info->mod_name      = path_last(mod_path, mod_path_len);
-        mod->mod_info->compile_over  = false;
-        mod->mod_info->id_table      = NULL;
-        mod->mod_path                = mod_path;
-        mod->mod_path_len            = mod_path_len;
-        mod->is_main                 = true;
-        mod->dependences_parsed      = false;
-        mod->srcfiles                = moduleGetSrcFileList(mod_path, mod_path_len);
+        mod->mod_name     = path_last(mod_path, mod_path_len);
+        mod->mod_path     = mod_path;
+        mod->mod_path_len = mod_path_len;
+        mod->mod_ismain   = true;
+        mod->preprocessed = false;
+        mod->srcfiles     = moduleGetSrcFileList(mod_path, mod_path_len);
+        mod->iterator     = mod->srcfiles;
     }
     else if (is_cplus_module(mod_path, mod_path_len) == true) {
-        mod->mod_info                = (ModuleInfo*)mem_alloc(sizeof(ModuleInfo));
-        mod->mod_info->mod_name      = moduleGetModNameByPath(mod_path, mod_path_len, projconf);
-        mod->mod_info->compile_over  = false;
-        mod->mod_info->id_table      = NULL;
-        mod->mod_path                = mod_path;
-        mod->mod_path_len            = mod_path_len;
-        mod->is_main                 = false;
-        mod->dependences_parsed      = false;
-        mod->srcfiles                = moduleGetSrcFileList(mod_path, mod_path_len);
+        mod->mod_name     = moduleGetModNameByPath(mod_path, mod_path_len, projconf);
+        mod->mod_path     = mod_path;
+        mod->mod_path_len = mod_path_len;
+        mod->mod_ismain   = false;
+        mod->preprocessed = false;
+        mod->srcfiles     = moduleGetSrcFileList(mod_path, mod_path_len);
+        mod->iterator     = mod->srcfiles;
     }
     else if (is_cplus_source(mod_path, mod_path_len) == true) {
-        mod->mod_info                = (ModuleInfo*)mem_alloc(sizeof(ModuleInfo));
-        mod->mod_info->mod_name      = path_last(mod_path, mod_path_len);
-        mod->mod_info->compile_over  = false;
-        mod->mod_info->id_table      = NULL;
-        mod->mod_path                = path_prev(mod_path, mod_path_len);
-        mod->mod_path_len            = mod_path_len;
-        mod->is_main                 = true;
-        mod->dependences_parsed      = false;
-        mod->srcfiles                = (SourceFile*)mem_alloc(sizeof(ModuleInfo));
-        mod->srcfiles->file_name     = mod->mod_info->mod_name;
+        mod->mod_name     = path_last(mod_path, mod_path_len);
+        mod->mod_path     = path_prev(mod_path, mod_path_len);
+        mod->mod_path_len = mod_path_len;
+        mod->mod_ismain   = true;
+        mod->preprocessed = false;
+        mod->srcfiles     = (SourceFile*)mem_alloc(sizeof(SourceFile));
+        mod->iterator     = mod->srcfiles;
+        mod->srcfiles->file_name     = mod->mod_name;
         mod->srcfiles->file_name_len = strlen(mod->srcfiles->file_name);
         mod->srcfiles->next          = NULL;
     }
 }
 
+// return NULL if all source files are trivaled once.
+//
 char* moduleGetNextSrcFile(Module* mod) {
     if (mod->srcfiles == NULL) {
         return NULL;
@@ -180,15 +176,12 @@ void moduleRewind(Module* mod) {
 }
 
 static void moduleDestroy(Module* mod) {
-    mem_free(mod->mod_info->mod_name);
-    if (mod->mod_info->id_table != NULL) {
-        identTableDestroy(mod->mod_info->id_table);
-    }
-    mem_free(mod->mod_info);
+//  mem_free(mod->mod_name);
 //  mem_free(mod->mod_path);
     SourceFile* del;
     for (;;) {
         if (mod->srcfiles == NULL) {
+            mod->iterator =  NULL;
             return;
         }
         del = mod->srcfiles;
@@ -284,10 +277,10 @@ static void moduleScheduleQueueDestroy(ModuleScheduleQueue* queue) {
     }
 }
 
-/****** methods of ModuleInfoDatabase ******/
+/****** methods of ModuleCacheTable ******/
 
-static void moduleInfoDatabaseInit(ModuleInfoDatabase* infodb) {
-    infodb->root = NULL;
+static void moduleCacheTableInit(ModuleCacheTable* cachetable) {
+    cachetable->root = NULL;
 }
 
 // firstly compare every character of the two name from index 0:
@@ -299,7 +292,7 @@ static void moduleInfoDatabaseInit(ModuleInfoDatabase* infodb) {
 // (2) if the name1's length is shorter, return NODE_CMP_LT.
 // (3) if tow names'  length are equal , return NODE_CMP_EQ.
 //
-static int moduleInfoDatabaseCmp(char* name1, char* name2) {
+static int moduleCacheTableCmp(char* name1, char* name2) {
     int64 i;
     for (i = 0; ; i++) {
         if (name1[i] < name2[i]) {
@@ -328,9 +321,9 @@ static int moduleInfoDatabaseCmp(char* name1, char* name2) {
 //     /      \          /    \
 //    b        c        a      b
 //
-static error moduleInfoDatabaseLeftRotate(ModuleInfoDatabase* infodb, ModuleInfoDatabaseNode* node) {
-    if (node == infodb->root) {
-        infodb->root = node->rchild;
+static error moduleCacheTableLeftRotate(ModuleCacheTable* cachetable, ModuleCacheTableNode* node) {
+    if (node == cachetable->root) {
+        cachetable->root = node->rchild;
         node->rchild->parent = NULL;
     }
     else {
@@ -355,9 +348,9 @@ static error moduleInfoDatabaseLeftRotate(ModuleInfoDatabase* infodb, ModuleInfo
 //  /      \                 /    \
 // a        b               b      c
 //
-static error moduleInfoDatabaseRightRotate(ModuleInfoDatabase* infodb, ModuleInfoDatabaseNode* node) {
-    if (node == infodb->root) {
-        infodb->root = node->lchild;
+static error moduleCacheTableRightRotate(ModuleCacheTable* cachetable, ModuleCacheTableNode* node) {
+    if (node == cachetable->root) {
+        cachetable->root = node->lchild;
         node->lchild->parent = NULL;
     }
     else {
@@ -377,8 +370,8 @@ static error moduleInfoDatabaseRightRotate(ModuleInfoDatabase* infodb, ModuleInf
 // fix the balance of the tree and try to keep the properties
 // of the red black tree.
 //
-static void moduleInfoDatabaseAddFixup(ModuleInfoDatabase* infodb, ModuleInfoDatabaseNode* added) {
-    ModuleInfoDatabaseNode* uncle = NULL;
+static void moduleCacheTableAddFixup(ModuleCacheTable* cachetable, ModuleCacheTableNode* added) {
+    ModuleCacheTableNode* uncle = NULL;
     for (;;) {
         if (added->parent == NULL || added->parent->parent == NULL)
             break;
@@ -390,11 +383,11 @@ static void moduleInfoDatabaseAddFixup(ModuleInfoDatabase* infodb, ModuleInfoDat
                 if (uncle == NULL || uncle->color == NODE_COLOR_BLACK) {
                     if (added == added->parent->rchild) {
                         added =  added->parent;
-                        moduleInfoDatabaseLeftRotate(infodb, added);
+                        moduleCacheTableLeftRotate (cachetable, added);
                     }
                     added->parent->color         = NODE_COLOR_BLACK;
                     added->parent->parent->color = NODE_COLOR_RED;
-                    moduleInfoDatabaseRightRotate(infodb, added->parent->parent);
+                    moduleCacheTableRightRotate(cachetable, added->parent->parent);
                     break;
                 }
             }
@@ -403,11 +396,11 @@ static void moduleInfoDatabaseAddFixup(ModuleInfoDatabase* infodb, ModuleInfoDat
                 if (uncle == NULL || uncle->color == NODE_COLOR_BLACK) {
                     if (added == added->parent->lchild) {
                         added =  added->parent;
-                        moduleInfoDatabaseRightRotate(infodb, added);
+                        moduleCacheTableRightRotate(cachetable, added);
                     }
                     added->parent->color         = NODE_COLOR_BLACK;
                     added->parent->parent->color = NODE_COLOR_RED;
-                    moduleInfoDatabaseLeftRotate(infodb, added->parent->parent);
+                    moduleCacheTableLeftRotate (cachetable, added->parent->parent);
                     break;
                 }
             }
@@ -422,65 +415,32 @@ static void moduleInfoDatabaseAddFixup(ModuleInfoDatabase* infodb, ModuleInfoDat
             break;
         }
     }
-    infodb->root->color = NODE_COLOR_BLACK;
+    cachetable->root->color = NODE_COLOR_BLACK;
 }
 
-// used to verify whether a cache entry is in the cache tree no matter has it been
-// compiled already.
-//
-// return:
-//    true  -> the cache entry is already in the cache tree
-//    false -> the cache entry is not in the cache tree
-//
-static bool moduleInfoDatabaseExist(ModuleInfoDatabase* infodb, char* mod_name) {
-    if (infodb->root == NULL) {
-        return false;
-    }
-    ModuleInfoDatabaseNode* ptr = infodb->root;
-    for (;;) {
-        switch (moduleInfoDatabaseCmp(mod_name, ptr->mod_info->mod_name)) {
-        case NODE_CMP_LT:
-            if (ptr->lchild != NULL) {
-                ptr = ptr->lchild;
-                break;
-            }
-            return false;
-
-        case NODE_CMP_GT:
-            if (ptr->rchild != NULL) {
-                ptr = ptr->rchild;
-                break;
-            }
-            return false;
-
-        case NODE_CMP_EQ:
-            return true;
-        }
-    }
-}
-
-static error moduleInfoDatabaseAdd(ModuleInfoDatabase* infodb, ModuleInfo* mod_info) {
-    if (mod_info == NULL) {
-        return new_error("the module info can not be NULL.");
-    }
-    if (mod_info->mod_name == NULL) {
+static error moduleCacheTableAdd(ModuleCacheTable* cachetable, char* mod_name, IdentTable* id_table) {
+    if (mod_name == NULL) {
         return new_error("the module name can not be NULL.");
     }
-    ModuleInfoDatabaseNode* create = (ModuleInfoDatabaseNode*)mem_alloc(sizeof(ModuleInfoDatabaseNode));
-    create->mod_info  = mod_info;
-    create->color     = NODE_COLOR_RED;
-    create->parent    = NULL;
-    create->lchild    = NULL;
-    create->rchild    = NULL;
-    if (infodb->root != NULL) {
-        ModuleInfoDatabaseNode* ptr = infodb->root;
+    if (id_table == NULL) {
+        return new_error("the identifier table can not be NULL.");
+    }
+    ModuleCacheTableNode* create = (ModuleCacheTableNode*)mem_alloc(sizeof(ModuleCacheTableNode));
+    create->mod_name = mod_name;
+    create->id_table = id_table;
+    create->color    = NODE_COLOR_RED;
+    create->parent   = NULL;
+    create->lchild   = NULL;
+    create->rchild   = NULL;
+    if (cachetable->root != NULL) {
+        ModuleCacheTableNode* ptr = cachetable->root;
         for (;;) {
-            switch (moduleInfoDatabaseCmp(mod_info->mod_name, ptr->mod_info->mod_name)) {
+            switch (moduleCacheTableCmp(mod_name, ptr->mod_name)) {
             case NODE_CMP_LT:
                 if (ptr->lchild == NULL) {
                     ptr->lchild = create;
                     create->parent = ptr;
-                    moduleInfoDatabaseAddFixup(infodb, create);
+                    moduleCacheTableAddFixup(cachetable, create);
                     return NULL;
                 }
                 ptr = ptr->lchild;
@@ -490,7 +450,7 @@ static error moduleInfoDatabaseAdd(ModuleInfoDatabase* infodb, ModuleInfo* mod_i
                 if (ptr->rchild == NULL) {
                     ptr->rchild = create;
                     create->parent = ptr;
-                    moduleInfoDatabaseAddFixup(infodb, create);
+                    moduleCacheTableAddFixup(cachetable, create);
                     return NULL;
                 }
                 ptr = ptr->rchild;
@@ -503,20 +463,20 @@ static error moduleInfoDatabaseAdd(ModuleInfoDatabase* infodb, ModuleInfo* mod_i
     }
     else {
         create->color = NODE_COLOR_BLACK;
-        infodb->root = create;
+        cachetable->root = create;
         return NULL;
     }
 }
 
-// return NULL if the information of the module is not in the database.
+// return NULL if module does not have the cache entry.
 //
-static ModuleInfo* moduleInfoDatabaseGet(ModuleInfoDatabase* infodb, char* mod_name) {
-    if (infodb->root == NULL) {
+static IdentTable* moduleCacheTableGet(ModuleCacheTable* cachetable, char* mod_name) {
+    if (cachetable->root == NULL || mod_name == NULL) {
         return NULL;
     }
-    ModuleInfoDatabaseNode* ptr = infodb->root;
+    ModuleCacheTableNode* ptr = cachetable->root;
     for (;;) {
-        switch (moduleInfoDatabaseCmp(mod_name, ptr->mod_info->mod_name)) {
+        switch (moduleCacheTableCmp(mod_name, ptr->mod_name)) {
         case NODE_CMP_LT:
             if (ptr->lchild != NULL) {
                 ptr = ptr->lchild;
@@ -532,24 +492,25 @@ static ModuleInfo* moduleInfoDatabaseGet(ModuleInfoDatabase* infodb, char* mod_n
             return NULL;
 
         case NODE_CMP_EQ:
-            return ptr->mod_info;
+            return ptr->id_table;
         }
     }
 }
 
-static void moduleInfoDatabaseDestroyNode(ModuleInfoDatabaseNode* node) {
+static void moduleCacheTableDestroyNode(ModuleCacheTableNode* node) {
     if (node != NULL) {
-        if (node->lchild != NULL) moduleInfoDatabaseDestroyNode(node->lchild);
-        if (node->rchild != NULL) moduleInfoDatabaseDestroyNode(node->rchild);
-        if (node->mod_info->id_table != NULL) {
-            identTableDestroy(node->mod_info->id_table);
+        if (node->lchild != NULL) moduleCacheTableDestroyNode(node->lchild);
+        if (node->rchild != NULL) moduleCacheTableDestroyNode(node->rchild);
+        if (node->id_table != NULL) {
+            identTableDestroy(node->id_table);
         }
+        mem_free(node->mod_name);
         mem_free(node);
     }
 }
 
-static void moduleInfoDatabaseDestroy(ModuleInfoDatabase* infodb) {
-    moduleInfoDatabaseDestroyNode(infodb->root);
+static void moduleCacheTableDestroy(ModuleCacheTable* cachetable) {
+    moduleCacheTableDestroyNode(cachetable->root);
 }
 
 /****** methods of ModuleScheduler ******/
@@ -570,22 +531,21 @@ static bool moduleSchedulerIsProgDir(char* dir_name, int len) {
     return false;
 }
 
-error moduleSchedulerInit(ModuleScheduler* modschdr, ProjectConfig* const projconf) {
+error moduleSchedulerInit(ModuleScheduler* modschdr, const ProjectConfig* projconf) {
     if (projconf == NULL) {
-        return new_error("pass in the NULL project config.");
+        return new_error("can not pass in the NULL project config.");
     }
 
     modschdr->projconf = projconf;
     modschdr->mod_cur  = NULL;
-    moduleScheduleQueueInit(&modschdr->mod_schd_queue);
-    moduleInfoDatabaseInit (&modschdr->mod_info_db);
+    moduleScheduleQueueInit(&modschdr->mod_sched_queue);
+    moduleCacheTableInit   (&modschdr->mod_cache_table);
 
     // in the switch the compile object will be added into the ModuleScheduleQueue. the compile
     // object may be a cplus source file, some program directories or a module. because the
     // process for the source file and the program directories is the some with the modules, so
     // they will be treated as a module.
     //
-    error err = NULL;
     switch (projconf->compile_obj_type) {
     case COMPILE_OBJ_TYPE_PROJ: {
             Module*        mod;
@@ -609,8 +569,8 @@ error moduleSchedulerInit(ModuleScheduler* modschdr, ProjectConfig* const projco
 
                     mod = (Module*)mem_alloc(sizeof(Module));
                     moduleInitByPath(mod, dynamicArrCharGetStr(&darr), darr.used, projconf);
-                    moduleScheduleQueueAddMod    (&modschdr->mod_schd_queue, mod);
-                    moduleScheduleQueueGetHeadMod(&modschdr->mod_schd_queue);
+                    moduleScheduleQueueAddMod    (&modschdr->mod_sched_queue, mod);
+                    moduleScheduleQueueGetHeadMod(&modschdr->mod_sched_queue);
 
                     dynamicArrCharClear(&darr);
                 }
@@ -623,22 +583,22 @@ error moduleSchedulerInit(ModuleScheduler* modschdr, ProjectConfig* const projco
     case COMPILE_OBJ_TYPE_PROG: {
             Module* mod = (Module*)mem_alloc(sizeof(Module));
             moduleInitByPath(mod, projconf->path_compile_obj, projconf->cplobj_path_len, projconf);
-            moduleScheduleQueueAddMod(&modschdr->mod_schd_queue, mod);
+            moduleScheduleQueueAddMod(&modschdr->mod_sched_queue, mod);
             return NULL;
         }
 
     case COMPILE_OBJ_TYPE_MOD: {
             Module* mod = (Module*)mem_alloc(sizeof(Module));
             moduleInitByPath(mod, projconf->path_compile_obj, projconf->cplobj_path_len, projconf);
-            moduleInfoDatabaseAdd    (&modschdr->mod_info_db   , mod->mod_info);
-            moduleScheduleQueueAddMod(&modschdr->mod_schd_queue, mod);
+            // TODO: moduleCacheTableAdd    (&modschdr->mod_info_db   , mod->mod_info);
+            moduleScheduleQueueAddMod(&modschdr->mod_sched_queue, mod);
             return NULL;
         }
 
     case COMPILE_OBJ_TYPE_SRC: {
             Module* mod = (Module*)mem_alloc(sizeof(Module));
             moduleInitByPath(mod, projconf->path_compile_obj, projconf->cplobj_path_len, projconf);
-            moduleScheduleQueueAddMod(&modschdr->mod_schd_queue, mod);
+            moduleScheduleQueueAddMod(&modschdr->mod_sched_queue, mod);
             return NULL;
         }
     default:
@@ -648,42 +608,96 @@ error moduleSchedulerInit(ModuleScheduler* modschdr, ProjectConfig* const projco
 
 // return true if all modules are compiled over.
 //
-bool moduleSchedulerIsFinish(ModuleScheduler* modschdr) {
-    return moduleScheduleQueueIsEmpty(&modschdr->mod_schd_queue);
+bool moduleSchedulerIsFinish(ModuleScheduler* modsched) {
+    return moduleScheduleQueueIsEmpty(&modsched->mod_sched_queue);
 }
 
-// this function will add all modules needed by the modschdr->mod_cur.
-//
-// for example:
-// 1. the ModuleScheduleQueue's state is: [module]
-//
-//                                         file1.cplus: module fmt
-//                                       /              module net/http
-//                                      /
-// 2. now parse the module: module.mod {-- file2.cplus: module net/http
-//                                      \               module os
-//                                       \
-//                                         file3.cplus: module io
-//
-// 3. now ModuleScheduleQueue's state is: [fmt net/http os io module]
-//                                         ^^^ ^^^^^^^^ ^^ ^^
-//    the modules underlined with '^' are added after parse the dependences.
-//   
-static error moduleSchedulerParseDependences(ModuleScheduler* modschdr) {
-    error          err;
-    char*          mod_name;
-    int64          mod_name_len;
-    char*          file;
+static error moduleSchedulerModulePreprocessParseModule(ModuleScheduler* modsched, Lexer* lexer) {
+    bool           last_isid = false;
     LexToken*      lextkn;
-    bool           last_isid;
-    Module*        mod;
-    ModuleInfo*    mod_info;
+    char*          mod_name;
+    Module*        mod = NULL;
     DynamicArrChar darr;
-    dynamicArrCharInit(&darr, 255);
+    dynamicArrCharInit(&darr, 128);
 
-    while ((file = moduleGetNextSrcFile(modschdr->mod_cur)) != NULL) {
-        Lexer     lexer;
-        LexToken* lextkn;
+    lexerNextToken(lexer); // pass the keyword 'module'
+    for (;;) {
+        if ((err = lexerParseToken(lexer)) != NULL) {
+            return err;
+        }
+        lextkn = lexerReadToken(lexer);
+
+        if (lextkn->token_code == TOKEN_ID && last_isid == false) {
+            dynamicArrCharAppend(&darr, lexTokenGetStr(lextkn), lextkn->token_len);
+            lexerNextToken(lexer);
+            last_isid = true;
+        }
+        else if (lextkn->token_code == TOKEN_OP_DIV && last_isid == true) {
+            dynamicArrCharAppendc(&darr, '/');
+            lexerNextToken(lexer);
+            last_isid = false;
+        }
+        else if (lextkn->token_code == TOKEN_LINEFEED && last_isid == true) {
+            mod_name = dynamicArrCharGetStr(&darr);
+            mod      = (Module*)mem_alloc(sizeof(Module));
+            moduleInitByName(mod, mod_name, darr.used, modsched->projconf);
+            moduleScheduleQueueAddMod(&modsched->mod_sched_queue, mod);
+            mem_free(mod_name);
+            lexerNextToken(lexer);
+            dynamicArrCharDestroy(&darr);
+            return NULL;
+        }
+        else {
+            dynamicArrCharDestroy(&darr);
+            return new_error("invalid module name.");
+        }
+    }
+}
+
+static error moduleSchedulerModulePreprocessParseFunc(ModuleScheduler* modsched, Lexer* lexer) {
+    LexToken* lextkn;
+
+    lexerNextToken(lexer); // pass the keyword 'func'
+    for (;;) {
+        
+    }
+}
+
+static error moduleSchedulerModulePreprocessParseExpn(ModuleScheduler* modsched, Lexer* lexer) {
+    LexToken* lextkn;
+    Ident*    id = (Ident*)mem_alloc(sizeof(Ident));
+    
+    lexerNextToken(lexer); // pass the keyword 'expn'
+    if ((err = lexerParseToken(lexer)) != NULL) {
+        return err;
+    }
+    lextkn = lexerReadToken(lexer);
+    if (lextkn->token_code != TOKEN_ID) {
+        return new_error("missing expander name.")
+    }
+    
+    return NULL;
+}
+
+static error moduleSchedulerModulePreprocessParseType(ModuleScheduler* modsched, Lexer* lexer) {
+    LexToken* lextkn;
+
+    lexerNextToken(lexer); // pass the keyword 'type'
+    for (;;) {
+        
+    }
+}
+
+static error moduleSchedulerModulePreprocess(ModuleScheduler* modsched) {
+    char*       file;
+    LexToken*   lextkn;
+    Module*     mod;
+    IdentTable* id_table;
+    
+    // TODO: check the disk cache file here...
+
+    while ((file = moduleGetNextSrcFile(modsched->mod_cur)) != NULL) {
+        Lexer lexer;
         if ((err = lexerInit(&lexer)) != NULL) {
             return err;
         }
@@ -691,71 +705,36 @@ static error moduleSchedulerParseDependences(ModuleScheduler* modschdr) {
             return err;
         }
         for (;;) {
-            // check module keywork.
-            //
             if ((err = lexerParseToken(&lexer)) != NULL) {
-                break;
+                // TODO: check EOF
+                return err;
             }
             lextkn = lexerReadToken(&lexer);
-            if (lextkn->token_code != TOKEN_KEYWORD_MODULE) {
+            switch (lextkn->token_code) {
+            case TOKEN_KEYWORD_MODULE:
+                if ((err = moduleSchedulerModulePreprocessParseModule(modsched, &lexer)) == NULL) {
+                    // TODO: report error...
+                }
+                break;
+
+            case TOKEN_KEYWORD_TYPE:
+                break;
+
+            case TOKEN_KEYWORD_FUNC:
+                break;
+
+            case TOKEN_KEYWORD_EXPN:
+                break;
+
+            case TOKEN_KEYWORD_CONST:
+                break;
+
+            case TOKEN_ID:
                 break;
             }
-            lexerNextToken(&lexer);
-
-            // check the module name and do some processes based on its module information(which can be searched in
-            // one instance of ModuleInfoDatabase).
-            //
-            last_isid    = false;
-            mod_name_len = 0;
-            for (;;) {
-                if ((err = lexerParseToken(&lexer)) != NULL) {
-                    break;
-                }
-                lextkn = lexerReadToken(&lexer);
-
-                if (lextkn->token_code == TOKEN_ID && last_isid == false) {
-                    dynamicArrCharAppendDarr(&darr, &lextkn->token);
-                    mod_name_len += lextkn->token_len;
-                    lexerNextToken(&lexer);
-                }
-                else if (lextkn->token_code == TOKEN_OP_DIV && last_isid == true) {
-                    dynamicArrCharAppendc(&darr, '/');
-                    mod_name_len += 1;
-                    lexerNextToken(&lexer);
-                }
-                else if (lextkn->token_code == TOKEN_LINEFEED && last_isid == true) {
-                    mod_name = dynamicArrCharGetStr(&darr);
-                    dynamicArrCharClear(&darr);
-
-                    // if the module is not in the ModuleInfoDatabase, it means the module is used firstly during
-                    // compiling. so just add it into the ModScheduleQueue and it will be compiled later.
-                    //
-                    if ((mod_info = moduleInfoDatabaseGet(&modschdr->mod_info_db, mod_name)) == NULL) {
-                        mod = (Module*)mem_alloc(sizeof(Module));
-                        moduleInitByName(mod, mod_name, mod_name_len, modschdr->projconf);
-                        moduleInfoDatabaseAdd    (&modschdr->mod_info_db   , mod->mod_info);
-                        moduleScheduleQueueAddMod(&modschdr->mod_schd_queue, mod);
-                    }
-                    // if the module is already in the ModuleInfoDatabase and it has not been compiled yet means
-                    // that the cycle-import happened.
-                    //
-                    else if (mod_info != NULL && mod_info->compile_over == false) {
-                        // TODO: process the delay resolved struct
-                    }
-                    break;
-                }
-                else
-                    return new_error("invalid module name.");
-            }
         }
-        lexerCloseSrcFile(&lexer);
         lexerDestroy(&lexer);
     }
-
-    modschdr->mod_cur->dependences_parsed = true;
-    moduleRewind(modschdr->mod_cur);
-    dynamicArrCharDestroy(&darr);
-    return NULL;
 }
 
 // note:
@@ -765,25 +744,25 @@ static error moduleSchedulerParseDependences(ModuleScheduler* modschdr) {
 //
 //    GetPreparedModule -> trigger to destroy the previous returned module -> release the module without module->mod_info
 //                                                                                               ^^^^^^^^^^^^^^^^^^^^^^^^
-Module* moduleSchedulerGetPreparedModule(ModuleScheduler* modschdr) {
-    if (modschdr->mod_cur != NULL) {
-        moduleDestroy(modschdr->mod_cur);
-        mem_free(modschdr->mod_cur);
+Module* moduleSchedulerGetPreparedModule(ModuleScheduler* modsched) {
+    if (modsched->mod_cur != NULL) {
+        moduleDestroy(modsched->mod_cur);
+        mem_free(modsched->mod_cur);
     }
-    while ((modschdr->mod_cur = moduleScheduleQueueGetHeadMod(&modschdr->mod_schd_queue)) != NULL) {
-        if (modschdr->mod_cur->dependences_parsed == false)
-            moduleSchedulerParseDependences(modschdr);
+    while ((modsched->mod_cur = moduleScheduleQueueGetHeadMod(&modsched->mod_sched_queue)) != NULL) {
+        if (modsched->mod_cur->preprocessed == false)
+            ;// TODO: moduleSchedulerParseDependences(modsched);
         else
             break;
     }
-    return modschdr->mod_cur;
+    return modsched->mod_cur;
 }
 
-void moduleSchedulerDestroy(ModuleScheduler* modschdr) {
-    if (modschdr->mod_cur != NULL) {
-        moduleDestroy(modschdr->mod_cur);
-        mem_free(modschdr->mod_cur);
+void moduleSchedulerDestroy(ModuleScheduler* modsched) {
+    if (modsched->mod_cur != NULL) {
+        moduleDestroy(modsched->mod_cur);
+        mem_free(modsched->mod_cur);
     }
-    moduleScheduleQueueDestroy(&modschdr->mod_schd_queue);
-    moduleInfoDatabaseDestroy (&modschdr->mod_info_db);
+    moduleScheduleQueueDestroy(&modsched->mod_sched_queue);
+    moduleCacheTableDestroy   (&modsched->mod_cache_table);
 }
