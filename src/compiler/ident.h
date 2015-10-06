@@ -12,20 +12,94 @@
 
 #include "common.h"
 
-#define ID_UNKNOWN         -1
-#define ID_PLACEHOLDER   0x00
-#define ID_CONST         0x01
-#define ID_VAR           0x02
-#define ID_ARRAY         0x03
-#define ID_TYPE          0x04
-#define ID_FUNCTION      0x05
-#define ID_EXPANDER      0x06
-#define ID_INCLUDE       0x07
-#define ID_MODULE        0x08
+typedef struct Ident           Ident;
+typedef struct IdentUnresolved IdentUnresolved;
+typedef struct IdentDatatype   IdentDatatype;
+typedef struct IdentVariable   IdentVariable;
+typedef struct IdentArray      IdentArray;
+typedef struct IdentFunction   IdentFunction;
+typedef struct IdentExpander   IdentExpander;
+typedef struct IdentModule     IdentModule;
+typedef struct IdentTableNode  IdentTableNode;
+typedef struct IdentTable      IdentTable;
 
-#define ACCESS_NULL      0x00
-#define ACCESS_IN        0x01
-#define ACCESS_OT        0x02
+#define ID_TYPE_UNRESOLVED 0
+#define ID_TYPE_DATATYPE   1
+#define ID_TYPE_VARIABLE   2
+#define ID_TYPE_ARRAY      3
+#define ID_TYPE_FUNCTION   4
+#define ID_TYPE_EXPANDER   5
+#define ID_TYPE_MODULE     6
+
+// Ident can represent any identifier in Cplus. the member id will be used based on
+// the value of the id_type.
+//
+// for example, if the id_type is ID_TYPE_VARIABLE, then the actual effective pointer
+// of id is id.id_variable.
+//
+struct Ident {
+    char* id_name;
+    int8  id_type;
+    union {
+        IdentUnresolved* id_unresolved;
+        IdentDatatype*   id_datatype;
+        IdentVariable*   id_variable;
+        IdentArray*      id_array;
+        IdentFunction*   id_function;
+        IdentExpander*   id_expander;
+        IdentModule*     id_module;
+    }id;
+};
+
+// IdentUnresolved represents an identifier can not resolved immediately but can be
+// resolved later.
+//
+struct IdentUnresolved {  
+    char* mod_name;
+    char* id_name;
+};
+
+#define DATATYPE_UNASSIGNED        NULL
+#define DATATYPE_BASETYPE_BYTE     -1
+#define DATATYPE_BASETYPE_INT8     -2
+#define DATATYPE_BASETYPE_INT16    -3
+#define DATATYPE_BASETYPE_INT32    -4
+#define DATATYPE_BASETYPE_INT64    -5
+#define DATATYPE_BASETYPE_INT128   -6
+#define DATATYPE_BASETYPE_UINT8    -7
+#define DATATYPE_BASETYPE_UINT16   -8
+#define DATATYPE_BASETYPE_UINT32   -9
+#define DATATYPE_BASETYPE_UINT64   -10
+#define DATATYPE_BASETYPE_UINT128  -11
+#define DATATYPE_BASETYPE_FLOAT32  -12
+#define DATATYPE_BASETYPE_FLOAT64  -13
+#define DATATYPE_BASETYPE_CHAR     -14
+#define DATATYPE_BASETYPE_STRING   -15
+
+struct IdentDatatype {
+    IdentTable* id_table;
+};
+
+struct IdentVariable {
+    IdentDatatype* datatype;
+};
+
+struct IdentArray {
+    int64          length;
+    IdentDatatype* datatype;
+};
+
+struct IdentFunction {
+    
+};
+
+struct IdentExpander {
+    
+};
+
+struct IdentModule {
+    IdentTable* id_table;
+};
 
 #define NODE_COLOR_RED   0x00
 #define NODE_COLOR_BLACK 0x01
@@ -33,135 +107,6 @@
 #define NODE_CMP_LT      0x00
 #define NODE_CMP_EQ      0x01
 #define NODE_CMP_GT      0x02
-
-typedef struct Ident            Ident;
-typedef struct IdentConst       IdentConst;
-typedef struct IdentVar         IdentVar;
-typedef struct IdentArray       IdentArray;
-typedef struct IdentType        IdentType;
-typedef struct IdentFunc        IdentFunc;
-typedef struct IdentExpn        IdentExpn;
-typedef struct IdentInclude     IdentInclude;
-typedef struct IdentModule      IdentModule;
-typedef struct IdentTableNode   IdentTableNode;
-typedef struct IdentTable       IdentTable;
-
-// represent a constant's information. a constant can not be
-// assigned more than once.
-//
-struct IdentConst {
-    IdentType* data_type_info;
-};
-
-// represent a variable's information. a variable is an address's
-// name, it can be used to modify the address's content frequently.
-//
-struct IdentVar {
-    IdentType* data_type_info;
-};
-
-// represent an array's information.
-struct IdentArray {
-    IdentType* data_type_info;
-};
-
-// represent the member's information of a type. it is only used
-// when the type's primitive is false(means the type is a compound
-// type).
-//
-typedef struct Member {
-    char* member_name;
-    int8  member_access;
-    int8  member_type;
-    union {
-        IdentConst* constant;
-        IdentVar*   variable;
-        IdentArray* array;
-        IdentType*  type;
-        IdentFunc*  function;
-        IdentExpn*  expander;
-    }member;
-
-    struct Member* next;
-}Member;
-
-// represent a type's information.
-struct IdentType {
-    bool primitive;
-    union {
-        int16   prim_type_token_code;
-        Member* members;
-    }type;
-};
-
-// represent a parameter passed into or returned out by a function
-// or a expander.
-//
-typedef struct Parameter {
-    IdentType* param_data_type_info;
-    char*      param_name;
-
-    struct Parameter* next;
-}Parameter;
-
-// represent a function's information.
-struct IdentFunc {
-    Parameter* params_passin;
-    Parameter* params_retout;
-    // TODO: design a way to represent the error_tag list
-};
-
-// represent a expander's information. the expander is often called
-// 'micro' in other languages.
-//
-struct IdentExpn {
-    Parameter* params_passin;
-    // TODO: design a way to represent the expander's body
-};
-
-// represent an included file's information about identified objects
-// within it.
-//
-struct IdentInclude {
-    IdentTable* id_table;
-};
-
-// represent a module's information about identified objects within it.
-//
-struct IdentModule {
-    IdentTable* id_table;
-};
-
-// an Ident represents an identified object.
-//
-// the example about using an Ident object:
-//    IdentTable id_table;
-//    ...
-//    Ident* id = identTableSearch(&id_table, "foo");
-//    switch (id->id_type) {
-//    case ID_CONST: // do some process to the 'id->id_info.id_const'
-//    case ID_VAR:   // do some process to the 'id->id_info.id_var'
-//    case ID_ARRAY: // do some process to the 'id->id_info.id_array'
-//    ...
-//    default: ...
-//    }
-//    ...
-//
-struct Ident {
-    char* id_name;
-    int8  access;
-    int8  id_type;
-    union {
-        IdentConst*   constant;
-        IdentVar*     variable;
-        IdentArray*   array;
-        IdentType*    type;
-        IdentFunc*    function;
-        IdentExpn*    expander;
-        IdentInclude* include;
-        IdentModule*  module;
-    }id;
-};
 
 struct IdentTableNode {
     Ident*          id;
@@ -171,8 +116,8 @@ struct IdentTableNode {
     IdentTableNode* rchild;
 };
 
-// the IdentTable is used to storage a set of information
-// about nameable objects in C+ language.
+// the IdentTable is used to storage a set of information about nameable objects in
+// Cplus language.
 //
 struct IdentTable {
     IdentTableNode* root;
