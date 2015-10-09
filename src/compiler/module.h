@@ -17,13 +17,12 @@
 #include "lexer.h"
 #include "ident.h"
 
-typedef struct SourceFile              SourceFile;
-typedef struct Module                  Module;
-typedef struct ModuleScheduleQueueNode ModuleScheduleQueueNode;
-typedef struct ModuleScheduleQueue     ModuleScheduleQueue;
-typedef struct ModuleCacheTableNode    ModuleCacheTableNode;
-typedef struct ModuleCacheTable        ModuleCacheTable;
-typedef struct ModuleScheduler         ModuleScheduler;
+typedef struct SourceFile            SourceFile;
+typedef struct Module                Module;
+typedef struct ModuleQueueNode       ModuleQueueNode;
+typedef struct ModuleQueue           ModuleQueue;
+typedef struct ModuleExportTableNode ModuleExportTableNode;
+typedef struct ModuleExportTable     ModuleExportTable;
 
 // represent a source file in one module or program directory.
 //
@@ -38,57 +37,29 @@ struct Module {
     char*       mod_path;
     int         mod_path_len;
     bool        mod_ismain;
-    bool        preprocessed;
     SourceFile* srcfiles;
     SourceFile* iterator;
 };
 
-// note： the Module's memory will be allocated and released automatically by ModuleScheduler. so
-//        you will never have necessity to call moduleInitXXXX and moduleDestroy.
-//
 static void  moduleInitByName    (Module* mod, char* mod_name, int mod_name_len, const ProjectConfig* projconf);
 static void  moduleInitByPath    (Module* mod, char* mod_path, int mod_path_len, const ProjectConfig* projconf);
 extern char* moduleGetNextSrcFile(Module* mod);
 extern void  moduleRewind        (Module* mod);
 static void  moduleDestroy       (Module* mod);
 
-struct ModuleScheduleQueueNode {
-    Module*                  mod;
-    ModuleScheduleQueueNode* prev;
-    ModuleScheduleQueueNode* next;
+struct ModuleQueueNode {
+    Module*          mod;
+    ModuleQueueNode* next;
 };
 
-// the ModuleScheduleQueue is a liner list to save a set of modules waiting to
-// be compiled. the AddMod operation of the queue will be performed like below:
-//
-// ('^' is the pointer which points to the module being processed now)
-//
-// 1. now the queue's state is like this:
-//    mod1 --- mod2 --- mod3
-//    ^
-// 2. then add the mod4:
-//    mod4 --- mod1 --- mod2 --- mod3
-//             ^
-// 3. then add the mod5:
-//    mod4 --- mod5 --- mod1 --- mod2 --- mod3
-//                      ^
-// 4. then add the mod6:
-//    mod4 --- mod5 --- mod6 --- mod1 --- mod2 --- mod3
-//                               ^
-// every added node means a dependency required by other nodes at the right of
-// the queue.
-//
-struct ModuleScheduleQueue {
-    ModuleScheduleQueueNode* head;
-    ModuleScheduleQueueNode* cur;
+struct ModuleQueue {
+    ModuleQueueNode* head;
+    ModuleQueueNode* tail;
 };
 
-static void    moduleScheduleQueueInit      (ModuleScheduleQueue* queue);
-static bool    moduleScheduleQueueIsEmpty   (ModuleScheduleQueue* queue);
-static void    moduleScheduleQueueAddMod    (ModuleScheduleQueue* queue, Module* mod);
-static Module* moduleScheduleQueueGetHeadMod(ModuleScheduleQueue* queue);
-static void    moduleScheduleQueueDelHeadMod(ModuleScheduleQueue* queue);
-static void    moduleScheduleQueueDestroy   (ModuleScheduleQueue* queue);
+extern void moduleQueueInit   (ModuleQueue* modqueue);
+extern void moduleQueueEnqueue(ModuleQueue* modqueue, Module* modqueue);
+extern void moduleQueueDestroy(ModuleQueue* modqueue);
 
 #define NODE_COLOR_RED   0x00
 #define NODE_COLOR_BLACK 0x01
@@ -117,24 +88,5 @@ static void        moduleCacheTableInit   (ModuleCacheTable* cachetable);
 static error       moduleCacheTableAdd    (ModuleCacheTable* cachetable, char* mod_name, IdentTable* id_table);
 static IdentTable* moduleCacheTableGet    (ModuleCacheTable* cachetable, char* mod_name);
 static void        moduleCacheTableDestroy(ModuleCacheTable* cachetable);
-
-// ModuleScheduler can manage all modules needed by a cplus project. it will analyze these
-// modules' relation and parse their dependences. it will always return a module which
-// need fewest other modules of the current state.
-//
-// example:
-//    TODO: make the doc here...
-//
-struct ModuleScheduler {
-    const ProjectConfig* projconf;
-    Module*              mod_cur;
-    ModuleScheduleQueue  mod_sched_queue;
-    ModuleCacheTable     mod_cache_table;
-};
-
-extern error   moduleSchedulerInit             (ModuleScheduler* modsched, const ProjectConfig* projconf);
-extern bool    moduleSchedulerIsFinish         (ModuleScheduler* modsched);
-extern Module* moduleSchedulerGetPreparedModule(ModuleScheduler* modsched);
-extern void    moduleSchedulerDestroy          (ModuleScheduler* modsched);
 
 #endif

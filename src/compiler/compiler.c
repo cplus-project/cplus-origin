@@ -8,7 +8,8 @@
 
 error compilerInit(Compiler* compiler, ProjectConfig* projconf) {
     compiler->project_config = projconf;
-    moduleSchedulerInit(&compiler->mod_scheduler, projconf);
+    
+    
 }
 
 error compilerBuild(Compiler* compiler) {

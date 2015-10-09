@@ -17,7 +17,6 @@
 
 typedef struct {
     ProjectConfig*  project_config;
-    ModuleScheduler mod_scheduler;
 }Compiler;
 
 extern error compilerInit   (Compiler* compiler, ProjectConfig* projconf);
