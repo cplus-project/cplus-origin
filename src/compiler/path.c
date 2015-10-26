@@ -6,12 +6,6 @@
 
 #include "path.h"
 
-#ifdef PLATFORM_WINDOWS
-    const char path_separator = '\\';
-#else
-    const char path_separator = '/';
-#endif
-
 // get the parent level of the target path. return NULL if the target
 // path does not have the parent level.
 //
@@ -26,7 +20,7 @@
 //     1. path "C:\Windows" will return "C:"
 //     2. path "C:" will return NULL
 //
-char* path_prev(char* path, int path_len) {
+char* path_prev(const char* path, int path_len) {
     if (path == NULL || strcmp(path, "/") == 0) {
         return NULL;
     }
@@ -54,7 +48,7 @@ char* path_prev(char* path, int path_len) {
 // example:
 //    path "/usr/local/bin" will return "bin"
 //
-char* path_last(char* path, int path_len) {
+char* path_last(const char* path, int path_len) {
     if (path == NULL) {
         return NULL;
     }
@@ -80,7 +74,7 @@ char* path_last(char* path, int path_len) {
 
 // return NULL if the target is a directory.
 //
-error path_isdir(char* path) {
+error path_isdir(const char* path) {
     if (path == NULL) {
         return new_error("the path should not be NULL.");
     }
@@ -96,7 +90,7 @@ error path_isdir(char* path) {
 
 // return NULL if the target is a regular file.
 //
-error path_isreg(char* path) {
+error path_isreg(const char* path) {
     if (path == NULL) {
         return new_error("the path should not be NULL.");
     }
@@ -108,4 +102,20 @@ error path_isreg(char* path) {
         return NULL;
     }
     return new_error("the path is not a regular file.");
+}
+
+// return true if the path is an absolute path.
+//
+bool path_isabs(const char* path, int path_len) {
+    if (path == NULL) {
+        return false;
+    }
+#ifdef PLATFORM_WINDOWS
+    if (path_len > 2 && ('A' <= path[0] && path[0] <= 'Z' || 'a' <= path[0] && path[0] <= 'z') && path[1] == ':' && path[2] == '\\')
+        return true;
+#else
+    if (path_len > 0 && path[0] == '/')
+        return true;
+#endif
+    return false;
 }

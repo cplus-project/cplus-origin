@@ -15,37 +15,35 @@
 #include "dynamicarr.h"
 #include "path.h"
 
-// all functions listed below will return true if the specified path is the one
-// you want to judge.
-//
-extern bool is_cplus_source (char* path, int path_len);
-extern bool is_cplus_module (char* path, int path_len);
-extern bool is_cplus_program(char* path, int path_len);
-extern bool is_cplus_project(char* path, int path_len);
-
-#define COMPILE_OBJ_TYPE_PROJ 0
-#define COMPILE_OBJ_TYPE_PROG 1
-#define COMPILE_OBJ_TYPE_MOD  2
-#define COMPILE_OBJ_TYPE_SRC  3
-
 // The ProjectConfig is used to save some information about the project.
 //
 typedef struct {
-    int8  compile_obj_type; // one of the file types in .cplus/.prog/.mod/project
+    // the path of the compiler
+    char* path_compiler;
+    int   path_compiler_len;
+    
+    // the path of the standard modules
+    char* path_stdmods;
+    int   path_stdmods_len;
+    
+    // the path of the module passed to the compiler as the parameter
+    char* path_buildmod;
+    int   path_buildmod_len;
+    
+    // the path of the project
+    char* path_project;
+    int   path_project_len;
 
-    char* path_compiler;    // the path of the cplus compiler program.
-    char* path_stdmod;      // the path of the standard modules.
-    char* path_project;     // the path of the current building project's directory.
-    char* path_binary;      // the path of the current building project's binary files.
-    char* path_source;      // the path of the current building project's source files.
-    char* path_compile_obj; // the path of the compile object(which is passed to the compiler as a parameter)
+    // the path of the source directory
+    char* path_srcdir;
+    int   path_srcdir_len;
 
-    int   stdmod_path_len;  // the length of path_stdmod
-    int   srcdir_path_len;  // the length of path_source
-    int   cplobj_path_len;  // the length of path_compile_obj
+    // the path of the binary directory
+    char* path_bindir;
+    int   path_bindir_len;
 }ProjectConfig;
 
-extern error projectConfigInit   (ProjectConfig* projconf, char* compiler_path, char* compile_obj_path);
+extern error projectConfigInit   (ProjectConfig* projconf, char* path_compiler, char* path_buildmod);
 extern void  projectConfigDestroy(ProjectConfig* projconf);
 
 #endif
